@@ -2,36 +2,19 @@
 // leads 評分、配置面向框架皆在此 server component 計算,只把純資料傳給互動元件。
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getMockClient } from "@/lib/mock/clients";
-import { createServerSupabase } from "@/lib/supabase/server";
+import { getAdvisorWorkbench } from "@/lib/actions/advisor";
+import { loadClientData, isRealClientId } from "@/lib/clientData";
 import { scoreLead } from "@/lib/domain/leads";
 import { assetBreakdown, computeGaps, liquidAssets, protectionVsInvestment, sumAssets } from "@/lib/domain/calc";
 import { ALLOCATION_DIMENSIONS, dimensionHints } from "@/lib/domain/allocation";
 import { AdvisorWorkbench } from "@/components/AdvisorWorkbench";
-import type { QuestionnaireData } from "@/lib/domain/types";
-
-/** 讀取客戶問卷資料:先範例、再真實(RLS 限本顧問名下) */
-async function loadClientData(id: string): Promise<QuestionnaireData | null> {
-  const mock = getMockClient(id);
-  if (mock) return mock.data;
-  // 真實客戶 id 為 uuid;非 uuid(如舊範例碼)直接視為不存在
-  if (!/^[0-9a-f-]{36}$/i.test(id)) return null;
-  const supabase = await createServerSupabase();
-  const { data } = await supabase
-    .from("clients")
-    .select("questionnaire_responses(basic, core, deep, kyc)")
-    .eq("id", id)
-    .maybeSingle();
-  const qr = (data as { questionnaire_responses?: { basic: unknown; core: unknown; deep: unknown; kyc: unknown }[] } | null)
-    ?.questionnaire_responses?.[0];
-  if (!qr?.core) return null;
-  return { basic: qr.basic, core: qr.core, deep: qr.deep ?? undefined, kyc: qr.kyc ?? undefined } as QuestionnaireData;
-}
 
 export default async function ClientDetail({ params }: PageProps<"/advisor/clients/[id]">) {
   const { id } = await params;
   const data = await loadClientData(id);
   if (!data) notFound();
+  const isReal = isRealClientId(id);
+  const saved = isReal ? await getAdvisorWorkbench(id) : null;
   const score = scoreLead(data);
   const gaps = computeGaps(data);
   const total = sumAssets(data.core.assets);
@@ -100,10 +83,14 @@ export default async function ClientDetail({ params }: PageProps<"/advisor/clien
       </details>
 
       <AdvisorWorkbench
+        clientId={id}
+        canSave={isReal}
         surname={`${data.basic.surname}${data.basic.honorific}`}
         score={score}
         gaps={gapList}
         dimensions={dimensions}
+        savedRecommendation={saved?.recommendation ?? ""}
+        savedDimensionKeys={saved?.dimensionKeys ?? []}
       />
     </main>
   );

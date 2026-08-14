@@ -3,7 +3,9 @@
 // 顧問工作台 — ⚠️ 顧問專屬,此區內容不會、也不得呈現給客戶。
 // 配置面向採「顧問手動勾選」;系統僅提供中性提示(flagged)作參考,不代為決定。
 import { useState } from "react";
+import Link from "next/link";
 import type { LeadScore } from "@/lib/domain/leads";
+import { saveAdvisorWorkbench } from "@/lib/actions/advisor";
 
 interface Dimension {
   key: string;
@@ -20,20 +22,41 @@ interface GapItem {
 }
 
 export function AdvisorWorkbench({
+  clientId,
+  canSave,
   surname,
   score,
   gaps,
   dimensions,
+  savedRecommendation,
+  savedDimensionKeys,
 }: {
+  clientId: string;
+  canSave: boolean;
   surname: string;
   score: LeadScore;
   gaps: GapItem[];
   dimensions: Dimension[];
+  savedRecommendation: string;
+  savedDimensionKeys: string[];
 }) {
-  const [checked, setChecked] = useState<Record<string, boolean>>({});
-  const [reco, setReco] = useState("");
+  const [checked, setChecked] = useState<Record<string, boolean>>(() =>
+    Object.fromEntries(savedDimensionKeys.map((k) => [k, true])),
+  );
+  const [reco, setReco] = useState(savedRecommendation);
+  const [saving, setSaving] = useState(false);
+  const [savedMsg, setSavedMsg] = useState<string | null>(null);
 
   const toggle = (k: string) => setChecked((p) => ({ ...p, [k]: !p[k] }));
+
+  const save = async () => {
+    setSaving(true);
+    setSavedMsg(null);
+    const dimensionKeys = Object.entries(checked).filter(([, v]) => v).map(([k]) => k);
+    const res = await saveAdvisorWorkbench({ clientId, recommendation: reco, dimensionKeys });
+    setSaving(false);
+    setSavedMsg(res.ok ? "已儲存 ✓" : `儲存失敗:${res.error}`);
+  };
 
   const factorLabels: { key: keyof LeadScore["factors"]; label: string; max: number }[] = [
     { key: "assetScale", label: "資產規模", max: 30 },
@@ -145,18 +168,35 @@ export function AdvisorWorkbench({
           placeholder={`針對 ${surname} 的現況,建議討論的規劃方向…`}
           className="mt-3 w-full rounded-lg border border-neutral-300 bg-white px-3 py-2.5 text-sm outline-none focus:border-sky-500 dark:border-neutral-700 dark:bg-neutral-900"
         />
-        <div className="mt-3 flex items-center justify-between">
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
           <span className="text-xs text-neutral-400">
             已勾選 {Object.values(checked).filter(Boolean).length} 個面向
           </span>
-          <button
-            disabled
-            className="cursor-not-allowed rounded-lg bg-sky-600/60 px-4 py-2 text-sm font-medium text-white"
-            title="待接上 Supabase 後啟用儲存與 PDF"
-          >
-            儲存並產出報告(建置中)
-          </button>
+          <div className="flex items-center gap-3">
+            {savedMsg && (
+              <span className={savedMsg.startsWith("已儲存") ? "text-xs text-emerald-600 dark:text-emerald-400" : "text-xs text-red-600 dark:text-red-400"}>
+                {savedMsg}
+              </span>
+            )}
+            <button
+              onClick={save}
+              disabled={!canSave || saving}
+              className="rounded-lg bg-sky-600 px-4 py-2 text-sm font-medium text-white hover:bg-sky-700 disabled:cursor-not-allowed disabled:opacity-40"
+              title={canSave ? "" : "示範客戶不儲存"}
+            >
+              {saving ? "儲存中…" : "儲存"}
+            </button>
+            <Link
+              href={`/advisor/clients/${clientId}/report`}
+              className="rounded-lg border border-sky-600 px-4 py-2 text-sm font-medium text-sky-700 hover:bg-sky-50 dark:text-sky-300 dark:hover:bg-sky-950/40"
+            >
+              產出報告 →
+            </Link>
+          </div>
         </div>
+        {!canSave && (
+          <p className="mt-2 text-xs text-neutral-400">示範客戶不寫入資料庫;真實客戶可儲存建議並產出報告。</p>
+        )}
       </section>
     </div>
   );

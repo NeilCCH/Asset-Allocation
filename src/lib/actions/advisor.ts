@@ -61,6 +61,49 @@ export async function createAdvisorProfile(input: {
   return { ok: false, error: "推薦碼產生失敗,請重試" };
 }
 
+/** 儲存顧問工作台 — 建議 + 勾選的配置面向。⚠️ 寫入 advisor_private(RLS 限本顧問)。 */
+export async function saveAdvisorWorkbench(input: {
+  clientId: string;
+  recommendation: string;
+  dimensionKeys: string[];
+}): Promise<{ ok: true } | { ok: false; error: string }> {
+  const supabase = await createServerSupabase();
+  const { data: auth } = await supabase.auth.getUser();
+  if (!auth.user) return { ok: false, error: "尚未登入" };
+  const { error } = await supabase.from("advisor_private").upsert(
+    {
+      client_id: input.clientId,
+      allocation_framework: { dimensions: input.dimensionKeys },
+      advisor_recommendation: input.recommendation,
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: "client_id" },
+  );
+  if (error) return { ok: false, error: error.message };
+  return { ok: true };
+}
+
+export interface AdvisorWorkbenchData {
+  recommendation: string;
+  dimensionKeys: string[];
+}
+
+/** 讀取已儲存的工作台內容(RLS 限本顧問名下客戶) */
+export async function getAdvisorWorkbench(clientId: string): Promise<AdvisorWorkbenchData | null> {
+  const supabase = await createServerSupabase();
+  const { data } = await supabase
+    .from("advisor_private")
+    .select("advisor_recommendation, allocation_framework")
+    .eq("client_id", clientId)
+    .maybeSingle();
+  if (!data) return null;
+  const framework = data.allocation_framework as { dimensions?: string[] } | null;
+  return {
+    recommendation: data.advisor_recommendation ?? "",
+    dimensionKeys: framework?.dimensions ?? [],
+  };
+}
+
 /** 讀取目前登入顧問的檔案 */
 export async function getMyAdvisor(): Promise<AdvisorProfile | null> {
   const supabase = await createServerSupabase();
