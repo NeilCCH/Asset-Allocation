@@ -23,6 +23,7 @@ import {
   type GapResult,
 } from "@/lib/domain/calc";
 import { clientDefaultParams } from "@/lib/domain/params";
+import { estimateEstateTax } from "@/lib/domain/estateTax";
 import { loadDraft } from "@/lib/draft";
 import { createClient } from "@/lib/supabase/client";
 
@@ -104,6 +105,9 @@ export default function Dashboard() {
     ? `你的資產以「${topCat.name}」為主,約占 ${topPct}%;流動資產占 ${liquidPct}%。` +
       (liquidPct < 10 ? "流動性偏低,建議留意短期資金調度。" : topPct > 60 ? "單一類別占比偏高,可留意分散。" : "整體分布尚屬均衡。")
     : "";
+
+  // 遺產稅預估(僅達課稅標準時顯示)
+  const estate = estimateEstateTax(data);
 
   // 現有保障總覽(各險種單位不同)
   const ins = data.deep?.insurance_detail;
@@ -234,6 +238,32 @@ export default function Dashboard() {
             "部分缺口需補充深化問卷(負債、保障、教育金)後才能試算。"}
         </p>
       </Card>
+
+      {/* 遺產稅預估(達課稅標準才顯示) */}
+      {estate.taxable && (
+        <Card title="遺產稅預估">
+          <div className="grid grid-cols-3 gap-3">
+            <Stat label="遺產總額" value={fmt(estate.grossEstate)} />
+            <Stat label="課稅遺產淨額" value={fmt(estate.netTaxable)} hint={`扣除額 ${fmt(estate.totalDeductions)}`} />
+            <Stat label="預估遺產稅" value={fmt(estate.tax)} hint={`稅率 ${Math.round(estate.rate * 100)}%`} />
+          </div>
+          <details className="mt-3 rounded-lg border border-neutral-200 dark:border-neutral-800">
+            <summary className="cursor-pointer px-3 py-2 text-xs text-neutral-500 dark:text-neutral-400">扣除額明細</summary>
+            <ul className="border-t border-neutral-100 px-3 py-2 text-xs dark:border-neutral-800">
+              {estate.deductions.map((d) => (
+                <li key={d.label} className="flex justify-between py-0.5">
+                  <span className="text-neutral-500 dark:text-neutral-400">{d.label}</span>
+                  <span>{fmt(d.amount)}</span>
+                </li>
+              ))}
+            </ul>
+          </details>
+          <p className="mt-3 text-xs text-neutral-500 dark:text-neutral-400">
+            依台灣現行遺產稅概數試算(免稅額 1,333 萬、配偶 493 萬、每位子女 56 萬、每位父母 138 萬、喪葬 138 萬等),
+            未計入保單指定受益人等規劃;實際以國稅局核定為準。
+          </p>
+        </Card>
+      )}
 
       <div className="mt-6 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-200">
         想更完整的規劃?你的財富管理顧問可依此健檢,與你討論後續配置方向。

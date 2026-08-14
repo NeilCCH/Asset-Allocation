@@ -136,6 +136,22 @@ export function HealthCheckReport({ model }: { model: ReportModel }) {
         </section>
       )}
 
+      {/* 遺產稅預估(達課稅標準才有) */}
+      {model.estateTax && (
+        <section className="hcr-card">
+          <h2>遺產稅預估</h2>
+          <div className="hcr-stats">
+            <Stat label="遺產總額" value={fmtWan(model.estateTax.grossEstate)} />
+            <Stat label="課稅遺產淨額" value={fmtWan(model.estateTax.netTaxable)} sub={`扣除額 ${fmtWan(model.estateTax.totalDeductions)}`} />
+            <Stat label="預估遺產稅" value={fmtWan(model.estateTax.tax)} sub={`稅率 ${Math.round(model.estateTax.rate * 100)}%`} />
+          </div>
+          <p className="hcr-note">
+            依台灣現行遺產稅概數試算(免稅額 1,333 萬、配偶 493 萬、每位子女 56 萬、每位父母 138 萬、喪葬 138 萬等),
+            未計入保單指定受益人等規劃;實際以國稅局核定為準。
+          </p>
+        </section>
+      )}
+
       {/* 顧問建議(顧問版才有) */}
       {(model.advisorRecommendation || model.selectedDimensions?.length) && (
         <section className="hcr-card hcr-advisor">

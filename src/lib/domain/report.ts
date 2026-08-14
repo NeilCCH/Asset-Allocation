@@ -11,6 +11,7 @@ import {
   sumAssets,
   type GapResult,
 } from "./calc";
+import { estimateEstateTax, type EstateTaxResult } from "./estateTax";
 
 export interface ReportModel {
   clientName: string;
@@ -29,6 +30,8 @@ export interface ReportModel {
   gaps: { name: string; result: GapResult }[];
   /** 現有保障總覽(保單健檢) */
   insurance: { label: string; has: boolean; text: string }[];
+  /** 遺產稅預估(僅達課稅標準時有值) */
+  estateTax?: EstateTaxResult;
   profile: {
     age: number;
     retireAge: number;
@@ -87,6 +90,10 @@ export function buildReport(
       { name: "教育金缺口", result: gaps.education },
     ],
     insurance: insuranceRows(data),
+    estateTax: (() => {
+      const e = estimateEstateTax(data);
+      return e.taxable ? e : undefined;
+    })(),
     profile: {
       age: data.core.age,
       retireAge: data.core.retire_age,
