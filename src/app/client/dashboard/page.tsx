@@ -145,6 +145,13 @@ export default function Dashboard() {
       <div className="mt-6 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-200">
         想更完整的規劃?你的財富管理顧問可依此健檢,與你討論後續配置方向。
       </div>
+
+      <Link
+        href="/client/report"
+        className="mt-4 block rounded-lg border border-neutral-300 py-3 text-center text-sm font-medium text-neutral-700 hover:bg-neutral-50 dark:border-neutral-700 dark:text-neutral-200 dark:hover:bg-neutral-900"
+      >
+        產出健檢報告 →
+      </Link>
     </main>
   );
 }
