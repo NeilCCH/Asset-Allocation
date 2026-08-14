@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
@@ -19,6 +19,15 @@ export default function AdvisorAuth() {
   const [cardBack, setCardBack] = useState<File | null>(null);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
+
+  // 已登入則直接進後台,避免看到登入表單誤以為被登出
+  useEffect(() => {
+    createClient()
+      .auth.getUser()
+      .then(({ data }) => {
+        if (data.user) router.replace("/advisor/dashboard");
+      });
+  }, [router]);
 
   const toggleLicense = (l: LicenseType) =>
     setLicenseNos((p) => {

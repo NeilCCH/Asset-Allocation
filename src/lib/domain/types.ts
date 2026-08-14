@@ -95,9 +95,12 @@ export interface CoreProfile {
 
 // ── 選填深化(§6.3) ─────────────────────────────────
 
+// 子女高階教育規劃(大專以上)。就學時程由子女年齡自動推算,不再手填。
 export interface EduGoal {
-  years_until: number; // 幾年後
-  location: "國內" | "海外";
+  overseas: boolean; // 是否有出國深造規劃
+  annual_edu_budget: number; // 每年教育預算(萬)
+  annual_living_budget: number; // 每年生活預算(萬)
+  study_years?: number; // 就讀年數(預設 4)
 }
 
 export interface Liabilities {

@@ -30,7 +30,10 @@ export const MOCK_CLIENTS: MockClient[] = [
       },
       deep: {
         retire_lifestyle_pct: 80,
-        edu_goals: [{ years_until: 10, location: "海外" }, { years_until: 13, location: "海外" }],
+        edu_goals: [
+          { overseas: true, annual_edu_budget: 80, annual_living_budget: 60 },
+          { overseas: false, annual_edu_budget: 30, annual_living_budget: 20 },
+        ],
         liabilities: { mortgage_balance: 800, loan_balance: 0, monthly_payment: 4 },
         emergency_months: 6,
         insurance_detail: {

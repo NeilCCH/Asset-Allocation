@@ -189,13 +189,20 @@ export function protectionGap(
 
 // ── ③ 教育金缺口(需深化資料:edu_goal) ─────────────
 
-/** 子女教育總花費現值(不扣已準備),供保障缺口引用 */
+/** 子女高階教育總花費現值(不扣已準備),供保障缺口引用。
+ *  每位子女:(每年教育預算 + 每年生活預算)× 就讀年數;就學時程由年齡推算(18 歲起)。
+ *  未填預算時,以參數 eduCostOverseas/Domestic 作後備總額估計。 */
 function educationTotalNeed(data: QuestionnaireData, params: CalcParams): number {
   const goals = data.deep?.edu_goals ?? [];
-  return goals.reduce((sum, g) => {
-    const base = g.location === "海外" ? params.eduCostOverseas : params.eduCostDomestic;
-    // 折現至現值:未來花費以報酬率貼現
-    const pv = base / Math.pow(1 + params.returnRate, Math.max(0, g.years_until));
+  const children = data.core.dependents.children;
+  const HIGHER_ED_START_AGE = 18;
+  return goals.reduce((sum, g, i) => {
+    const years = g.study_years ?? 4;
+    const annual = (g.annual_edu_budget || 0) + (g.annual_living_budget || 0);
+    const total = annual > 0 ? annual * years : g.overseas ? params.eduCostOverseas : params.eduCostDomestic;
+    const childAge = children[i]?.age ?? 0;
+    const yearsUntil = Math.max(0, HIGHER_ED_START_AGE - childAge);
+    const pv = total / Math.pow(1 + params.returnRate, yearsUntil);
     return sum + pv;
   }, 0);
 }
@@ -210,7 +217,7 @@ export function educationGap(
       status: "needs_deep_data",
       gap: 0,
       breakdown: [],
-      missing: hasChildren ? ["子女教育金目標(幾年後、國內/海外)"] : ["(無子女,不適用)"],
+      missing: hasChildren ? ["子女高階教育規劃(出國/預算)"] : ["(無子女,不適用)"],
     };
   }
   const need = educationTotalNeed(data, params);

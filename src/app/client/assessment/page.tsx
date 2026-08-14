@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import type {
@@ -96,8 +96,8 @@ interface Form {
   majorExpenseYears: string;
   // 深化:現有保障明細
   insurance: InsForm;
-  // 深化:子女教育金(每位子女一筆)
-  eduGoals: { years_until: string; location: "國內" | "海外" }[];
+  // 深化:子女高階教育規劃(每位子女一筆)
+  eduGoals: { overseas: boolean; annual_edu_budget: string; annual_living_budget: string }[];
 }
 
 const initialForm: Form = {
@@ -133,10 +133,32 @@ const initialForm: Form = {
 
 const STEPS = ["個資同意", "基本 · 家庭", "收支 · 時間", "資產盤點", "負債 · 退休", "保障 · 教育"];
 
+// 問卷填寫進度快取(重新整理 / 離開不丟資料)
+const PROGRESS_KEY = "aa_assessment_progress";
+function loadProgress(): { f: Form; step: number } | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = window.localStorage.getItem(PROGRESS_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
 export default function Assessment() {
   const router = useRouter();
-  const [step, setStep] = useState(0);
-  const [f, setF] = useState<Form>(initialForm);
+  const [step, setStep] = useState(() => loadProgress()?.step ?? 0);
+  const [f, setF] = useState<Form>(() => {
+    const p = loadProgress();
+    return p ? { ...initialForm, ...p.f } : initialForm;
+  });
+
+  // 自動存檔進度
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem(PROGRESS_KEY, JSON.stringify({ f, step }));
+    }
+  }, [f, step]);
 
   const set = <K extends keyof Form>(k: K, v: Form[K]) => setF((p) => ({ ...p, [k]: v }));
 
@@ -148,7 +170,7 @@ export default function Assessment() {
       for (let i = 0; i < count; i++) if (children[i] == null) children[i] = { stage: "國小", age: "", years_until_school: "" };
       const eduGoals = [...p.eduGoals];
       eduGoals.length = count;
-      for (let i = 0; i < count; i++) if (eduGoals[i] == null) eduGoals[i] = { years_until: "", location: "國內" };
+      for (let i = 0; i < count; i++) if (eduGoals[i] == null) eduGoals[i] = { overseas: false, annual_edu_budget: "", annual_living_budget: "" };
       return { ...p, children, eduGoals };
     });
   };
@@ -183,7 +205,7 @@ export default function Assessment() {
   const setInsValue = (key: InsKey, name: string, v: string) =>
     setF((p) => ({ ...p, insurance: { ...p.insurance, [key]: { ...p.insurance[key], values: { ...p.insurance[key].values, [name]: v } } } }));
 
-  const setEduGoal = (i: number, patch: Partial<{ years_until: string; location: "國內" | "海外" }>) =>
+  const setEduGoal = (i: number, patch: Partial<{ overseas: boolean; annual_edu_budget: string; annual_living_budget: string }>) =>
     setF((p) => {
       const eduGoals = [...p.eduGoals];
       eduGoals[i] = { ...eduGoals[i], ...patch };
@@ -258,12 +280,18 @@ export default function Assessment() {
           disability: { has: f.insurance.disability.has, monthly: num(f.insurance.disability.values.monthly ?? "") },
           long_term_care: { has: f.insurance.long_term_care.has, monthly: num(f.insurance.long_term_care.values.monthly ?? "") },
         },
-        edu_goals: f.eduGoals
-          .filter((g) => g.years_until !== "")
-          .map((g) => ({ years_until: Number(g.years_until) || 0, location: g.location })),
+        edu_goals: f.children.map((_, i) => {
+          const g = f.eduGoals[i] ?? { overseas: false, annual_edu_budget: "", annual_living_budget: "" };
+          return {
+            overseas: g.overseas,
+            annual_edu_budget: num(g.annual_edu_budget),
+            annual_living_budget: num(g.annual_living_budget),
+          };
+        }),
       },
     };
     saveDraft(data);
+    if (typeof window !== "undefined") window.localStorage.removeItem(PROGRESS_KEY);
     // 有綁定顧問(邀請連結)則存進 Supabase;失敗不擋客戶看自己的儀表板
     const ref = loadReferral();
     if (ref) {
@@ -472,13 +500,17 @@ export default function Assessment() {
             <Field label="緊急預備金(幾個月生活費)">
               <Input value={f.emergencyMonths} onChange={(v) => set("emergencyMonths", v)} type="number" placeholder="6" />
             </Field>
-            <div className="grid grid-cols-2 gap-3">
-              <Field label="近期大額支出(萬,選填)">
-                <Input value={f.majorExpenseAmount} onChange={(v) => set("majorExpenseAmount", v)} type="number" placeholder="選填" />
-              </Field>
-              <Field label="預計幾年後">
-                <Input value={f.majorExpenseYears} onChange={(v) => set("majorExpenseYears", v)} type="number" placeholder="選填" />
-              </Field>
+            <div>
+              <span className="text-sm font-medium">近期大額支出計畫(選填)</span>
+              <p className="text-xs text-neutral-400">如購屋、換車、進修等一次性大筆支出。</p>
+              <div className="mt-1.5 grid grid-cols-2 gap-3">
+                <Field label="支出金額(萬)">
+                  <Input value={f.majorExpenseAmount} onChange={(v) => set("majorExpenseAmount", v)} type="number" placeholder="例如 300" />
+                </Field>
+                <Field label="預計幾年後發生">
+                  <Input value={f.majorExpenseYears} onChange={(v) => set("majorExpenseYears", v)} type="number" placeholder="例如 3" />
+                </Field>
+              </div>
             </div>
           </Section>
         )}
@@ -518,21 +550,33 @@ export default function Assessment() {
               })}
             </div>
 
-            {f.eduGoals.length > 0 && (
+            {f.children.length > 0 && (
               <div className="mt-4">
-                <span className="text-sm font-medium">子女教育金規劃</span>
-                <p className="text-xs text-neutral-400">填了才能試算教育金缺口。</p>
+                <span className="text-sm font-medium">子女高階教育規劃</span>
+                <p className="text-xs text-neutral-400">就學時程由第一頁子女年齡自動推算;此處填大專以上的規劃與預算。</p>
                 <div className="mt-2 space-y-2">
-                  {f.eduGoals.map((g, i) => (
-                    <div key={i} className="grid grid-cols-2 gap-3 rounded-lg border border-neutral-200 p-3 dark:border-neutral-800">
-                      <Field label={`第 ${i + 1} 位:幾年後就學`}>
-                        <Input value={g.years_until} onChange={(v) => setEduGoal(i, { years_until: v })} type="number" placeholder="10" />
-                      </Field>
-                      <Field label="國內 / 海外">
-                        <Select value={g.location} onChange={(v) => setEduGoal(i, { location: v as "國內" | "海外" })} options={[{ value: "國內", label: "國內" }, { value: "海外", label: "海外" }]} />
-                      </Field>
-                    </div>
-                  ))}
+                  {f.children.map((_, i) => {
+                    const g = f.eduGoals[i] ?? { overseas: false, annual_edu_budget: "", annual_living_budget: "" };
+                    return (
+                      <div key={i} className="rounded-lg border border-neutral-200 p-3 dark:border-neutral-800">
+                        <div className="mb-2 flex items-center justify-between">
+                          <span className="text-sm font-medium">第 {i + 1} 位子女</span>
+                          <label className="flex items-center gap-2 text-sm">
+                            <input type="checkbox" checked={g.overseas} onChange={(e) => setEduGoal(i, { overseas: e.target.checked })} className="h-4 w-4 accent-emerald-600" />
+                            出國深造規劃
+                          </label>
+                        </div>
+                        <div className="grid grid-cols-2 gap-3">
+                          <Field label="每年教育預算(萬)">
+                            <Input value={g.annual_edu_budget} onChange={(v) => setEduGoal(i, { annual_edu_budget: v })} type="number" placeholder="30" />
+                          </Field>
+                          <Field label="每年生活預算(萬)">
+                            <Input value={g.annual_living_budget} onChange={(v) => setEduGoal(i, { annual_living_budget: v })} type="number" placeholder="20" />
+                          </Field>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             )}
