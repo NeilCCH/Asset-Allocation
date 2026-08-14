@@ -46,6 +46,7 @@ export function AdvisorWorkbench({
   const [params, setParams] = useState<CalcParams>({ ...DEFAULT_PARAMS, ...savedParams });
   const [saving, setSaving] = useState(false);
   const [savedMsg, setSavedMsg] = useState<string | null>(null);
+  const [showAdvanced, setShowAdvanced] = useState(false);
 
   const gaps = useMemo(() => computeGaps(data, params), [data, params]);
   const isDefault = JSON.stringify(params) === JSON.stringify(DEFAULT_PARAMS);
@@ -121,6 +122,20 @@ export function AdvisorWorkbench({
           <ParamInput label="預估餘命" suffix="歲" value={params.lifeExpectancy} onChange={(v) => setParam("lifeExpectancy", v)} step={1} />
           <ParamInput label="退休生活水準" suffix="%" value={params.defaultRetireLifestylePct} onChange={(v) => setParam("defaultRetireLifestylePct", v)} step={5} />
         </div>
+
+        {/* 進階參數(影響保障 / 教育缺口) */}
+        <button onClick={() => setShowAdvanced((v) => !v)} className="mt-3 text-xs text-sky-600 hover:underline dark:text-sky-400">
+          {showAdvanced ? "收合進階參數 ▴" : "進階參數(教育金 / 扶養)▾"}
+        </button>
+        {showAdvanced && (
+          <div className="mt-2 grid grid-cols-2 gap-3 sm:grid-cols-3">
+            <ParamInput label="教育金·國內" suffix="萬" value={params.eduCostDomestic} onChange={(v) => setParam("eduCostDomestic", v)} step={10} />
+            <ParamInput label="教育金·海外" suffix="萬" value={params.eduCostOverseas} onChange={(v) => setParam("eduCostOverseas", v)} step={10} />
+            <ParamInput label="扶養·每人每年" suffix="萬" value={params.dependentSupportAnnual} onChange={(v) => setParam("dependentSupportAnnual", v)} step={1} />
+            <ParamInput label="子女獨立年齡" suffix="歲" value={params.childIndependentAge} onChange={(v) => setParam("childIndependentAge", v)} step={1} />
+            <ParamInput label="奉養父母總額" suffix="萬" value={params.parentSupportTotal} onChange={(v) => setParam("parentSupportTotal", v)} step={50} />
+          </div>
+        )}
 
         <div className="mt-4 grid grid-cols-3 gap-3">
           <GapCard name="退休金缺口" gap={gaps.retirement} />
