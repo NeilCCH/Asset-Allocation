@@ -1,0 +1,389 @@
+"use client";
+
+import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
+import type {
+  Assets,
+  Honorific,
+  Horizon,
+  IncomeBand,
+  IncomeType,
+  QuestionnaireData,
+  SurplusBand,
+  Urgency,
+} from "@/lib/domain/types";
+import {
+  ASSET_FIELDS,
+  HONORIFIC_OPTIONS,
+  HORIZON_OPTIONS,
+  INCOME_BAND_OPTIONS,
+  INCOME_TYPE_OPTIONS,
+  SURPLUS_BAND_OPTIONS,
+  URGENCY_OPTIONS,
+} from "@/lib/domain/options";
+import { saveDraft } from "@/lib/draft";
+
+type AssetForm = Record<keyof Assets, { has: boolean; amount: string }>;
+
+const emptyAssets: AssetForm = ASSET_FIELDS.reduce((acc, f) => {
+  acc[f.key] = { has: false, amount: "" };
+  return acc;
+}, {} as AssetForm);
+
+interface Form {
+  surname: string;
+  honorific: Honorific;
+  line_id: string;
+  mobile: string;
+  email: string;
+  pdpa: boolean;
+  age: string;
+  retire_age: string;
+  childrenCount: string;
+  childrenAges: string[];
+  support_parents: boolean;
+  income_type: IncomeType;
+  income_band: IncomeBand | "";
+  surplus_band: SurplusBand | "";
+  horizon: Horizon | "";
+  urgency: Urgency | "";
+  assets: AssetForm;
+}
+
+const initialForm: Form = {
+  surname: "",
+  honorific: "先生",
+  line_id: "",
+  mobile: "",
+  email: "",
+  pdpa: false,
+  age: "",
+  retire_age: "",
+  childrenCount: "0",
+  childrenAges: [],
+  support_parents: false,
+  income_type: "固定薪",
+  income_band: "",
+  surplus_band: "",
+  horizon: "",
+  urgency: "",
+  assets: emptyAssets,
+};
+
+const STEPS = ["個資同意", "基本 · 家庭", "收支 · 時間", "資產盤點"];
+
+export default function Assessment() {
+  const router = useRouter();
+  const [step, setStep] = useState(0);
+  const [f, setF] = useState<Form>(initialForm);
+
+  const set = <K extends keyof Form>(k: K, v: Form[K]) => setF((p) => ({ ...p, [k]: v }));
+
+  const setChildrenCount = (n: number) => {
+    const count = Math.max(0, Math.min(10, n));
+    setF((p) => {
+      const ages = [...p.childrenAges];
+      ages.length = count;
+      for (let i = 0; i < count; i++) if (ages[i] == null) ages[i] = "";
+      return { ...p, childrenCount: String(count), childrenAges: ages };
+    });
+  };
+
+  const setAsset = (key: keyof Assets, patch: Partial<{ has: boolean; amount: string }>) =>
+    setF((p) => ({ ...p, assets: { ...p.assets, [key]: { ...p.assets[key], ...patch } } }));
+
+  const canNext = useMemo(() => {
+    if (step === 0) return f.pdpa;
+    if (step === 1) return f.surname.trim() !== "" && f.age !== "" && f.retire_age !== "";
+    if (step === 2) return f.income_band && f.surplus_band && f.horizon && f.urgency;
+    return true;
+  }, [step, f]);
+
+  const submit = () => {
+    const assets = ASSET_FIELDS.reduce((acc, field) => {
+      const a = f.assets[field.key];
+      acc[field.key] = { has: a.has, amount: a.has ? Number(a.amount) || 0 : 0 };
+      return acc;
+    }, {} as Assets);
+
+    const data: QuestionnaireData = {
+      basic: {
+        surname: f.surname.trim(),
+        honorific: f.honorific,
+        line_id: f.line_id || undefined,
+        mobile: f.mobile || undefined,
+        email: f.email || undefined,
+      },
+      core: {
+        age: Number(f.age),
+        retire_age: Number(f.retire_age),
+        dependents: {
+          children: {
+            count: Number(f.childrenCount) || 0,
+            ages: f.childrenAges.map((a) => Number(a) || 0),
+          },
+          support_parents: f.support_parents,
+        },
+        income_type: f.income_type,
+        income_band: f.income_band as IncomeBand,
+        surplus_band: f.surplus_band as SurplusBand,
+        assets,
+        horizon: f.horizon as Horizon,
+        urgency: f.urgency as Urgency,
+      },
+    };
+    saveDraft(data);
+    router.push("/client/dashboard");
+  };
+
+  return (
+    <main className="mx-auto w-full max-w-xl flex-1 px-5 py-8 sm:py-12">
+      <Link href="/client" className="text-sm text-neutral-500 hover:text-neutral-800 dark:hover:text-neutral-200">
+        ← 返回
+      </Link>
+
+      {/* 進度 */}
+      <div className="mt-5 flex items-center gap-2">
+        {STEPS.map((s, i) => (
+          <div key={s} className="flex flex-1 flex-col items-center gap-1.5">
+            <div
+              className={`h-1.5 w-full rounded-full ${
+                i <= step ? "bg-emerald-500" : "bg-neutral-200 dark:bg-neutral-700"
+              }`}
+            />
+            <span className={`text-[11px] ${i === step ? "font-medium text-emerald-700 dark:text-emerald-400" : "text-neutral-400"}`}>
+              {s}
+            </span>
+          </div>
+        ))}
+      </div>
+
+      <div className="mt-7">
+        {step === 0 && <PdpaStep checked={f.pdpa} onChange={(v) => set("pdpa", v)} />}
+
+        {step === 1 && (
+          <Section title="基本資料與家庭結構">
+            <div className="grid grid-cols-3 gap-3">
+              <Field label="姓氏" className="col-span-2">
+                <Input value={f.surname} onChange={(v) => set("surname", v)} placeholder="王" />
+              </Field>
+              <Field label="稱謂">
+                <Select value={f.honorific} onChange={(v) => set("honorific", v as Honorific)} options={HONORIFIC_OPTIONS.map((h) => ({ value: h, label: h }))} />
+              </Field>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="目前年齡">
+                <Input value={f.age} onChange={(v) => set("age", v)} type="number" placeholder="40" />
+              </Field>
+              <Field label="預計退休年齡">
+                <Input value={f.retire_age} onChange={(v) => set("retire_age", v)} type="number" placeholder="65" />
+              </Field>
+            </div>
+            <Field label="子女人數">
+              <Input value={f.childrenCount} onChange={(v) => setChildrenCount(Number(v))} type="number" placeholder="0" />
+            </Field>
+            {f.childrenAges.length > 0 && (
+              <div className="grid grid-cols-3 gap-2">
+                {f.childrenAges.map((age, i) => (
+                  <Field key={i} label={`第 ${i + 1} 位年齡`}>
+                    <Input
+                      value={age}
+                      onChange={(v) =>
+                        setF((p) => {
+                          const ages = [...p.childrenAges];
+                          ages[i] = v;
+                          return { ...p, childrenAges: ages };
+                        })
+                      }
+                      type="number"
+                      placeholder="8"
+                    />
+                  </Field>
+                ))}
+              </div>
+            )}
+            <Toggle label="需奉養父母" checked={f.support_parents} onChange={(v) => set("support_parents", v)} />
+            <ContactHint />
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+              <Field label="LINE ID">
+                <Input value={f.line_id} onChange={(v) => set("line_id", v)} placeholder="選填" />
+              </Field>
+              <Field label="手機">
+                <Input value={f.mobile} onChange={(v) => set("mobile", v)} placeholder="選填" />
+              </Field>
+              <Field label="Email">
+                <Input value={f.email} onChange={(v) => set("email", v)} placeholder="選填" />
+              </Field>
+            </div>
+          </Section>
+        )}
+
+        {step === 2 && (
+          <Section title="收支狀況與資金時間軸">
+            <Field label="主要收入型態">
+              <Select value={f.income_type} onChange={(v) => set("income_type", v as IncomeType)} options={INCOME_TYPE_OPTIONS} />
+            </Field>
+            <Field label="家庭年收入(稅前)">
+              <Select value={f.income_band} onChange={(v) => set("income_band", v as IncomeBand)} options={INCOME_BAND_OPTIONS} placeholder="請選擇" />
+            </Field>
+            <Field label="每月結餘(收入減支出)">
+              <Select value={f.surplus_band} onChange={(v) => set("surplus_band", v as SurplusBand)} options={SURPLUS_BAND_OPTIONS} placeholder="請選擇" />
+            </Field>
+            <Field label="這筆資金多久內用不到">
+              <Select value={f.horizon} onChange={(v) => set("horizon", v as Horizon)} options={HORIZON_OPTIONS} placeholder="請選擇" />
+            </Field>
+            <Field label="規劃急迫性">
+              <Select value={f.urgency} onChange={(v) => set("urgency", v as Urgency)} options={URGENCY_OPTIONS} placeholder="請選擇" />
+            </Field>
+          </Section>
+        )}
+
+        {step === 3 && (
+          <Section title="資產快速盤點">
+            <p className="-mt-2 mb-1 text-sm text-neutral-500 dark:text-neutral-400">
+              勾選你持有的類別並填入概略金額(萬元),不確定填大概即可。
+            </p>
+            <div className="space-y-2">
+              {ASSET_FIELDS.map((field) => {
+                const a = f.assets[field.key];
+                return (
+                  <div key={field.key} className="rounded-lg border border-neutral-200 p-3 dark:border-neutral-800">
+                    <label className="flex items-center gap-3">
+                      <input
+                        type="checkbox"
+                        checked={a.has}
+                        onChange={(e) => setAsset(field.key, { has: e.target.checked })}
+                        className="h-4 w-4 accent-emerald-600"
+                      />
+                      <span className="flex-1 text-sm font-medium">
+                        {field.label}
+                        {field.hint && <span className="ml-1 text-xs font-normal text-neutral-400">{field.hint}</span>}
+                      </span>
+                      {a.has && (
+                        <span className="flex items-center gap-1.5">
+                          <input
+                            type="number"
+                            value={a.amount}
+                            onChange={(e) => setAsset(field.key, { amount: e.target.value })}
+                            placeholder="0"
+                            className="w-24 rounded-md border border-neutral-300 bg-white px-2 py-1 text-right text-sm outline-none focus:border-emerald-500 dark:border-neutral-700 dark:bg-neutral-900"
+                          />
+                          <span className="text-xs text-neutral-400">萬</span>
+                        </span>
+                      )}
+                    </label>
+                  </div>
+                );
+              })}
+            </div>
+          </Section>
+        )}
+      </div>
+
+      {/* 導覽按鈕 */}
+      <div className="mt-8 flex items-center justify-between">
+        <button
+          onClick={() => setStep((s) => Math.max(0, s - 1))}
+          disabled={step === 0}
+          className="rounded-lg px-4 py-2.5 text-sm text-neutral-600 disabled:opacity-0 dark:text-neutral-300"
+        >
+          上一步
+        </button>
+        {step < STEPS.length - 1 ? (
+          <button
+            onClick={() => setStep((s) => s + 1)}
+            disabled={!canNext}
+            className="rounded-lg bg-emerald-600 px-6 py-2.5 text-sm font-medium text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            下一步
+          </button>
+        ) : (
+          <button
+            onClick={submit}
+            className="rounded-lg bg-emerald-600 px-6 py-2.5 text-sm font-medium text-white hover:bg-emerald-700"
+          >
+            看我的資產健檢 →
+          </button>
+        )}
+      </div>
+    </main>
+  );
+}
+
+// ── 子元件 ───────────────────────────────────────────
+
+function Section({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <section className="space-y-4">
+      <h1 className="text-xl font-bold">{title}</h1>
+      {children}
+    </section>
+  );
+}
+
+function Field({ label, children, className = "" }: { label: string; children: React.ReactNode; className?: string }) {
+  return (
+    <label className={`block ${className}`}>
+      <span className="text-sm font-medium">{label}</span>
+      <div className="mt-1.5">{children}</div>
+    </label>
+  );
+}
+
+const inputCls =
+  "w-full rounded-lg border border-neutral-300 bg-white px-3 py-2.5 text-sm outline-none focus:border-emerald-500 dark:border-neutral-700 dark:bg-neutral-900";
+
+function Input({ value, onChange, type = "text", placeholder }: { value: string; onChange: (v: string) => void; type?: string; placeholder?: string }) {
+  return <input type={type} value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} className={inputCls} />;
+}
+
+function Select({ value, onChange, options, placeholder }: { value: string; onChange: (v: string) => void; options: { value: string; label: string }[]; placeholder?: string }) {
+  return (
+    <select value={value} onChange={(e) => onChange(e.target.value)} className={inputCls}>
+      {placeholder && <option value="">{placeholder}</option>}
+      {options.map((o) => (
+        <option key={o.value} value={o.value}>
+          {o.label}
+        </option>
+      ))}
+    </select>
+  );
+}
+
+function Toggle({ label, checked, onChange }: { label: string; checked: boolean; onChange: (v: boolean) => void }) {
+  return (
+    <label className="flex items-center gap-3">
+      <input type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} className="h-4 w-4 accent-emerald-600" />
+      <span className="text-sm">{label}</span>
+    </label>
+  );
+}
+
+function ContactHint() {
+  return (
+    <p className="rounded-lg bg-neutral-100 p-3 text-xs text-neutral-500 dark:bg-neutral-800 dark:text-neutral-400">
+      聯絡方式為選填,留下越完整,顧問越能主動提供後續規劃服務。
+    </p>
+  );
+}
+
+function PdpaStep({ checked, onChange }: { checked: boolean; onChange: (v: boolean) => void }) {
+  return (
+    <section className="space-y-4">
+      <h1 className="text-xl font-bold">個人資料使用同意</h1>
+      <div className="max-h-64 overflow-y-auto rounded-lg border border-neutral-200 bg-neutral-50 p-4 text-sm leading-relaxed text-neutral-600 dark:border-neutral-800 dark:bg-neutral-900 dark:text-neutral-300">
+        <p className="mb-2 font-medium text-neutral-800 dark:text-neutral-100">蒐集目的與範圍</p>
+        <p>本工具為協助您檢視資產配置現況與缺口試算之用。我們僅蒐集必要之個人資料(姓氏、聯絡方式)及您自願填寫之財務資訊。</p>
+        <p className="mt-2 mb-2 font-medium text-neutral-800 dark:text-neutral-100">利用方式</p>
+        <p>您的資料將用於產生資產健檢彙整,並提供予您綁定之財富管理顧問,作為提供規劃建議之依據。系統本身不對您進行任何金融商品推介。</p>
+        <p className="mt-2 mb-2 font-medium text-neutral-800 dark:text-neutral-100">您的權利</p>
+        <p>您得依個人資料保護法,隨時請求查詢、閱覽、補正、刪除您的個人資料,或停止蒐集、處理、利用。</p>
+      </div>
+      <label className="flex items-start gap-3">
+        <input type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} className="mt-0.5 h-4 w-4 accent-emerald-600" />
+        <span className="text-sm">我已閱讀並同意上述個人資料蒐集、處理與利用方式。</span>
+      </label>
+    </section>
+  );
+}

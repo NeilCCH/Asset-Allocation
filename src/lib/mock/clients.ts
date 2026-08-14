@@ -1,0 +1,89 @@
+// 範例客戶資料 — 尚未接 Supabase 前,讓顧問後台有資料可展示。
+// 接上資料庫後改由 questionnaire_responses 讀取。
+import type { QuestionnaireData } from "@/lib/domain/types";
+
+export interface MockClient {
+  id: string;
+  data: QuestionnaireData;
+  createdAt: string;
+}
+
+export const MOCK_CLIENTS: MockClient[] = [
+  {
+    id: "c001",
+    createdAt: "2026-08-10",
+    data: {
+      basic: { surname: "王", honorific: "先生", mobile: "0912-345-678", email: "wang@example.com", line_id: "wang888" },
+      core: {
+        age: 42, retire_age: 60,
+        dependents: { children: { count: 2, ages: [8, 5] }, support_parents: true },
+        income_type: "自營", income_band: "500-1000", surplus_band: ">10",
+        horizon: "5-10年", urgency: "3個月內",
+        assets: {
+          cash: { has: true, amount: 300 }, stock_tw: { has: true, amount: 400 },
+          stock_overseas: { has: true, amount: 250 }, fund_etf: { has: true, amount: 200 },
+          insurance_protection: { has: true, amount: 60 }, insurance_savings: { has: true, amount: 300 },
+          real_estate_own: { has: true, amount: 2000 }, real_estate_invest: { has: true, amount: 1500 },
+          other: { has: true, amount: 100 },
+        },
+      },
+      deep: {
+        retire_lifestyle_pct: 80,
+        edu_goals: [{ years_until: 10, location: "海外" }, { years_until: 13, location: "海外" }],
+        liabilities: { mortgage_balance: 800, loan_balance: 0, monthly_payment: 4 },
+        emergency_months: 6,
+        insurance_detail: {
+          medical: { has: true, coverage: 300 }, critical_illness: { has: true, coverage: 200 },
+          accident: { has: true, coverage: 500 }, life: { has: true, coverage: 500 },
+          long_term_care: { has: false, coverage: 0 },
+        },
+      },
+      kyc: { exp_years: 12, familiar_products: ["股票", "基金", "ETF"], loss_reaction: "續抱", investable_ratio: 40 },
+    },
+  },
+  {
+    id: "c002",
+    createdAt: "2026-08-12",
+    data: {
+      basic: { surname: "林", honorific: "女士", mobile: "0922-111-222", email: "" },
+      core: {
+        age: 35, retire_age: 65,
+        dependents: { children: { count: 1, ages: [2] }, support_parents: false },
+        income_type: "固定薪", income_band: "150-300", surplus_band: "3-6",
+        horizon: "3-5年", urgency: "半年內",
+        assets: {
+          cash: { has: true, amount: 120 }, stock_tw: { has: true, amount: 80 },
+          stock_overseas: { has: false, amount: 0 }, fund_etf: { has: true, amount: 60 },
+          insurance_protection: { has: true, amount: 40 }, insurance_savings: { has: false, amount: 0 },
+          real_estate_own: { has: true, amount: 900 }, real_estate_invest: { has: false, amount: 0 },
+          other: { has: false, amount: 0 },
+        },
+      },
+      deep: { emergency_months: 3 },
+    },
+  },
+  {
+    id: "c003",
+    createdAt: "2026-08-13",
+    data: {
+      basic: { surname: "陳", honorific: "先生", line_id: "chen_life" },
+      core: {
+        age: 28, retire_age: 65,
+        dependents: { children: { count: 0, ages: [] }, support_parents: false },
+        income_type: "業務浮動", income_band: "80-150", surplus_band: "1-3",
+        horizon: ">10年", urgency: "先看看",
+        assets: {
+          cash: { has: true, amount: 30 }, stock_tw: { has: true, amount: 15 },
+          stock_overseas: { has: false, amount: 0 }, fund_etf: { has: false, amount: 0 },
+          insurance_protection: { has: false, amount: 0 }, insurance_savings: { has: false, amount: 0 },
+          real_estate_own: { has: false, amount: 0 }, real_estate_invest: { has: false, amount: 0 },
+          other: { has: true, amount: 5 },
+        },
+      },
+    },
+  },
+];
+
+export function getMockClient(id: string): MockClient | undefined {
+  return MOCK_CLIENTS.find((c) => c.id === id);
+}
