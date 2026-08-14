@@ -14,8 +14,12 @@ export interface CalcParams {
   dependentSupportAnnual: number;
   /** 子女視為經濟獨立的年齡 */
   childIndependentAge: number;
-  /** 奉養父母的支出總額估計(萬元,現值) */
+  /** 奉養父母的支出總額估計(萬元,現值)— 無父母年齡時的後備估值 */
   parentSupportTotal: number;
+  /** 每位父母每年奉養支出(萬元) */
+  parentSupportAnnual: number;
+  /** 父母平均餘命(歲)— 依台灣平均,可調 */
+  parentLifeExpectancy: number;
   /** 子女教育總花費(萬元,現值基準):國內 / 海外 */
   eduCostDomestic: number;
   eduCostOverseas: number;
@@ -30,6 +34,8 @@ export const DEFAULT_PARAMS: CalcParams = {
   dependentSupportAnnual: 15,
   childIndependentAge: 20, // 子女以 20 歲為經濟獨立基準
   parentSupportTotal: 200,
+  parentSupportAnnual: 20, // 每位父母每年 20 萬
+  parentLifeExpectancy: 82, // 台灣男女平均約 80-84,取 82
   eduCostDomestic: 150,
   eduCostOverseas: 600,
 };

@@ -16,7 +16,8 @@ export const MOCK_CLIENTS: MockClient[] = [
       basic: { surname: "王", honorific: "先生", mobile: "0912-345-678", email: "wang@example.com", line_id: "wang888" },
       core: {
         age: 42, retire_age: 60,
-        dependents: { children: { count: 2, ages: [8, 5] }, support_parents: true },
+        planning_scope: "含配偶", spouse_age: 40,
+        dependents: { children: [{ stage: "國小", age: 8 }, { stage: "幼兒園", age: 5 }], parents: { count: 2, ages: [70, 68] } },
         income_type: "自營", income_band: "500-1000", surplus_band: ">10",
         horizon: "5-10年", urgency: "3個月內",
         assets: {
@@ -33,9 +34,11 @@ export const MOCK_CLIENTS: MockClient[] = [
         liabilities: { mortgage_balance: 800, loan_balance: 0, monthly_payment: 4 },
         emergency_months: 6,
         insurance_detail: {
-          medical: { has: true, coverage: 300 }, critical_illness: { has: true, coverage: 200 },
-          accident: { has: true, coverage: 500 }, life: { has: true, coverage: 500 },
-          long_term_care: { has: false, coverage: 0 },
+          life: { has: true, coverage: 500 }, critical_illness: { has: true, coverage: 200 },
+          accident: { has: true, coverage: 500 },
+          medical: { has: true, daily: 3000, reimburse_limit: 20 },
+          disability: { has: false, monthly: 0 },
+          long_term_care: { has: false, monthly: 0 },
         },
       },
       kyc: { exp_years: 12, familiar_products: ["股票", "基金", "ETF"], loss_reaction: "續抱", investable_ratio: 40 },
@@ -48,7 +51,8 @@ export const MOCK_CLIENTS: MockClient[] = [
       basic: { surname: "林", honorific: "女士", mobile: "0922-111-222", email: "" },
       core: {
         age: 35, retire_age: 65,
-        dependents: { children: { count: 1, ages: [2] }, support_parents: false },
+        planning_scope: "個人",
+        dependents: { children: [{ stage: "學前", age: 2, years_until_school: 4 }], parents: { count: 0, ages: [] } },
         income_type: "固定薪", income_band: "150-300", surplus_band: "3-6",
         horizon: "3-5年", urgency: "半年內",
         assets: {
@@ -69,7 +73,8 @@ export const MOCK_CLIENTS: MockClient[] = [
       basic: { surname: "陳", honorific: "先生", line_id: "chen_life" },
       core: {
         age: 28, retire_age: 65,
-        dependents: { children: { count: 0, ages: [] }, support_parents: false },
+        planning_scope: "個人",
+        dependents: { children: [], parents: { count: 0, ages: [] } },
         income_type: "業務浮動", income_band: "80-150", surplus_band: "1-3",
         horizon: ">10年", urgency: "先看看",
         assets: {

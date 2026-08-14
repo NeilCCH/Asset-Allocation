@@ -87,7 +87,7 @@ export function buildReport(
     profile: {
       age: data.core.age,
       retireAge: data.core.retire_age,
-      childrenCount: data.core.dependents.children.count,
+      childrenCount: data.core.dependents.children.length,
       incomeType: data.core.income_type,
     },
     advisorRecommendation: opts?.advisorRecommendation,

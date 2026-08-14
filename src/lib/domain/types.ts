@@ -56,10 +56,24 @@ export interface Assets {
   other: AssetItem; // 其他(外幣/黃金/加密等)
 }
 
+/** 規劃範圍:個人 或 含配偶(家庭) */
+export type PlanningScope = "個人" | "含配偶";
+
+/** 子女就學身份 */
+export type EduStage = "學前" | "幼兒園" | "國小" | "國中" | "高中" | "大專以上" | "已完成";
+
+export interface Child {
+  stage: EduStage;
+  age?: number;
+  /** 學前:預計幾年後就學 */
+  years_until_school?: number;
+}
+
 /** 扶養結構(§6.2) */
 export interface Dependents {
-  children: { count: number; ages: number[] };
-  support_parents: boolean; // 是否奉養父母
+  children: Child[];
+  /** 扶養父母:人數 + 各自年齡 */
+  parents: { count: number; ages: number[] };
 }
 
 // ── 必填核心(§6.2) ──────────────────────────────────
@@ -67,6 +81,9 @@ export interface Dependents {
 export interface CoreProfile {
   age: number;
   retire_age: number;
+  /** 規劃範圍;含配偶時填 spouse_age */
+  planning_scope: PlanningScope;
+  spouse_age?: number;
   dependents: Dependents;
   income_type: IncomeType;
   income_band: IncomeBand;
@@ -90,11 +107,12 @@ export interface Liabilities {
 }
 
 export interface InsuranceDetail {
-  medical: { has: boolean; coverage: number }; // 醫療
-  critical_illness: { has: boolean; coverage: number }; // 重疾
-  accident: { has: boolean; coverage: number }; // 意外
-  life: { has: boolean; coverage: number }; // 壽險
-  long_term_care: { has: boolean; coverage: number }; // 長照
+  life: { has: boolean; coverage: number }; // 壽險:保額(萬)
+  critical_illness: { has: boolean; coverage: number }; // 重大疾病:一次給付(萬)
+  accident: { has: boolean; coverage: number }; // 意外:保額(萬)
+  medical: { has: boolean; daily: number; reimburse_limit: number }; // 醫療:日額(元)+ 實支實付限額(萬)
+  disability: { has: boolean; monthly: number }; // 失能:每月失能金(萬)
+  long_term_care: { has: boolean; monthly: number }; // 長照:每月給付(萬)
 }
 
 export interface DeepProfile {

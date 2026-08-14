@@ -97,6 +97,27 @@ export default function Dashboard() {
   const protectionPct = pviTotal > 0 ? Math.round((pvi.protection / pviTotal) * 100) : 0;
   const liquidPct = view.total > 0 ? Math.round((view.liquid / view.total) * 100) : 0;
 
+  // 資產分布文字敘述:最大類別 + 流動性
+  const topCat = [...view.pie].sort((a, b) => b.value - a.value)[0];
+  const topPct = topCat && view.total > 0 ? Math.round((topCat.value / view.total) * 100) : 0;
+  const assetNarrative = topCat
+    ? `你的資產以「${topCat.name}」為主,約占 ${topPct}%;流動資產占 ${liquidPct}%。` +
+      (liquidPct < 10 ? "流動性偏低,建議留意短期資金調度。" : topPct > 60 ? "單一類別占比偏高,可留意分散。" : "整體分布尚屬均衡。")
+    : "";
+
+  // 現有保障總覽(各險種單位不同)
+  const ins = data.deep?.insurance_detail;
+  const insRows = ins
+    ? [
+        { label: "壽險", has: ins.life.has, text: `保額 ${ins.life.coverage} 萬` },
+        { label: "重大疾病", has: ins.critical_illness.has, text: `一次金 ${ins.critical_illness.coverage} 萬` },
+        { label: "意外", has: ins.accident.has, text: `保額 ${ins.accident.coverage} 萬` },
+        { label: "醫療", has: ins.medical.has, text: `日額 ${ins.medical.daily} 元 · 實支 ${ins.medical.reimburse_limit} 萬` },
+        { label: "失能", has: ins.disability.has, text: `每月 ${ins.disability.monthly} 萬` },
+        { label: "長照", has: ins.long_term_care.has, text: `每月 ${ins.long_term_care.monthly} 萬` },
+      ]
+    : [];
+
   return (
     <main className="mx-auto w-full max-w-3xl flex-1 px-5 py-8 sm:py-12">
       <div className="flex items-center justify-between">
@@ -154,6 +175,11 @@ export default function Dashboard() {
             </ResponsiveContainer>
           </div>
         )}
+        {assetNarrative && (
+          <p className="mt-2 rounded-lg bg-neutral-50 p-3 text-sm leading-relaxed text-neutral-600 dark:bg-neutral-900 dark:text-neutral-300">
+            {assetNarrative}
+          </p>
+        )}
       </Card>
 
       {/* 保障 vs 投資 */}
@@ -163,6 +189,35 @@ export default function Dashboard() {
           保單刻意區分「保障型」與「儲蓄/投資型」,幫助你看清保障與資產累積各占多少。
         </p>
       </Card>
+
+      {/* 現有保障總覽 */}
+      {insRows.length > 0 && (
+        <Card title="現有保障總覽">
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+            {insRows.map((r) => (
+              <div
+                key={r.label}
+                className={`flex items-center justify-between rounded-lg border px-3 py-2 text-sm ${
+                  r.has
+                    ? "border-emerald-200 bg-emerald-50 dark:border-emerald-900 dark:bg-emerald-950/30"
+                    : "border-neutral-200 dark:border-neutral-800"
+                }`}
+              >
+                <span className="font-medium">
+                  {r.has ? "✓ " : "— "}
+                  {r.label}
+                </span>
+                <span className={r.has ? "text-emerald-700 dark:text-emerald-300" : "text-neutral-400"}>
+                  {r.has ? r.text : "尚無"}
+                </span>
+              </div>
+            ))}
+          </div>
+          <p className="mt-3 text-xs text-neutral-500 dark:text-neutral-400">
+            各險種單位不同:壽險/意外/重疾為保額(萬)、醫療為日額+實支實付、失能/長照為每月給付。
+          </p>
+        </Card>
+      )}
 
       {/* 缺口概況 */}
       <Card title="缺口概況(客觀試算)">

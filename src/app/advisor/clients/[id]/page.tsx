@@ -40,7 +40,7 @@ export default async function ClientDetail({ params }: PageProps<"/advisor/clien
           </h1>
           <p className="mt-1 text-sm text-neutral-500 dark:text-neutral-400">
             {data.core.age} 歲 · 預計 {data.core.retire_age} 歲退休 · {data.core.income_type} ·
-            子女 {data.core.dependents.children.count} 位
+            子女 {data.core.dependents.children.length} 位
           </p>
         </div>
         <div className="flex items-center gap-2 text-sm">

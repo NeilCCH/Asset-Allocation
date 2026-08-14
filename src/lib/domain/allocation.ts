@@ -57,8 +57,8 @@ export function dimensionHints(data: QuestionnaireData): DimensionHint[] {
     },
     {
       key: "education",
-      flagged: data.core.dependents.children.count > 0,
-      note: data.core.dependents.children.count > 0 ? `有 ${data.core.dependents.children.count} 位子女` : undefined,
+      flagged: data.core.dependents.children.length > 0,
+      note: data.core.dependents.children.length > 0 ? `有 ${data.core.dependents.children.length} 位子女` : undefined,
     },
     { key: "diversification", flagged: false },
     { key: "real_estate", flagged: realEstatePct > 0.6, note: `不動產約占 ${Math.round(realEstatePct * 100)}%` },

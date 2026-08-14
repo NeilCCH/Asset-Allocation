@@ -150,13 +150,19 @@ export function protectionGap(
   const unpaidLiabilities =
     liabilities.mortgage_balance + liabilities.loan_balance;
 
-  // 扶養支出現值
-  const perChildYears = core.dependents.children.ages.reduce(
-    (s, age) => s + Math.max(0, params.childIndependentAge - age),
+  // 扶養支出現值 — 子女:至經濟獨立年齡的年數 × 每年扶養
+  const perChildYears = core.dependents.children.reduce(
+    (s, c) => s + Math.max(0, params.childIndependentAge - (c.age ?? 0)),
     0,
   );
   const childSupport = perChildYears * params.dependentSupportAnnual;
-  const parentSupport = core.dependents.support_parents ? params.parentSupportTotal : 0;
+
+  // 父母:各自(平均餘命 − 目前年齡)年數 × 每年奉養;無年齡時用後備總額 × 人數
+  const parents = core.dependents.parents;
+  const parentSupport =
+    parents.ages.length > 0
+      ? parents.ages.reduce((s, age) => s + Math.max(0, params.parentLifeExpectancy - age) * params.parentSupportAnnual, 0)
+      : parents.count * params.parentSupportTotal;
 
   // 子女教育金(取教育缺口的總需求)
   const eduNeed = educationTotalNeed(data, params);
@@ -199,7 +205,7 @@ export function educationGap(
   params: CalcParams = DEFAULT_PARAMS,
 ): GapResult {
   if (!data.deep?.edu_goals || data.deep.edu_goals.length === 0) {
-    const hasChildren = data.core.dependents.children.count > 0;
+    const hasChildren = data.core.dependents.children.length > 0;
     return {
       status: "needs_deep_data",
       gap: 0,

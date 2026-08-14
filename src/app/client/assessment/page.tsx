@@ -5,10 +5,12 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import type {
   Assets,
+  EduStage,
   Honorific,
   Horizon,
   IncomeBand,
   IncomeType,
+  PlanningScope,
   QuestionnaireData,
   SurplusBand,
   Urgency,
@@ -35,25 +37,33 @@ const emptyAssets: AssetForm = ASSET_FIELDS.reduce((acc, f) => {
   return acc;
 }, {} as AssetForm);
 
-// 現有保障明細欄位
-type InsKey = "medical" | "critical_illness" | "accident" | "life" | "long_term_care";
-const INS_FIELDS: { key: InsKey; label: string }[] = [
-  { key: "medical", label: "醫療" },
-  { key: "critical_illness", label: "重大疾病" },
-  { key: "accident", label: "意外" },
-  { key: "life", label: "壽險" },
-  { key: "long_term_care", label: "長照" },
+// 現有保障明細 — 各險種用對應單位(醫療:日額+實支實付;失能/長照:月給付)
+type InsKey = "life" | "critical_illness" | "accident" | "medical" | "disability" | "long_term_care";
+const INS_CONFIG: { key: InsKey; label: string; fields: { name: string; label: string; unit: string }[] }[] = [
+  { key: "life", label: "壽險", fields: [{ name: "coverage", label: "保額", unit: "萬" }] },
+  { key: "critical_illness", label: "重大疾病", fields: [{ name: "coverage", label: "一次給付", unit: "萬" }] },
+  { key: "accident", label: "意外", fields: [{ name: "coverage", label: "保額", unit: "萬" }] },
+  { key: "medical", label: "醫療", fields: [{ name: "daily", label: "日額", unit: "元" }, { name: "reimburse_limit", label: "實支實付限額", unit: "萬" }] },
+  { key: "disability", label: "失能", fields: [{ name: "monthly", label: "每月失能金", unit: "萬" }] },
+  { key: "long_term_care", label: "長照", fields: [{ name: "monthly", label: "每月給付", unit: "萬" }] },
 ];
-type InsForm = Record<InsKey, { has: boolean; coverage: string }>;
-const emptyInsurance: InsForm = INS_FIELDS.reduce((acc, f) => {
-  acc[f.key] = { has: false, coverage: "" };
+type InsForm = Record<InsKey, { has: boolean; values: Record<string, string> }>;
+const emptyInsurance: InsForm = INS_CONFIG.reduce((acc, c) => {
+  acc[c.key] = { has: false, values: {} };
   return acc;
 }, {} as InsForm);
 
-const mkIns = (v: { has: boolean; coverage: string }) => ({
-  has: v.has,
-  coverage: v.has ? Number(v.coverage) || 0 : 0,
-});
+const EDU_STAGE_OPTIONS: { value: EduStage; label: string }[] = [
+  { value: "學前", label: "學前(未就學)" },
+  { value: "幼兒園", label: "幼兒園" },
+  { value: "國小", label: "國小" },
+  { value: "國中", label: "國中" },
+  { value: "高中", label: "高中" },
+  { value: "大專以上", label: "大專以上" },
+  { value: "已完成", label: "已完成學業" },
+];
+
+const num = (s: string) => Number(s) || 0;
 
 interface Form {
   surname: string;
@@ -64,9 +74,11 @@ interface Form {
   pdpa: boolean;
   age: string;
   retire_age: string;
-  childrenCount: string;
-  childrenAges: string[];
-  support_parents: boolean;
+  planning_scope: PlanningScope;
+  spouse_age: string;
+  children: { stage: EduStage; age: string; years_until_school: string }[];
+  parentsCount: string;
+  parentsAges: string[];
   income_type: IncomeType;
   income_band: IncomeBand | "";
   surplus_band: SurplusBand | "";
@@ -97,9 +109,11 @@ const initialForm: Form = {
   pdpa: false,
   age: "",
   retire_age: "",
-  childrenCount: "0",
-  childrenAges: [],
-  support_parents: false,
+  planning_scope: "個人",
+  spouse_age: "",
+  children: [],
+  parentsCount: "0",
+  parentsAges: [],
   income_type: "固定薪",
   income_band: "",
   surplus_band: "",
@@ -129,21 +143,45 @@ export default function Assessment() {
   const setChildrenCount = (n: number) => {
     const count = Math.max(0, Math.min(10, n));
     setF((p) => {
-      const ages = [...p.childrenAges];
-      ages.length = count;
-      for (let i = 0; i < count; i++) if (ages[i] == null) ages[i] = "";
+      const children = [...p.children];
+      children.length = count;
+      for (let i = 0; i < count; i++) if (children[i] == null) children[i] = { stage: "國小", age: "", years_until_school: "" };
       const eduGoals = [...p.eduGoals];
       eduGoals.length = count;
       for (let i = 0; i < count; i++) if (eduGoals[i] == null) eduGoals[i] = { years_until: "", location: "國內" };
-      return { ...p, childrenCount: String(count), childrenAges: ages, eduGoals };
+      return { ...p, children, eduGoals };
     });
   };
+  const setChild = (i: number, patch: Partial<{ stage: EduStage; age: string; years_until_school: string }>) =>
+    setF((p) => {
+      const children = [...p.children];
+      children[i] = { ...children[i], ...patch };
+      return { ...p, children };
+    });
+
+  const setParentsCount = (n: number) => {
+    const count = Math.max(0, Math.min(4, n));
+    setF((p) => {
+      const ages = [...p.parentsAges];
+      ages.length = count;
+      for (let i = 0; i < count; i++) if (ages[i] == null) ages[i] = "";
+      return { ...p, parentsCount: String(count), parentsAges: ages };
+    });
+  };
+  const setParentAge = (i: number, v: string) =>
+    setF((p) => {
+      const ages = [...p.parentsAges];
+      ages[i] = v;
+      return { ...p, parentsAges: ages };
+    });
 
   const setAsset = (key: keyof Assets, patch: Partial<{ has: boolean; amount: string }>) =>
     setF((p) => ({ ...p, assets: { ...p.assets, [key]: { ...p.assets[key], ...patch } } }));
 
-  const setIns = (key: InsKey, patch: Partial<{ has: boolean; coverage: string }>) =>
-    setF((p) => ({ ...p, insurance: { ...p.insurance, [key]: { ...p.insurance[key], ...patch } } }));
+  const setInsHas = (key: InsKey, has: boolean) =>
+    setF((p) => ({ ...p, insurance: { ...p.insurance, [key]: { ...p.insurance[key], has } } }));
+  const setInsValue = (key: InsKey, name: string, v: string) =>
+    setF((p) => ({ ...p, insurance: { ...p.insurance, [key]: { ...p.insurance[key], values: { ...p.insurance[key].values, [name]: v } } } }));
 
   const setEduGoal = (i: number, patch: Partial<{ years_until: string; location: "國內" | "海外" }>) =>
     setF((p) => {
@@ -177,12 +215,18 @@ export default function Assessment() {
       core: {
         age: Number(f.age),
         retire_age: Number(f.retire_age),
+        planning_scope: f.planning_scope,
+        spouse_age: f.planning_scope === "含配偶" && f.spouse_age ? Number(f.spouse_age) : undefined,
         dependents: {
-          children: {
-            count: Number(f.childrenCount) || 0,
-            ages: f.childrenAges.map((a) => Number(a) || 0),
+          children: f.children.map((c) => ({
+            stage: c.stage,
+            age: c.age ? Number(c.age) : undefined,
+            years_until_school: c.stage === "學前" && c.years_until_school ? Number(c.years_until_school) : undefined,
+          })),
+          parents: {
+            count: Number(f.parentsCount) || 0,
+            ages: f.parentsAges.filter((a) => a !== "").map((a) => Number(a) || 0),
           },
-          support_parents: f.support_parents,
         },
         income_type: f.income_type,
         income_band: f.income_band as IncomeBand,
@@ -203,11 +247,16 @@ export default function Assessment() {
           ? { amount: Number(f.majorExpenseAmount) || 0, years_until: Number(f.majorExpenseYears) || 0 }
           : undefined,
         insurance_detail: {
-          medical: mkIns(f.insurance.medical),
-          critical_illness: mkIns(f.insurance.critical_illness),
-          accident: mkIns(f.insurance.accident),
-          life: mkIns(f.insurance.life),
-          long_term_care: mkIns(f.insurance.long_term_care),
+          life: { has: f.insurance.life.has, coverage: num(f.insurance.life.values.coverage ?? "") },
+          critical_illness: { has: f.insurance.critical_illness.has, coverage: num(f.insurance.critical_illness.values.coverage ?? "") },
+          accident: { has: f.insurance.accident.has, coverage: num(f.insurance.accident.values.coverage ?? "") },
+          medical: {
+            has: f.insurance.medical.has,
+            daily: num(f.insurance.medical.values.daily ?? ""),
+            reimburse_limit: num(f.insurance.medical.values.reimburse_limit ?? ""),
+          },
+          disability: { has: f.insurance.disability.has, monthly: num(f.insurance.disability.values.monthly ?? "") },
+          long_term_care: { has: f.insurance.long_term_care.has, monthly: num(f.insurance.long_term_care.values.monthly ?? "") },
         },
         edu_goals: f.eduGoals
           .filter((g) => g.years_until !== "")
@@ -271,30 +320,60 @@ export default function Assessment() {
                 <Input value={f.retire_age} onChange={(v) => set("retire_age", v)} type="number" placeholder="65" />
               </Field>
             </div>
+            {/* 規劃範圍 */}
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="規劃範圍">
+                <Select value={f.planning_scope} onChange={(v) => set("planning_scope", v as PlanningScope)} options={[{ value: "個人", label: "個人規劃" }, { value: "含配偶", label: "含配偶(家庭)" }]} />
+              </Field>
+              {f.planning_scope === "含配偶" && (
+                <Field label="配偶年齡">
+                  <Input value={f.spouse_age} onChange={(v) => set("spouse_age", v)} type="number" placeholder="38" />
+                </Field>
+              )}
+            </div>
+
+            {/* 子女 + 就學身份 */}
             <Field label="子女人數">
-              <Input value={f.childrenCount} onChange={(v) => setChildrenCount(Number(v))} type="number" placeholder="0" />
+              <Input value={String(f.children.length)} onChange={(v) => setChildrenCount(Number(v))} type="number" placeholder="0" />
             </Field>
-            {f.childrenAges.length > 0 && (
+            {f.children.length > 0 && (
+              <div className="space-y-2">
+                {f.children.map((c, i) => (
+                  <div key={i} className="rounded-lg border border-neutral-200 p-3 dark:border-neutral-800">
+                    <div className="mb-2 text-xs font-medium text-neutral-500 dark:text-neutral-400">第 {i + 1} 位子女</div>
+                    <div className="grid grid-cols-3 gap-2">
+                      <Field label="就學身份" className="col-span-2">
+                        <Select value={c.stage} onChange={(v) => setChild(i, { stage: v as EduStage })} options={EDU_STAGE_OPTIONS} />
+                      </Field>
+                      <Field label="年齡">
+                        <Input value={c.age} onChange={(v) => setChild(i, { age: v })} type="number" placeholder="8" />
+                      </Field>
+                    </div>
+                    {c.stage === "學前" && (
+                      <div className="mt-2">
+                        <Field label="預計幾年後就學">
+                          <Input value={c.years_until_school} onChange={(v) => setChild(i, { years_until_school: v })} type="number" placeholder="3" />
+                        </Field>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* 扶養父母 */}
+            <Field label="扶養父母人數">
+              <Input value={f.parentsCount} onChange={(v) => setParentsCount(Number(v))} type="number" placeholder="0" />
+            </Field>
+            {f.parentsAges.length > 0 && (
               <div className="grid grid-cols-3 gap-2">
-                {f.childrenAges.map((age, i) => (
-                  <Field key={i} label={`第 ${i + 1} 位年齡`}>
-                    <Input
-                      value={age}
-                      onChange={(v) =>
-                        setF((p) => {
-                          const ages = [...p.childrenAges];
-                          ages[i] = v;
-                          return { ...p, childrenAges: ages };
-                        })
-                      }
-                      type="number"
-                      placeholder="8"
-                    />
+                {f.parentsAges.map((age, i) => (
+                  <Field key={i} label={`父母 ${i + 1} 年齡`}>
+                    <Input value={age} onChange={(v) => setParentAge(i, v)} type="number" placeholder="70" />
                   </Field>
                 ))}
               </div>
             )}
-            <Toggle label="需奉養父母" checked={f.support_parents} onChange={(v) => set("support_parents", v)} />
             <ContactHint />
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
               <Field label="LINE ID">
@@ -407,29 +486,33 @@ export default function Assessment() {
         {step === 5 && (
           <Section title="現有保障 · 教育金">
             <p className="-mt-2 mb-1 text-sm text-neutral-500 dark:text-neutral-400">
-              勾選已有的保障並填入保額(萬),用於試算保障缺口。
+              勾選已有的保障並填入金額(各險種單位不同),用於試算保障缺口。
             </p>
             <div className="space-y-2">
-              {INS_FIELDS.map((ff) => {
-                const v = f.insurance[ff.key];
+              {INS_CONFIG.map((c) => {
+                const v = f.insurance[c.key];
                 return (
-                  <div key={ff.key} className="rounded-lg border border-neutral-200 p-3 dark:border-neutral-800">
+                  <div key={c.key} className="rounded-lg border border-neutral-200 p-3 dark:border-neutral-800">
                     <label className="flex items-center gap-3">
-                      <input type="checkbox" checked={v.has} onChange={(e) => setIns(ff.key, { has: e.target.checked })} className="h-4 w-4 accent-emerald-600" />
-                      <span className="flex-1 text-sm font-medium">{ff.label}</span>
-                      {v.has && (
-                        <span className="flex items-center gap-1.5">
-                          <input
-                            type="number"
-                            value={v.coverage}
-                            onChange={(e) => setIns(ff.key, { coverage: e.target.value })}
-                            placeholder="保額"
-                            className="w-24 rounded-md border border-neutral-300 bg-white px-2 py-1 text-right text-sm outline-none focus:border-emerald-500 dark:border-neutral-700 dark:bg-neutral-900"
-                          />
-                          <span className="text-xs text-neutral-400">萬</span>
-                        </span>
-                      )}
+                      <input type="checkbox" checked={v.has} onChange={(e) => setInsHas(c.key, e.target.checked)} className="h-4 w-4 accent-emerald-600" />
+                      <span className="flex-1 text-sm font-medium">{c.label}</span>
                     </label>
+                    {v.has && (
+                      <div className="mt-2 flex flex-wrap gap-3 pl-7">
+                        {c.fields.map((fld) => (
+                          <span key={fld.name} className="flex items-center gap-1.5">
+                            <span className="text-xs text-neutral-500 dark:text-neutral-400">{fld.label}</span>
+                            <input
+                              type="number"
+                              value={v.values[fld.name] ?? ""}
+                              onChange={(e) => setInsValue(c.key, fld.name, e.target.value)}
+                              className="w-24 rounded-md border border-neutral-300 bg-white px-2 py-1 text-right text-sm outline-none focus:border-emerald-500 dark:border-neutral-700 dark:bg-neutral-900"
+                            />
+                            <span className="text-xs text-neutral-400">{fld.unit}</span>
+                          </span>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 );
               })}
@@ -524,15 +607,6 @@ function Select({ value, onChange, options, placeholder }: { value: string; onCh
         </option>
       ))}
     </select>
-  );
-}
-
-function Toggle({ label, checked, onChange }: { label: string; checked: boolean; onChange: (v: boolean) => void }) {
-  return (
-    <label className="flex items-center gap-3">
-      <input type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} className="h-4 w-4 accent-emerald-600" />
-      <span className="text-sm">{label}</span>
-    </label>
   );
 }
 
