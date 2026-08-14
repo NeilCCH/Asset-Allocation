@@ -1,10 +1,13 @@
 "use client";
 
 // 顧問工作台 — ⚠️ 顧問專屬,此區內容不會、也不得呈現給客戶。
-// 配置面向採「顧問手動勾選」;系統僅提供中性提示(flagged)作參考,不代為決定。
-import { useState } from "react";
+// 配置面向採「顧問手動勾選」;缺口試算參數可由顧問覆寫(§7 可調參數)。
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import type { LeadScore } from "@/lib/domain/leads";
+import type { QuestionnaireData } from "@/lib/domain/types";
+import { CalcParams, DEFAULT_PARAMS } from "@/lib/domain/params";
+import { computeGaps, type GapResult } from "@/lib/domain/calc";
 import { saveAdvisorWorkbench } from "@/lib/actions/advisor";
 
 interface Dimension {
@@ -15,45 +18,46 @@ interface Dimension {
   note?: string;
 }
 
-interface GapItem {
-  name: string;
-  status: "computed" | "needs_deep_data";
-  gap: number;
-}
-
 export function AdvisorWorkbench({
   clientId,
   canSave,
   surname,
   score,
-  gaps,
+  data,
   dimensions,
   savedRecommendation,
   savedDimensionKeys,
+  savedParams,
 }: {
   clientId: string;
   canSave: boolean;
   surname: string;
   score: LeadScore;
-  gaps: GapItem[];
+  data: QuestionnaireData;
   dimensions: Dimension[];
   savedRecommendation: string;
   savedDimensionKeys: string[];
+  savedParams: Partial<CalcParams>;
 }) {
   const [checked, setChecked] = useState<Record<string, boolean>>(() =>
     Object.fromEntries(savedDimensionKeys.map((k) => [k, true])),
   );
   const [reco, setReco] = useState(savedRecommendation);
+  const [params, setParams] = useState<CalcParams>({ ...DEFAULT_PARAMS, ...savedParams });
   const [saving, setSaving] = useState(false);
   const [savedMsg, setSavedMsg] = useState<string | null>(null);
 
+  const gaps = useMemo(() => computeGaps(data, params), [data, params]);
+  const isDefault = JSON.stringify(params) === JSON.stringify(DEFAULT_PARAMS);
+
   const toggle = (k: string) => setChecked((p) => ({ ...p, [k]: !p[k] }));
+  const setParam = (k: keyof CalcParams, v: number) => setParams((p) => ({ ...p, [k]: v }));
 
   const save = async () => {
     setSaving(true);
     setSavedMsg(null);
     const dimensionKeys = Object.entries(checked).filter(([, v]) => v).map(([k]) => k);
-    const res = await saveAdvisorWorkbench({ clientId, recommendation: reco, dimensionKeys });
+    const res = await saveAdvisorWorkbench({ clientId, recommendation: reco, dimensionKeys, paramsOverride: params });
     setSaving(false);
     setSavedMsg(res.ok ? "已儲存 ✓" : `儲存失敗:${res.error}`);
   };
@@ -99,28 +103,36 @@ export function AdvisorWorkbench({
         </div>
       </section>
 
-      {/* 缺口 */}
+      {/* 試算參數 + 缺口 */}
       <section className="rounded-2xl border border-neutral-200 bg-white p-5 dark:border-neutral-800 dark:bg-neutral-950">
-        <h2 className="mb-3 text-base font-semibold">缺口試算</h2>
-        <div className="grid grid-cols-3 gap-3">
-          {gaps.map((g) => (
-            <div key={g.name} className="rounded-lg border border-neutral-200 p-3 text-center dark:border-neutral-800">
-              <div className="text-xs text-neutral-500 dark:text-neutral-400">{g.name}</div>
-              <div className="mt-1 text-sm font-semibold">
-                {g.status === "needs_deep_data" ? (
-                  <span className="text-neutral-400">待深化</span>
-                ) : g.gap > 0 ? (
-                  <span className="text-amber-600 dark:text-amber-400">缺 {Math.round(g.gap)} 萬</span>
-                ) : (
-                  <span className="text-emerald-600 dark:text-emerald-400">足夠</span>
-                )}
-              </div>
-            </div>
-          ))}
+        <div className="flex items-center justify-between">
+          <h2 className="text-base font-semibold">缺口試算</h2>
+          {!isDefault && (
+            <button onClick={() => setParams(DEFAULT_PARAMS)} className="text-xs text-sky-600 hover:underline dark:text-sky-400">
+              重設為預設
+            </button>
+          )}
         </div>
+
+        {/* 可調參數 */}
+        <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <ParamInput label="年報酬率" suffix="%" value={params.returnRate * 100} onChange={(v) => setParam("returnRate", v / 100)} step={0.5} />
+          <ParamInput label="通膨率" suffix="%" value={params.inflationRate * 100} onChange={(v) => setParam("inflationRate", v / 100)} step={0.5} />
+          <ParamInput label="預估餘命" suffix="歲" value={params.lifeExpectancy} onChange={(v) => setParam("lifeExpectancy", v)} step={1} />
+          <ParamInput label="退休生活水準" suffix="%" value={params.defaultRetireLifestylePct} onChange={(v) => setParam("defaultRetireLifestylePct", v)} step={5} />
+        </div>
+
+        <div className="mt-4 grid grid-cols-3 gap-3">
+          <GapCard name="退休金缺口" gap={gaps.retirement} />
+          <GapCard name="保障缺口" gap={gaps.protection} />
+          <GapCard name="教育金缺口" gap={gaps.education} />
+        </div>
+        <p className="mt-3 text-xs text-neutral-400">
+          調整上方參數,缺口會即時重算。此為透明公式試算,非投資建議。
+        </p>
       </section>
 
-      {/* 配置面向參考框架(手動勾選) */}
+      {/* 配置面向參考框架 */}
       <section className="rounded-2xl border border-neutral-200 bg-white p-5 dark:border-neutral-800 dark:bg-neutral-950">
         <h2 className="text-base font-semibold">配置面向參考框架</h2>
         <p className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">
@@ -198,6 +210,43 @@ export function AdvisorWorkbench({
           <p className="mt-2 text-xs text-neutral-400">示範客戶不寫入資料庫;真實客戶可儲存建議並產出報告。</p>
         )}
       </section>
+    </div>
+  );
+}
+
+// ── 子元件 ───────────────────────────────────────────
+
+function ParamInput({ label, suffix, value, onChange, step }: { label: string; suffix: string; value: number; onChange: (v: number) => void; step: number }) {
+  return (
+    <label className="block">
+      <span className="text-xs text-neutral-500 dark:text-neutral-400">{label}</span>
+      <div className="mt-1 flex items-center rounded-lg border border-neutral-300 bg-white px-2 dark:border-neutral-700 dark:bg-neutral-900">
+        <input
+          type="number"
+          value={value}
+          step={step}
+          onChange={(e) => onChange(Number(e.target.value))}
+          className="w-full bg-transparent py-1.5 text-sm outline-none"
+        />
+        <span className="text-xs text-neutral-400">{suffix}</span>
+      </div>
+    </label>
+  );
+}
+
+function GapCard({ name, gap }: { name: string; gap: GapResult }) {
+  return (
+    <div className="rounded-lg border border-neutral-200 p-3 text-center dark:border-neutral-800">
+      <div className="text-xs text-neutral-500 dark:text-neutral-400">{name}</div>
+      <div className="mt-1 text-sm font-semibold">
+        {gap.status === "needs_deep_data" ? (
+          <span className="text-neutral-400">待深化</span>
+        ) : gap.gap > 0 ? (
+          <span className="text-amber-600 dark:text-amber-400">缺 {Math.round(gap.gap).toLocaleString("zh-TW")} 萬</span>
+        ) : (
+          <span className="text-emerald-600 dark:text-emerald-400">足夠</span>
+        )}
+      </div>
     </div>
   );
 }

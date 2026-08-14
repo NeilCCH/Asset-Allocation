@@ -61,11 +61,14 @@ export async function createAdvisorProfile(input: {
   return { ok: false, error: "推薦碼產生失敗,請重試" };
 }
 
-/** 儲存顧問工作台 — 建議 + 勾選的配置面向。⚠️ 寫入 advisor_private(RLS 限本顧問)。 */
+import type { CalcParams } from "@/lib/domain/params";
+
+/** 儲存顧問工作台 — 建議 + 勾選的配置面向 + 試算參數覆寫。⚠️ 寫入 advisor_private(RLS 限本顧問)。 */
 export async function saveAdvisorWorkbench(input: {
   clientId: string;
   recommendation: string;
   dimensionKeys: string[];
+  paramsOverride?: Partial<CalcParams>;
 }): Promise<{ ok: true } | { ok: false; error: string }> {
   const supabase = await createServerSupabase();
   const { data: auth } = await supabase.auth.getUser();
@@ -75,6 +78,7 @@ export async function saveAdvisorWorkbench(input: {
       client_id: input.clientId,
       allocation_framework: { dimensions: input.dimensionKeys },
       advisor_recommendation: input.recommendation,
+      calc_params_override: input.paramsOverride ?? {},
       updated_at: new Date().toISOString(),
     },
     { onConflict: "client_id" },
@@ -86,6 +90,7 @@ export async function saveAdvisorWorkbench(input: {
 export interface AdvisorWorkbenchData {
   recommendation: string;
   dimensionKeys: string[];
+  paramsOverride: Partial<CalcParams>;
 }
 
 /** 讀取已儲存的工作台內容(RLS 限本顧問名下客戶) */
@@ -93,7 +98,7 @@ export async function getAdvisorWorkbench(clientId: string): Promise<AdvisorWork
   const supabase = await createServerSupabase();
   const { data } = await supabase
     .from("advisor_private")
-    .select("advisor_recommendation, allocation_framework")
+    .select("advisor_recommendation, allocation_framework, calc_params_override")
     .eq("client_id", clientId)
     .maybeSingle();
   if (!data) return null;
@@ -101,6 +106,7 @@ export async function getAdvisorWorkbench(clientId: string): Promise<AdvisorWork
   return {
     recommendation: data.advisor_recommendation ?? "",
     dimensionKeys: framework?.dimensions ?? [],
+    paramsOverride: (data.calc_params_override as Partial<CalcParams>) ?? {},
   };
 }
 

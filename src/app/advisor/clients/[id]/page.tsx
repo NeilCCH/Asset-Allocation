@@ -5,7 +5,7 @@ import { notFound } from "next/navigation";
 import { getAdvisorWorkbench } from "@/lib/actions/advisor";
 import { loadClientData, isRealClientId } from "@/lib/clientData";
 import { scoreLead } from "@/lib/domain/leads";
-import { assetBreakdown, computeGaps, liquidAssets, protectionVsInvestment, sumAssets } from "@/lib/domain/calc";
+import { assetBreakdown, liquidAssets, protectionVsInvestment, sumAssets } from "@/lib/domain/calc";
 import { ALLOCATION_DIMENSIONS, dimensionHints } from "@/lib/domain/allocation";
 import { AdvisorWorkbench } from "@/components/AdvisorWorkbench";
 
@@ -16,7 +16,6 @@ export default async function ClientDetail({ params }: PageProps<"/advisor/clien
   const isReal = isRealClientId(id);
   const saved = isReal ? await getAdvisorWorkbench(id) : null;
   const score = scoreLead(data);
-  const gaps = computeGaps(data);
   const total = sumAssets(data.core.assets);
   const liquid = liquidAssets(data.core.assets);
   const pvi = protectionVsInvestment(data.core.assets);
@@ -26,16 +25,6 @@ export default async function ClientDetail({ params }: PageProps<"/advisor/clien
     const h = hints.find((x) => x.key === d.key);
     return { ...d, flagged: h?.flagged ?? false, note: h?.note };
   });
-
-  const gapList = [
-    { name: "退休金缺口", gap: gaps.retirement },
-    { name: "保障缺口", gap: gaps.protection },
-    { name: "教育金缺口", gap: gaps.education },
-  ].map((g) => ({
-    name: g.name,
-    status: g.gap.status,
-    gap: g.gap.gap,
-  }));
 
   return (
     <main className="mx-auto w-full max-w-3xl flex-1 px-5 py-8 sm:py-10">
@@ -87,10 +76,11 @@ export default async function ClientDetail({ params }: PageProps<"/advisor/clien
         canSave={isReal}
         surname={`${data.basic.surname}${data.basic.honorific}`}
         score={score}
-        gaps={gapList}
+        data={data}
         dimensions={dimensions}
         savedRecommendation={saved?.recommendation ?? ""}
         savedDimensionKeys={saved?.dimensionKeys ?? []}
+        savedParams={saved?.paramsOverride ?? {}}
       />
     </main>
   );
