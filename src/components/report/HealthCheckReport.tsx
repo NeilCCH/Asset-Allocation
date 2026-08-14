@@ -3,6 +3,12 @@
 import type { ReportModel } from "@/lib/domain/report";
 import { fmtWan } from "@/lib/domain/report";
 
+const GAP_FORMULA: Record<string, string> = {
+  退休金缺口: "退休後總支出需求 − (現有資產成長估計 + 未來持續投入估計)",
+  保障缺口: "(未償負債 + 扶養支出 + 子女教育金) − (現有壽險保額 + 流動資產)",
+  教育金缺口: "Σ 每位子女(每年教育+生活預算 × 就讀年數),依就學時程折現",
+};
+
 const CAT_COLOR: Record<string, string> = {
   流動: "#10b981",
   投資: "#0ea5e9",
@@ -152,6 +158,48 @@ export function HealthCheckReport({ model }: { model: ReportModel }) {
         </section>
       )}
 
+      {/* 試算計算明細(供驗證) */}
+      <section className="hcr-card">
+        <h2>試算計算明細(供驗證)</h2>
+        <p className="hcr-note">
+          試算參數:年報酬 {pctNum(model.params.returnRate)} · 通膨 {pctNum(model.params.inflationRate)} ·
+          預估餘命 {model.params.lifeExpectancy} 歲 · 退休生活水準 {model.params.defaultRetireLifestylePct}% ·
+          子女獨立年齡 {model.params.childIndependentAge} 歲
+        </p>
+        {model.gaps
+          .filter((g) => g.result.status === "computed")
+          .map((g) => (
+            <div key={g.name} className="hcr-calc">
+              <div className="hcr-calc-title">{g.name}</div>
+              <div className="hcr-calc-formula">{GAP_FORMULA[g.name] ?? ""}</div>
+              <ul className="hcr-calc-list">
+                {g.result.breakdown.map((b) => (
+                  <li key={b.label}>
+                    <span>{b.label}</span>
+                    <span>{fmtWan(b.amount)}</span>
+                  </li>
+                ))}
+              </ul>
+              <div className="hcr-calc-result">= {gapText(g.result)}</div>
+            </div>
+          ))}
+        {model.estateTax && (
+          <div className="hcr-calc">
+            <div className="hcr-calc-title">遺產稅</div>
+            <div className="hcr-calc-formula">(遺產總額 − 扣除額) × 稅率 − 累進差額</div>
+            <ul className="hcr-calc-list">
+              <li><span>遺產總額</span><span>{fmtWan(model.estateTax.grossEstate)}</span></li>
+              {model.estateTax.deductions.map((d) => (
+                <li key={d.label}><span>− {d.label}</span><span>{fmtWan(d.amount)}</span></li>
+              ))}
+              <li><span>課稅遺產淨額</span><span>{fmtWan(model.estateTax.netTaxable)}</span></li>
+              <li><span>× 稅率</span><span>{Math.round(model.estateTax.rate * 100)}%</span></li>
+            </ul>
+            <div className="hcr-calc-result">= 預估遺產稅 {fmtWan(model.estateTax.tax)}</div>
+          </div>
+        )}
+      </section>
+
       {/* 顧問建議(顧問版才有) */}
       {(model.advisorRecommendation || model.selectedDimensions?.length) && (
         <section className="hcr-card hcr-advisor">
@@ -250,6 +298,12 @@ const css = `
 .hcr-ins-row.on { background:#ecfdf5; border-color:#a7f3d0; }
 .hcr-ins-row.on span:last-child { color:#059669; font-weight:600; }
 .hcr-ins-row.off span:last-child { color:#bbb; }
+.hcr-calc { border:1px solid #eee; border-radius:10px; padding:12px; margin-bottom:10px; break-inside:avoid; }
+.hcr-calc-title { font-size:13px; font-weight:700; }
+.hcr-calc-formula { font-size:11px; color:#0369a1; background:#f0f9ff; padding:6px 8px; border-radius:6px; margin:6px 0; }
+.hcr-calc-list { list-style:none; margin:0; padding:0; }
+.hcr-calc-list li { display:flex; justify-content:space-between; font-size:12px; padding:2px 0; color:#555; border-bottom:1px dashed #f0f0f0; }
+.hcr-calc-result { text-align:right; font-size:13px; font-weight:700; margin-top:6px; }
 .hcr-advisor { background:#f0f9ff; border-color:#bae6fd; }
 .hcr-dims { display:grid; gap:8px; margin-bottom:12px; }
 .hcr-dim { font-size:13px; padding:8px 12px; background:#fff; border:1px solid #e0f2fe; border-radius:8px; }
