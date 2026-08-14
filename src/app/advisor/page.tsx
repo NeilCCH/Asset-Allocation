@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { createAdvisorProfile } from "@/lib/actions/advisor";
-import { LICENSE_OPTIONS, type LicenseType } from "@/lib/domain/licenses";
+import { LICENSE_OPTIONS, LICENSE_REQUIRES_NUMBER, type LicenseType } from "@/lib/domain/licenses";
 
 export default function AdvisorAuth() {
   const router = useRouter();
@@ -29,8 +29,10 @@ export default function AdvisorAuth() {
   const setLicenseNo = (l: LicenseType, no: string) => setLicenseNos((p) => ({ ...p, [l]: no }));
 
   const licenseEntries = Object.entries(licenseNos) as [LicenseType, string][];
-  // 至少一張證照,且每張都填了證號
-  const licensesValid = licenseEntries.length > 0 && licenseEntries.every(([, no]) => no.trim() !== "");
+  // 至少一張證照;需證號者須填號(外幣/投資型依附壽險資格,免證號)
+  const licensesValid =
+    licenseEntries.length > 0 &&
+    licenseEntries.every(([type, no]) => !LICENSE_REQUIRES_NUMBER[type] || no.trim() !== "");
 
   const submit = async () => {
     setBusy(true);
@@ -115,7 +117,7 @@ export default function AdvisorAuth() {
                           {o.note && <span className="ml-1 text-xs text-neutral-400">{o.note}</span>}
                         </span>
                       </label>
-                      {checked && (
+                      {checked && o.requiresNumber && (
                         <input
                           value={licenseNos[o.value] ?? ""}
                           onChange={(e) => setLicenseNo(o.value, e.target.value)}
