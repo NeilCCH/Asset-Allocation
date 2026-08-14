@@ -15,16 +15,22 @@ export interface AdvisorProfile {
   id: string;
   email: string;
   display_name: string | null;
+  full_name: string | null;
+  mobile: string | null;
   referral_code: string;
   licenses: AdvisorLicense[];
-  firm_name: string | null;
+  card_front_path: string | null;
+  card_back_path: string | null;
+  verified: boolean;
 }
 
 /** 建立顧問檔案(註冊後呼叫)。需已有登入 session。 */
 export async function createAdvisorProfile(input: {
-  displayName: string;
+  fullName: string;
+  mobile: string;
   licenses: AdvisorLicense[];
-  firmName?: string;
+  cardFrontPath?: string;
+  cardBackPath?: string;
 }): Promise<{ ok: true; referralCode: string } | { ok: false; error: string }> {
   const supabase = await createServerSupabase();
   const { data: auth } = await supabase.auth.getUser();
@@ -40,10 +46,13 @@ export async function createAdvisorProfile(input: {
     const { error } = await supabase.from("advisors").insert({
       id: auth.user.id,
       email: auth.user.email,
-      display_name: input.displayName,
+      display_name: input.fullName,
+      full_name: input.fullName,
+      mobile: input.mobile,
       referral_code,
       licenses: input.licenses,
-      firm_name: input.firmName ?? null,
+      card_front_path: input.cardFrontPath ?? null,
+      card_back_path: input.cardBackPath ?? null,
     });
     if (!error) return { ok: true, referralCode: referral_code };
     if (error.code !== "23505") return { ok: false, error: error.message }; // 非唯一鍵衝突則直接回報
@@ -59,7 +68,7 @@ export async function getMyAdvisor(): Promise<AdvisorProfile | null> {
   if (!auth.user) return null;
   const { data } = await supabase
     .from("advisors")
-    .select("id, email, display_name, referral_code, licenses, firm_name")
+    .select("id, email, display_name, full_name, mobile, referral_code, licenses, card_front_path, card_back_path, verified")
     .eq("id", auth.user.id)
     .maybeSingle();
   return (data as AdvisorProfile) ?? null;

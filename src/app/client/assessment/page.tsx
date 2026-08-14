@@ -23,6 +23,7 @@ import {
   URGENCY_OPTIONS,
 } from "@/lib/domain/options";
 import { saveDraft } from "@/lib/draft";
+import { PDPA_CONSENT_STATEMENT, PDPA_SECTIONS } from "@/lib/domain/pdpa";
 
 type AssetForm = Record<keyof Assets, { has: boolean; amount: string }>;
 
@@ -371,18 +372,23 @@ function ContactHint() {
 function PdpaStep({ checked, onChange }: { checked: boolean; onChange: (v: boolean) => void }) {
   return (
     <section className="space-y-4">
-      <h1 className="text-xl font-bold">個人資料使用同意</h1>
-      <div className="max-h-64 overflow-y-auto rounded-lg border border-neutral-200 bg-neutral-50 p-4 text-sm leading-relaxed text-neutral-600 dark:border-neutral-800 dark:bg-neutral-900 dark:text-neutral-300">
-        <p className="mb-2 font-medium text-neutral-800 dark:text-neutral-100">蒐集目的與範圍</p>
-        <p>本工具為協助您檢視資產配置現況與缺口試算之用。我們僅蒐集必要之個人資料(姓氏、聯絡方式)及您自願填寫之財務資訊。</p>
-        <p className="mt-2 mb-2 font-medium text-neutral-800 dark:text-neutral-100">利用方式</p>
-        <p>您的資料將用於產生資產健檢彙整,並提供予您綁定之財富管理顧問,作為提供規劃建議之依據。系統本身不對您進行任何金融商品推介。</p>
-        <p className="mt-2 mb-2 font-medium text-neutral-800 dark:text-neutral-100">您的權利</p>
-        <p>您得依個人資料保護法,隨時請求查詢、閱覽、補正、刪除您的個人資料,或停止蒐集、處理、利用。</p>
+      <h1 className="text-xl font-bold">個人資料蒐集、處理及利用告知暨同意</h1>
+      <p className="-mt-2 text-xs text-neutral-500 dark:text-neutral-400">
+        依《個人資料保護法》第 8 條告知事項。請詳閱後勾選同意。
+      </p>
+      <div className="max-h-72 space-y-3 overflow-y-auto rounded-lg border border-neutral-200 bg-neutral-50 p-4 text-sm leading-relaxed text-neutral-600 dark:border-neutral-800 dark:bg-neutral-900 dark:text-neutral-300">
+        {PDPA_SECTIONS.map((s) => (
+          <div key={s.no}>
+            <p className="mb-1 font-medium text-neutral-800 dark:text-neutral-100">
+              {s.no}、{s.title}
+            </p>
+            <p className="whitespace-pre-line">{s.body}</p>
+          </div>
+        ))}
       </div>
-      <label className="flex items-start gap-3">
+      <label className="flex items-start gap-3 rounded-lg bg-emerald-50 p-3 dark:bg-emerald-950/30">
         <input type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} className="mt-0.5 h-4 w-4 accent-emerald-600" />
-        <span className="text-sm">我已閱讀並同意上述個人資料蒐集、處理與利用方式。</span>
+        <span className="text-sm text-neutral-700 dark:text-neutral-200">{PDPA_CONSENT_STATEMENT}</span>
       </label>
     </section>
   );
