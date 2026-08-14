@@ -22,6 +22,7 @@ import {
   sumAssets,
   type GapResult,
 } from "@/lib/domain/calc";
+import { clientDefaultParams } from "@/lib/domain/params";
 import { loadDraft } from "@/lib/draft";
 
 const CATEGORY_COLOR: Record<string, string> = {
@@ -52,7 +53,7 @@ export default function Dashboard() {
       liquid: liquidAssets(data.core.assets),
       pvi: protectionVsInvestment(data.core.assets),
       pie: [...byCategory.entries()].map(([category, amount]) => ({ name: category, value: amount })),
-      gaps: computeGaps(data),
+      gaps: computeGaps(data, clientDefaultParams(data.basic.honorific)),
     };
   }, [data]);
 

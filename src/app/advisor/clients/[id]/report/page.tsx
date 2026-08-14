@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import { getAdvisorWorkbench, getMyAdvisor } from "@/lib/actions/advisor";
 import { loadClientData, isRealClientId } from "@/lib/clientData";
 import { ALLOCATION_DIMENSIONS } from "@/lib/domain/allocation";
-import { DEFAULT_PARAMS } from "@/lib/domain/params";
+import { clientDefaultParams } from "@/lib/domain/params";
 import { buildReport } from "@/lib/domain/report";
 import { HealthCheckReport } from "@/components/report/HealthCheckReport";
 import { PrintButton } from "@/components/report/PrintButton";
@@ -23,7 +23,7 @@ export default async function AdvisorReport({ params }: { params: Promise<{ id: 
     .map((d) => ({ title: d.title, desc: d.desc }));
 
   const model = buildReport(data, {
-    params: { ...DEFAULT_PARAMS, ...(saved?.paramsOverride ?? {}) },
+    params: { ...clientDefaultParams(data.basic.honorific), ...(saved?.paramsOverride ?? {}) },
     advisorRecommendation: saved?.recommendation || undefined,
     selectedDimensions: selectedDimensions.length ? selectedDimensions : undefined,
     advisorSignature: advisor

@@ -5,6 +5,7 @@
 import { createServiceSupabase } from "@/lib/supabase/server";
 import type { QuestionnaireData } from "@/lib/domain/types";
 import { assetBreakdown, computeGaps, protectionVsInvestment } from "@/lib/domain/calc";
+import { clientDefaultParams } from "@/lib/domain/params";
 import { scoreLead } from "@/lib/domain/leads";
 import { PDPA_VERSION } from "@/lib/domain/pdpa";
 
@@ -56,7 +57,7 @@ export async function submitClientQuestionnaire(input: {
     client_id: clientId,
     asset_breakdown: assetBreakdown(data.core.assets),
     protection_vs_invest: protectionVsInvestment(data.core.assets),
-    gaps: computeGaps(data),
+    gaps: computeGaps(data, clientDefaultParams(data.basic.honorific)),
   });
 
   // 顧問專屬:leads 評分(客戶端讀不到此表)

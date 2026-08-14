@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import type { QuestionnaireData } from "@/lib/domain/types";
 import { buildReport, type ReportModel } from "@/lib/domain/report";
+import { clientDefaultParams } from "@/lib/domain/params";
 import { HealthCheckReport } from "@/components/report/HealthCheckReport";
 import { loadDraft } from "@/lib/draft";
 
@@ -12,7 +13,7 @@ export default function ClientReport() {
 
   useEffect(() => {
     const data = loadDraft() as QuestionnaireData | null;
-    setModel(data ? buildReport(data) : null);
+    setModel(data ? buildReport(data, { params: clientDefaultParams(data.basic.honorific) }) : null);
   }, []);
 
   if (model === undefined) return <div className="p-10 text-center text-neutral-400">載入中…</div>;

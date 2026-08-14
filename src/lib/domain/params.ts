@@ -25,14 +25,29 @@ export interface CalcParams {
 export const DEFAULT_PARAMS: CalcParams = {
   returnRate: 0.04,
   inflationRate: 0.02,
-  lifeExpectancy: 85,
+  lifeExpectancy: 84, // 預設;實際依客戶性別帶入台灣平均餘命(見下)
   defaultRetireLifestylePct: 70,
   dependentSupportAnnual: 15,
-  childIndependentAge: 22,
+  childIndependentAge: 20, // 子女以 20 歲為經濟獨立基準
   parentSupportTotal: 200,
   eduCostDomestic: 150,
   eduCostOverseas: 600,
 };
+
+/**
+ * 台灣地區平均餘命(依性別,以稱謂判斷)。用於退休試算之終齡。
+ * 參考內政部簡易生命表概數,可於後台調整。
+ */
+export const TW_LIFE_EXPECTANCY: Record<string, number> = {
+  "先生": 77, // 男性
+  "女士": 84, // 女性
+};
+
+/** 依客戶稱謂(性別)給出預設試算參數:本人終齡帶入台灣平均餘命 */
+export function clientDefaultParams(honorific?: string): CalcParams {
+  const life = (honorific && TW_LIFE_EXPECTANCY[honorific]) || DEFAULT_PARAMS.lifeExpectancy;
+  return { ...DEFAULT_PARAMS, lifeExpectancy: life };
+}
 
 // ── 級距 → 代表值(萬元)。試算時把 enum 折算成可運算數字。 ──
 

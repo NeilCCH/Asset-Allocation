@@ -6,7 +6,7 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import type { LeadScore } from "@/lib/domain/leads";
 import type { QuestionnaireData } from "@/lib/domain/types";
-import { CalcParams, DEFAULT_PARAMS } from "@/lib/domain/params";
+import { CalcParams, clientDefaultParams } from "@/lib/domain/params";
 import { computeGaps, type GapResult } from "@/lib/domain/calc";
 import { saveAdvisorWorkbench } from "@/lib/actions/advisor";
 
@@ -43,13 +43,14 @@ export function AdvisorWorkbench({
     Object.fromEntries(savedDimensionKeys.map((k) => [k, true])),
   );
   const [reco, setReco] = useState(savedRecommendation);
-  const [params, setParams] = useState<CalcParams>({ ...DEFAULT_PARAMS, ...savedParams });
+  const clientDefaults = useMemo(() => clientDefaultParams(data.basic.honorific), [data.basic.honorific]);
+  const [params, setParams] = useState<CalcParams>({ ...clientDefaults, ...savedParams });
   const [saving, setSaving] = useState(false);
   const [savedMsg, setSavedMsg] = useState<string | null>(null);
   const [showAdvanced, setShowAdvanced] = useState(false);
 
   const gaps = useMemo(() => computeGaps(data, params), [data, params]);
-  const isDefault = JSON.stringify(params) === JSON.stringify(DEFAULT_PARAMS);
+  const isDefault = JSON.stringify(params) === JSON.stringify(clientDefaults);
 
   const toggle = (k: string) => setChecked((p) => ({ ...p, [k]: !p[k] }));
   const setParam = (k: keyof CalcParams, v: number) => setParams((p) => ({ ...p, [k]: v }));
@@ -109,7 +110,7 @@ export function AdvisorWorkbench({
         <div className="flex items-center justify-between">
           <h2 className="text-base font-semibold">缺口試算</h2>
           {!isDefault && (
-            <button onClick={() => setParams(DEFAULT_PARAMS)} className="text-xs text-sky-600 hover:underline dark:text-sky-400">
+            <button onClick={() => setParams(clientDefaults)} className="text-xs text-sky-600 hover:underline dark:text-sky-400">
               重設為預設
             </button>
           )}

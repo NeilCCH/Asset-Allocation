@@ -6,6 +6,7 @@
 
 import type { QuestionnaireData } from "./types";
 import { computeGaps, liquidAssets, protectionVsInvestment, sumAssets } from "./calc";
+import { clientDefaultParams } from "./params";
 
 export interface AllocationDimension {
   key: string;
@@ -32,7 +33,7 @@ export interface DimensionHint {
 }
 
 export function dimensionHints(data: QuestionnaireData): DimensionHint[] {
-  const gaps = computeGaps(data);
+  const gaps = computeGaps(data, clientDefaultParams(data.basic.honorific));
   const total = sumAssets(data.core.assets);
   const liquid = liquidAssets(data.core.assets);
   const pvi = protectionVsInvestment(data.core.assets);
