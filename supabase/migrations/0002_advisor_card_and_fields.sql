@@ -15,11 +15,14 @@ values ('advisor-cards', 'advisor-cards', false)
 on conflict (id) do nothing;
 
 -- 儲存 RLS:顧問只能上傳/讀取自己資料夾(路徑首層 = auth.uid())
+drop policy if exists "advisor upload own cards" on storage.objects;
 create policy "advisor upload own cards" on storage.objects for insert to authenticated
   with check (bucket_id = 'advisor-cards' and (storage.foldername(name))[1] = auth.uid()::text);
 
+drop policy if exists "advisor read own cards" on storage.objects;
 create policy "advisor read own cards" on storage.objects for select to authenticated
   using (bucket_id = 'advisor-cards' and (storage.foldername(name))[1] = auth.uid()::text);
 
+drop policy if exists "advisor update own cards" on storage.objects;
 create policy "advisor update own cards" on storage.objects for update to authenticated
   using (bucket_id = 'advisor-cards' and (storage.foldername(name))[1] = auth.uid()::text);
