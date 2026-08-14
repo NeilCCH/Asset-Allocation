@@ -1,9 +1,13 @@
-// 顧問後台 — 名下客戶清單 + A/B/C 分級。⚠️ 顧問專屬頁面。
-// 此區可使用 leads 評分與配置框架(客戶端絕不進入此路徑)。
+// 顧問後台 — 名下客戶清單 + A/B/C 分級。⚠️ 顧問專屬。
+// 讀取真實登入顧問的檔案與名下客戶;未登入導回 /advisor。
 import Link from "next/link";
-import { MOCK_CLIENTS } from "@/lib/mock/clients";
+import { redirect } from "next/navigation";
+import { createServerSupabase } from "@/lib/supabase/server";
+import { getMyAdvisor } from "@/lib/actions/advisor";
 import { scoreLead, type LeadGrade } from "@/lib/domain/leads";
 import { sumAssets } from "@/lib/domain/calc";
+import type { QuestionnaireData } from "@/lib/domain/types";
+import { SignOutButton } from "./SignOutButton";
 
 const GRADE_STYLE: Record<LeadGrade, string> = {
   A: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300",
@@ -16,17 +20,32 @@ function fmtWan(wan: number) {
   return `${Math.round(wan).toLocaleString("zh-TW")} 萬`;
 }
 
-export default function AdvisorDashboard() {
-  const rows = MOCK_CLIENTS.map((c) => ({
-    ...c,
-    score: scoreLead(c.data),
-    total: sumAssets(c.data.core.assets),
-  })).sort((a, b) => b.score.total - a.score.total);
+interface ClientRow {
+  id: string;
+  surname: string;
+  honorific: string;
+  questionnaire_responses: { basic: unknown; core: unknown; deep: unknown; kyc: unknown }[] | null;
+}
 
-  const counts = rows.reduce(
-    (acc, r) => ({ ...acc, [r.score.grade]: (acc[r.score.grade] ?? 0) + 1 }),
-    {} as Record<string, number>,
-  );
+export default async function AdvisorDashboard() {
+  const advisor = await getMyAdvisor();
+  if (!advisor) redirect("/advisor");
+
+  const supabase = await createServerSupabase();
+  const { data: clientsRaw } = await supabase
+    .from("clients")
+    .select("id, surname, honorific, questionnaire_responses(basic, core, deep, kyc)")
+    .order("created_at", { ascending: false });
+
+  const rows = ((clientsRaw as ClientRow[]) ?? [])
+    .map((c) => {
+      const qr = c.questionnaire_responses?.[0];
+      if (!qr?.core) return null;
+      const data = { basic: qr.basic, core: qr.core, deep: qr.deep ?? undefined, kyc: qr.kyc ?? undefined } as QuestionnaireData;
+      return { id: c.id, data, score: scoreLead(data), total: sumAssets(data.core.assets) };
+    })
+    .filter((r): r is NonNullable<typeof r> => r !== null)
+    .sort((a, b) => b.score.total - a.score.total);
 
   return (
     <main className="mx-auto w-full max-w-4xl flex-1 px-5 py-8 sm:py-10">
@@ -34,81 +53,76 @@ export default function AdvisorDashboard() {
         <Link href="/" className="text-sm text-neutral-500 hover:text-neutral-800 dark:hover:text-neutral-200">
           ← 首頁
         </Link>
-        <div className="rounded-lg bg-sky-50 px-3 py-1.5 text-xs text-sky-700 dark:bg-sky-950/40 dark:text-sky-300">
-          推薦碼 <span className="font-mono font-semibold">WM-8F3K2</span>
-        </div>
+        <SignOutButton />
       </div>
 
-      <header className="mt-4 flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-bold">名下客戶</h1>
-          <p className="mt-1 text-sm text-neutral-500 dark:text-neutral-400">
-            依綜合評分排序,優先跟進高分客戶。分級與評分僅供你參考。
-          </p>
+      {/* 顧問檔案 */}
+      <section className="mt-4 rounded-2xl border border-neutral-200 bg-white p-5 dark:border-neutral-800 dark:bg-neutral-950">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h1 className="text-xl font-bold">{advisor.display_name ?? advisor.email}</h1>
+            {advisor.licenses.length > 0 && (
+              <p className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">
+                {advisor.licenses.map((l) => l.type).join("、")}
+              </p>
+            )}
+          </div>
+          <div className="rounded-lg bg-sky-50 px-4 py-2 text-center dark:bg-sky-950/40">
+            <div className="text-[11px] text-sky-600 dark:text-sky-400">專屬推薦碼</div>
+            <div className="font-mono text-lg font-bold text-sky-700 dark:text-sky-300">{advisor.referral_code}</div>
+          </div>
         </div>
-        <div className="flex gap-2 text-xs">
-          <Badge grade="A" n={counts.A ?? 0} />
-          <Badge grade="B" n={counts.B ?? 0} />
-          <Badge grade="C" n={counts.C ?? 0} />
-        </div>
-      </header>
+      </section>
 
-      <div className="mt-5 overflow-hidden rounded-xl border border-neutral-200 dark:border-neutral-800">
-        <table className="w-full text-sm">
-          <thead className="bg-neutral-50 text-left text-xs text-neutral-500 dark:bg-neutral-900 dark:text-neutral-400">
-            <tr>
-              <th className="px-4 py-3 font-medium">分級</th>
-              <th className="px-4 py-3 font-medium">客戶</th>
-              <th className="hidden px-4 py-3 font-medium sm:table-cell">資產總額</th>
-              <th className="hidden px-4 py-3 font-medium sm:table-cell">急迫性</th>
-              <th className="px-4 py-3 font-medium">評分</th>
-              <th className="px-4 py-3"></th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-neutral-100 dark:divide-neutral-800">
-            {rows.map((r) => (
-              <tr key={r.id} className="hover:bg-neutral-50 dark:hover:bg-neutral-900/50">
-                <td className="px-4 py-3">
-                  <span className={`inline-flex h-7 w-7 items-center justify-center rounded-full text-sm font-bold ${GRADE_STYLE[r.score.grade]}`}>
-                    {r.score.grade}
-                  </span>
-                </td>
-                <td className="px-4 py-3">
-                  <div className="font-medium">
+      <h2 className="mt-6 text-lg font-bold">名下客戶</h2>
+
+      {rows.length === 0 ? (
+        <div className="mt-3 rounded-xl border border-dashed border-neutral-300 p-8 text-center dark:border-neutral-700">
+          <p className="text-sm text-neutral-500 dark:text-neutral-400">
+            尚無綁定客戶。把推薦碼 <span className="font-mono font-semibold">{advisor.referral_code}</span> 分享給客戶,
+            <br />他們註冊後會自動出現在這裡並完成分級。
+          </p>
+          <Link href="/advisor/clients/c001" className="mt-4 inline-block text-sm text-sky-600 hover:underline dark:text-sky-400">
+            先看示範客戶檔案 →
+          </Link>
+        </div>
+      ) : (
+        <div className="mt-3 overflow-hidden rounded-xl border border-neutral-200 dark:border-neutral-800">
+          <table className="w-full text-sm">
+            <thead className="bg-neutral-50 text-left text-xs text-neutral-500 dark:bg-neutral-900 dark:text-neutral-400">
+              <tr>
+                <th className="px-4 py-3 font-medium">分級</th>
+                <th className="px-4 py-3 font-medium">客戶</th>
+                <th className="hidden px-4 py-3 font-medium sm:table-cell">資產總額</th>
+                <th className="px-4 py-3 font-medium">評分</th>
+                <th className="px-4 py-3"></th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-neutral-100 dark:divide-neutral-800">
+              {rows.map((r) => (
+                <tr key={r.id} className="hover:bg-neutral-50 dark:hover:bg-neutral-900/50">
+                  <td className="px-4 py-3">
+                    <span className={`inline-flex h-7 w-7 items-center justify-center rounded-full text-sm font-bold ${GRADE_STYLE[r.score.grade]}`}>
+                      {r.score.grade}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3 font-medium">
                     {r.data.basic.surname}
                     {r.data.basic.honorific}
-                  </div>
-                  <div className="text-xs text-neutral-400">
-                    {r.data.core.age} 歲 · {r.data.core.income_type}
-                  </div>
-                </td>
-                <td className="hidden px-4 py-3 sm:table-cell">{fmtWan(r.total)}</td>
-                <td className="hidden px-4 py-3 sm:table-cell">
-                  <span className="text-neutral-500 dark:text-neutral-400">{r.data.core.urgency}</span>
-                </td>
-                <td className="px-4 py-3 font-semibold">{r.score.total}</td>
-                <td className="px-4 py-3 text-right">
-                  <Link href={`/advisor/clients/${r.id}`} className="text-sky-600 hover:underline dark:text-sky-400">
-                    檢視 →
-                  </Link>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      <p className="mt-4 text-xs text-neutral-400">
-        評分因子:資產規模、現金流健康度、需求明確度、急迫性、互動意願(取自問卷,不另加問)。
-      </p>
+                  </td>
+                  <td className="hidden px-4 py-3 sm:table-cell">{fmtWan(r.total)}</td>
+                  <td className="px-4 py-3 font-semibold">{r.score.total}</td>
+                  <td className="px-4 py-3 text-right">
+                    <Link href={`/advisor/clients/${r.id}`} className="text-sky-600 hover:underline dark:text-sky-400">
+                      檢視 →
+                    </Link>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </main>
-  );
-}
-
-function Badge({ grade, n }: { grade: LeadGrade; n: number }) {
-  return (
-    <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 font-medium ${GRADE_STYLE[grade]}`}>
-      {grade} <span className="opacity-70">{n}</span>
-    </span>
   );
 }
