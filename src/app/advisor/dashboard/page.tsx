@@ -8,6 +8,7 @@ import { scoreLead, type LeadGrade } from "@/lib/domain/leads";
 import { sumAssets } from "@/lib/domain/calc";
 import type { QuestionnaireData } from "@/lib/domain/types";
 import { SignOutButton } from "./SignOutButton";
+import { InviteLink } from "./InviteLink";
 
 const GRADE_STYLE: Record<LeadGrade, string> = {
   A: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300",
@@ -73,6 +74,9 @@ export default async function AdvisorDashboard() {
           </div>
         </div>
       </section>
+
+      {/* 主要客戶取得方式:邀請連結 */}
+      <InviteLink code={advisor.referral_code} />
 
       <h2 className="mt-6 text-lg font-bold">名下客戶</h2>
 

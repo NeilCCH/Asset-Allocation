@@ -25,10 +25,10 @@ export default function Home() {
         <RoleCard
           role="客戶"
           title="我要做資產健檢"
-          desc="憑顧問推薦碼註冊,填寫問卷與快速盤點,即時看見資產現況全貌與缺口概況。"
-          bullets={["推薦碼綁定顧問", "個資使用同意(PDPA)", "彙整儀表板(事實層)"]}
+          desc="填寫問卷與快速盤點,即時看見資產現況全貌與缺口概況。收到顧問邀請連結者,開啟即自動綁定。"
+          bullets={["顧問邀請連結綁定", "個資使用同意(PDPA)", "彙整儀表板(事實層)"]}
           href="/client"
-          cta="輸入推薦碼開始"
+          cta="開始資產健檢"
           accent="emerald"
         />
         <RoleCard
