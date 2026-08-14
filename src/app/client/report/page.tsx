@@ -44,7 +44,7 @@ export default function ClientReport() {
 
       <div className="bg-neutral-100 py-6 dark:bg-neutral-900 print:bg-white print:py-0">
         <div className="mx-auto max-w-3xl rounded-xl bg-white shadow-sm print:shadow-none">
-          <HealthCheckReport model={model} />
+          <HealthCheckReport model={model} variant="simple" />
         </div>
       </div>
     </div>

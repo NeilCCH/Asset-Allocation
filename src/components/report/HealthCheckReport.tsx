@@ -49,7 +49,8 @@ function Donut({ segments }: { segments: { label: string; value: number; color: 
   );
 }
 
-export function HealthCheckReport({ model }: { model: ReportModel }) {
+export function HealthCheckReport({ model, variant = "full" }: { model: ReportModel; variant?: "simple" | "full" }) {
+  const full = variant === "full";
   const catTotals = new Map<string, number>();
   model.assets.forEach((a) => catTotals.set(a.category, (catTotals.get(a.category) ?? 0) + a.amount));
   const segments = [...catTotals.entries()].map(([label, value]) => ({
@@ -126,8 +127,18 @@ export function HealthCheckReport({ model }: { model: ReportModel }) {
         </p>
       </section>
 
+      {/* 簡易版:提示完整報告洽顧問 */}
+      {!full && (
+        <section className="hcr-card hcr-advisor">
+          <p style={{ margin: 0, fontSize: 13, lineHeight: 1.8 }}>
+            本頁為<strong>簡易資產健檢摘要</strong>。完整報告(含現有保障總覽、遺產稅預估、各項計算明細與規劃建議),
+            請洽您的<strong>財富管理顧問</strong>。
+          </p>
+        </section>
+      )}
+
       {/* 現有保障總覽(保單健檢) */}
-      {model.insurance.length > 0 && (
+      {full && model.insurance.length > 0 && (
         <section className="hcr-card">
           <h2>現有保障總覽</h2>
           <div className="hcr-ins">
@@ -142,8 +153,8 @@ export function HealthCheckReport({ model }: { model: ReportModel }) {
         </section>
       )}
 
-      {/* 遺產稅預估(達課稅標準才有) */}
-      {model.estateTax && (
+      {/* 遺產稅預估(達課稅標準才有,完整版) */}
+      {full && model.estateTax && (
         <section className="hcr-card">
           <h2>遺產稅預估</h2>
           <div className="hcr-stats">
@@ -158,7 +169,8 @@ export function HealthCheckReport({ model }: { model: ReportModel }) {
         </section>
       )}
 
-      {/* 試算計算明細(供驗證) */}
+      {/* 試算計算明細(供驗證,完整版) */}
+      {full && (
       <section className="hcr-card">
         <h2>試算計算明細(供驗證)</h2>
         <p className="hcr-note">
@@ -199,6 +211,7 @@ export function HealthCheckReport({ model }: { model: ReportModel }) {
           </div>
         )}
       </section>
+      )}
 
       {/* 顧問建議(顧問版才有) */}
       {(model.advisorRecommendation || model.selectedDimensions?.length) && (
@@ -227,7 +240,8 @@ export function HealthCheckReport({ model }: { model: ReportModel }) {
       )}
 
       <footer className="hcr-foot">
-        本報告為資產配置檢視與缺口試算,僅供參考,不推介任何金融商品;對客戶的規劃建議由具專業資格之顧問提供。
+        本報告為資產配置檢視與缺口試算,採透明公式與假設參數,<strong>僅供參考,以實際狀況及主管機關/國稅局核定為準</strong>;
+        系統不推介任何金融商品,對客戶之規劃建議由具專業資格之顧問提供。
       </footer>
     </div>
   );
