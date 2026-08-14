@@ -35,6 +35,26 @@ const emptyAssets: AssetForm = ASSET_FIELDS.reduce((acc, f) => {
   return acc;
 }, {} as AssetForm);
 
+// 現有保障明細欄位
+type InsKey = "medical" | "critical_illness" | "accident" | "life" | "long_term_care";
+const INS_FIELDS: { key: InsKey; label: string }[] = [
+  { key: "medical", label: "醫療" },
+  { key: "critical_illness", label: "重大疾病" },
+  { key: "accident", label: "意外" },
+  { key: "life", label: "壽險" },
+  { key: "long_term_care", label: "長照" },
+];
+type InsForm = Record<InsKey, { has: boolean; coverage: string }>;
+const emptyInsurance: InsForm = INS_FIELDS.reduce((acc, f) => {
+  acc[f.key] = { has: false, coverage: "" };
+  return acc;
+}, {} as InsForm);
+
+const mkIns = (v: { has: boolean; coverage: string }) => ({
+  has: v.has,
+  coverage: v.has ? Number(v.coverage) || 0 : 0,
+});
+
 interface Form {
   surname: string;
   honorific: Honorific;
@@ -53,6 +73,19 @@ interface Form {
   horizon: Horizon | "";
   urgency: Urgency | "";
   assets: AssetForm;
+  // 深化:負債
+  mortgageBalance: string;
+  loanBalance: string;
+  liabMonthly: string;
+  // 深化:退休後需求 / 緊急金 / 大額支出
+  retireLifestylePct: string;
+  emergencyMonths: string;
+  majorExpenseAmount: string;
+  majorExpenseYears: string;
+  // 深化:現有保障明細
+  insurance: InsForm;
+  // 深化:子女教育金(每位子女一筆)
+  eduGoals: { years_until: string; location: "國內" | "海外" }[];
 }
 
 const initialForm: Form = {
@@ -73,9 +106,18 @@ const initialForm: Form = {
   horizon: "",
   urgency: "",
   assets: emptyAssets,
+  mortgageBalance: "",
+  loanBalance: "",
+  liabMonthly: "",
+  retireLifestylePct: "70",
+  emergencyMonths: "",
+  majorExpenseAmount: "",
+  majorExpenseYears: "",
+  insurance: emptyInsurance,
+  eduGoals: [],
 };
 
-const STEPS = ["個資同意", "基本 · 家庭", "收支 · 時間", "資產盤點"];
+const STEPS = ["個資同意", "基本 · 家庭", "收支 · 時間", "資產盤點", "負債 · 退休", "保障 · 教育"];
 
 export default function Assessment() {
   const router = useRouter();
@@ -90,12 +132,25 @@ export default function Assessment() {
       const ages = [...p.childrenAges];
       ages.length = count;
       for (let i = 0; i < count; i++) if (ages[i] == null) ages[i] = "";
-      return { ...p, childrenCount: String(count), childrenAges: ages };
+      const eduGoals = [...p.eduGoals];
+      eduGoals.length = count;
+      for (let i = 0; i < count; i++) if (eduGoals[i] == null) eduGoals[i] = { years_until: "", location: "國內" };
+      return { ...p, childrenCount: String(count), childrenAges: ages, eduGoals };
     });
   };
 
   const setAsset = (key: keyof Assets, patch: Partial<{ has: boolean; amount: string }>) =>
     setF((p) => ({ ...p, assets: { ...p.assets, [key]: { ...p.assets[key], ...patch } } }));
+
+  const setIns = (key: InsKey, patch: Partial<{ has: boolean; coverage: string }>) =>
+    setF((p) => ({ ...p, insurance: { ...p.insurance, [key]: { ...p.insurance[key], ...patch } } }));
+
+  const setEduGoal = (i: number, patch: Partial<{ years_until: string; location: "國內" | "海外" }>) =>
+    setF((p) => {
+      const eduGoals = [...p.eduGoals];
+      eduGoals[i] = { ...eduGoals[i], ...patch };
+      return { ...p, eduGoals };
+    });
 
   const canNext = useMemo(() => {
     if (step === 0) return f.pdpa;
@@ -135,6 +190,28 @@ export default function Assessment() {
         assets,
         horizon: f.horizon as Horizon,
         urgency: f.urgency as Urgency,
+      },
+      deep: {
+        retire_lifestyle_pct: f.retireLifestylePct ? Number(f.retireLifestylePct) : undefined,
+        liabilities: {
+          mortgage_balance: Number(f.mortgageBalance) || 0,
+          loan_balance: Number(f.loanBalance) || 0,
+          monthly_payment: Number(f.liabMonthly) || 0,
+        },
+        emergency_months: f.emergencyMonths ? Number(f.emergencyMonths) : undefined,
+        major_expense: f.majorExpenseAmount
+          ? { amount: Number(f.majorExpenseAmount) || 0, years_until: Number(f.majorExpenseYears) || 0 }
+          : undefined,
+        insurance_detail: {
+          medical: mkIns(f.insurance.medical),
+          critical_illness: mkIns(f.insurance.critical_illness),
+          accident: mkIns(f.insurance.accident),
+          life: mkIns(f.insurance.life),
+          long_term_care: mkIns(f.insurance.long_term_care),
+        },
+        edu_goals: f.eduGoals
+          .filter((g) => g.years_until !== "")
+          .map((g) => ({ years_until: Number(g.years_until) || 0, location: g.location })),
       },
     };
     saveDraft(data);
@@ -291,6 +368,91 @@ export default function Assessment() {
                 );
               })}
             </div>
+          </Section>
+        )}
+
+        {step === 4 && (
+          <Section title="負債 · 退休 · 緊急金">
+            <p className="-mt-2 mb-1 text-sm text-neutral-500 dark:text-neutral-400">
+              填寫以下資訊才能完整試算「保障缺口」與退休準備。沒有的項目留白即可。
+            </p>
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="房貸餘額(萬)">
+                <Input value={f.mortgageBalance} onChange={(v) => set("mortgageBalance", v)} type="number" placeholder="0" />
+              </Field>
+              <Field label="其他貸款餘額(萬)">
+                <Input value={f.loanBalance} onChange={(v) => set("loanBalance", v)} type="number" placeholder="0" />
+              </Field>
+            </div>
+            <Field label="每月還款總額(萬)">
+              <Input value={f.liabMonthly} onChange={(v) => set("liabMonthly", v)} type="number" placeholder="0" />
+            </Field>
+            <Field label="退休後想維持目前開銷的幾成(%)">
+              <Input value={f.retireLifestylePct} onChange={(v) => set("retireLifestylePct", v)} type="number" placeholder="70" />
+            </Field>
+            <Field label="緊急預備金(幾個月生活費)">
+              <Input value={f.emergencyMonths} onChange={(v) => set("emergencyMonths", v)} type="number" placeholder="6" />
+            </Field>
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="近期大額支出(萬,選填)">
+                <Input value={f.majorExpenseAmount} onChange={(v) => set("majorExpenseAmount", v)} type="number" placeholder="選填" />
+              </Field>
+              <Field label="預計幾年後">
+                <Input value={f.majorExpenseYears} onChange={(v) => set("majorExpenseYears", v)} type="number" placeholder="選填" />
+              </Field>
+            </div>
+          </Section>
+        )}
+
+        {step === 5 && (
+          <Section title="現有保障 · 教育金">
+            <p className="-mt-2 mb-1 text-sm text-neutral-500 dark:text-neutral-400">
+              勾選已有的保障並填入保額(萬),用於試算保障缺口。
+            </p>
+            <div className="space-y-2">
+              {INS_FIELDS.map((ff) => {
+                const v = f.insurance[ff.key];
+                return (
+                  <div key={ff.key} className="rounded-lg border border-neutral-200 p-3 dark:border-neutral-800">
+                    <label className="flex items-center gap-3">
+                      <input type="checkbox" checked={v.has} onChange={(e) => setIns(ff.key, { has: e.target.checked })} className="h-4 w-4 accent-emerald-600" />
+                      <span className="flex-1 text-sm font-medium">{ff.label}</span>
+                      {v.has && (
+                        <span className="flex items-center gap-1.5">
+                          <input
+                            type="number"
+                            value={v.coverage}
+                            onChange={(e) => setIns(ff.key, { coverage: e.target.value })}
+                            placeholder="保額"
+                            className="w-24 rounded-md border border-neutral-300 bg-white px-2 py-1 text-right text-sm outline-none focus:border-emerald-500 dark:border-neutral-700 dark:bg-neutral-900"
+                          />
+                          <span className="text-xs text-neutral-400">萬</span>
+                        </span>
+                      )}
+                    </label>
+                  </div>
+                );
+              })}
+            </div>
+
+            {f.eduGoals.length > 0 && (
+              <div className="mt-4">
+                <span className="text-sm font-medium">子女教育金規劃</span>
+                <p className="text-xs text-neutral-400">填了才能試算教育金缺口。</p>
+                <div className="mt-2 space-y-2">
+                  {f.eduGoals.map((g, i) => (
+                    <div key={i} className="grid grid-cols-2 gap-3 rounded-lg border border-neutral-200 p-3 dark:border-neutral-800">
+                      <Field label={`第 ${i + 1} 位:幾年後就學`}>
+                        <Input value={g.years_until} onChange={(v) => setEduGoal(i, { years_until: v })} type="number" placeholder="10" />
+                      </Field>
+                      <Field label="國內 / 海外">
+                        <Select value={g.location} onChange={(v) => setEduGoal(i, { location: v as "國內" | "海外" })} options={[{ value: "國內", label: "國內" }, { value: "海外", label: "海外" }]} />
+                      </Field>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </Section>
         )}
       </div>

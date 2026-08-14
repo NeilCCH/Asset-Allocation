@@ -172,8 +172,9 @@ export default function Dashboard() {
           <GapRow name="教育金缺口" gap={view.gaps.education} />
         </div>
         <p className="mt-4 rounded-lg bg-neutral-100 p-3 text-xs leading-relaxed text-neutral-500 dark:bg-neutral-800 dark:text-neutral-400">
-          試算採透明公式與保守假設(報酬 4% / 通膨 2% / 餘命 85 歲),僅供檢視參考,不構成投資建議。
-          完整的保障與教育金缺口需補充「深化問卷」後試算。
+          試算採透明公式與保守假設(報酬 4% / 通膨 2% / 台灣平均餘命),僅供檢視參考,不構成投資建議。
+          {(view.gaps.protection.status === "needs_deep_data" || view.gaps.education.status === "needs_deep_data") &&
+            "部分缺口需補充深化問卷(負債、保障、教育金)後才能試算。"}
         </p>
       </Card>
 
