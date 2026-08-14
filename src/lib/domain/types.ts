@@ -112,8 +112,10 @@ export interface Liabilities {
 export interface InsuranceDetail {
   life: { has: boolean; coverage: number }; // 壽險:保額(萬)
   critical_illness: { has: boolean; coverage: number }; // 重大疾病:一次給付(萬)
+  cancer_lump: { has: boolean; coverage: number }; // 癌症:單筆一次給付(萬)
   accident: { has: boolean; coverage: number }; // 意外:保額(萬)
   medical: { has: boolean; daily: number; reimburse_limit: number }; // 醫療:日額(元)+ 實支實付限額(萬)
+  cancer_hospital: { has: boolean; daily: number }; // 癌症住院:日額(元,與一般住院日額分開)
   disability: { has: boolean; monthly: number }; // 失能:每月失能金(萬)
   long_term_care: { has: boolean; monthly: number }; // 長照:每月給付(萬)
 }

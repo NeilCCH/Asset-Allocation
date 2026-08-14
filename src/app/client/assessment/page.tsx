@@ -38,12 +38,14 @@ const emptyAssets: AssetForm = ASSET_FIELDS.reduce((acc, f) => {
 }, {} as AssetForm);
 
 // 現有保障明細 — 各險種用對應單位(醫療:日額+實支實付;失能/長照:月給付)
-type InsKey = "life" | "critical_illness" | "accident" | "medical" | "disability" | "long_term_care";
+type InsKey = "life" | "critical_illness" | "cancer_lump" | "accident" | "medical" | "cancer_hospital" | "disability" | "long_term_care";
 const INS_CONFIG: { key: InsKey; label: string; fields: { name: string; label: string; unit: string }[] }[] = [
   { key: "life", label: "壽險", fields: [{ name: "coverage", label: "保額", unit: "萬" }] },
   { key: "critical_illness", label: "重大疾病", fields: [{ name: "coverage", label: "一次給付", unit: "萬" }] },
+  { key: "cancer_lump", label: "癌症(單筆)", fields: [{ name: "coverage", label: "一次給付", unit: "萬" }] },
   { key: "accident", label: "意外", fields: [{ name: "coverage", label: "保額", unit: "萬" }] },
-  { key: "medical", label: "醫療", fields: [{ name: "daily", label: "日額", unit: "元" }, { name: "reimburse_limit", label: "實支實付限額", unit: "萬" }] },
+  { key: "medical", label: "醫療", fields: [{ name: "daily", label: "住院日額", unit: "元" }, { name: "reimburse_limit", label: "實支實付限額", unit: "萬" }] },
+  { key: "cancer_hospital", label: "癌症住院", fields: [{ name: "daily", label: "住院日額", unit: "元" }] },
   { key: "disability", label: "失能", fields: [{ name: "monthly", label: "每月失能金", unit: "萬" }] },
   { key: "long_term_care", label: "長照", fields: [{ name: "monthly", label: "每月給付", unit: "萬" }] },
 ];
@@ -266,17 +268,19 @@ export default function Assessment() {
         },
         emergency_months: f.emergencyMonths ? Number(f.emergencyMonths) : undefined,
         major_expense: f.majorExpenseAmount
-          ? { amount: Number(f.majorExpenseAmount) || 0, years_until: Number(f.majorExpenseYears) || 0 }
+          ? { amount: Number(f.majorExpenseAmount) || 0, years_until: 0 }
           : undefined,
         insurance_detail: {
           life: { has: f.insurance.life.has, coverage: num(f.insurance.life.values.coverage ?? "") },
           critical_illness: { has: f.insurance.critical_illness.has, coverage: num(f.insurance.critical_illness.values.coverage ?? "") },
+          cancer_lump: { has: f.insurance.cancer_lump.has, coverage: num(f.insurance.cancer_lump.values.coverage ?? "") },
           accident: { has: f.insurance.accident.has, coverage: num(f.insurance.accident.values.coverage ?? "") },
           medical: {
             has: f.insurance.medical.has,
             daily: num(f.insurance.medical.values.daily ?? ""),
             reimburse_limit: num(f.insurance.medical.values.reimburse_limit ?? ""),
           },
+          cancer_hospital: { has: f.insurance.cancer_hospital.has, daily: num(f.insurance.cancer_hospital.values.daily ?? "") },
           disability: { has: f.insurance.disability.has, monthly: num(f.insurance.disability.values.monthly ?? "") },
           long_term_care: { has: f.insurance.long_term_care.has, monthly: num(f.insurance.long_term_care.values.monthly ?? "") },
         },
@@ -503,12 +507,9 @@ export default function Assessment() {
             <div>
               <span className="text-sm font-medium">近期大額支出計畫(選填)</span>
               <p className="text-xs text-neutral-400">如購屋、換車、進修等一次性大筆支出。</p>
-              <div className="mt-1.5 grid grid-cols-2 gap-3">
-                <Field label="支出金額(萬)">
+              <div className="mt-1.5">
+                <Field label="預計發生金額(萬)">
                   <Input value={f.majorExpenseAmount} onChange={(v) => set("majorExpenseAmount", v)} type="number" placeholder="例如 300" />
-                </Field>
-                <Field label="預計幾年後發生">
-                  <Input value={f.majorExpenseYears} onChange={(v) => set("majorExpenseYears", v)} type="number" placeholder="例如 3" />
                 </Field>
               </div>
             </div>

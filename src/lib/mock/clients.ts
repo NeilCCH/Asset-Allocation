@@ -38,8 +38,10 @@ export const MOCK_CLIENTS: MockClient[] = [
         emergency_months: 6,
         insurance_detail: {
           life: { has: true, coverage: 500 }, critical_illness: { has: true, coverage: 200 },
+          cancer_lump: { has: true, coverage: 100 },
           accident: { has: true, coverage: 500 },
           medical: { has: true, daily: 3000, reimburse_limit: 20 },
+          cancer_hospital: { has: false, daily: 0 },
           disability: { has: false, monthly: 0 },
           long_term_care: { has: false, monthly: 0 },
         },

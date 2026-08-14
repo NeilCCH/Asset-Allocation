@@ -111,8 +111,10 @@ export default function Dashboard() {
     ? [
         { label: "壽險", has: ins.life.has, text: `保額 ${ins.life.coverage} 萬` },
         { label: "重大疾病", has: ins.critical_illness.has, text: `一次金 ${ins.critical_illness.coverage} 萬` },
+        { label: "癌症(單筆)", has: ins.cancer_lump.has, text: `一次金 ${ins.cancer_lump.coverage} 萬` },
         { label: "意外", has: ins.accident.has, text: `保額 ${ins.accident.coverage} 萬` },
         { label: "醫療", has: ins.medical.has, text: `日額 ${ins.medical.daily} 元 · 實支 ${ins.medical.reimburse_limit} 萬` },
+        { label: "癌症住院", has: ins.cancer_hospital.has, text: `日額 ${ins.cancer_hospital.daily} 元` },
         { label: "失能", has: ins.disability.has, text: `每月 ${ins.disability.monthly} 萬` },
         { label: "長照", has: ins.long_term_care.has, text: `每月 ${ins.long_term_care.monthly} 萬` },
       ]
