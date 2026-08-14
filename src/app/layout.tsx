@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
@@ -15,7 +15,11 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "資產配置健檢 | 財富管理顧問工具",
   description: "跨資產類別的配置檢視與缺口試算 — 檢視、試算、教育",
+  manifest: "/manifest.webmanifest",
+  appleWebApp: { capable: true, title: "資產健檢", statusBarStyle: "default" },
 };
+
+export const viewport: Viewport = { themeColor: "#10b981" };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
