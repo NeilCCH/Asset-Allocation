@@ -14,12 +14,23 @@ export default function AdvisorAuth() {
   const [password, setPassword] = useState("");
   const [displayName, setDisplayName] = useState("");
   const [firmName, setFirmName] = useState("");
-  const [licenses, setLicenses] = useState<LicenseType[]>([]);
+  // 每張勾選的證照 → 合格證號(以茲確認資格)
+  const [licenseNos, setLicenseNos] = useState<Partial<Record<LicenseType, string>>>({});
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
 
   const toggleLicense = (l: LicenseType) =>
-    setLicenses((p) => (p.includes(l) ? p.filter((x) => x !== l) : [...p, l]));
+    setLicenseNos((p) => {
+      const next = { ...p };
+      if (l in next) delete next[l];
+      else next[l] = "";
+      return next;
+    });
+  const setLicenseNo = (l: LicenseType, no: string) => setLicenseNos((p) => ({ ...p, [l]: no }));
+
+  const licenseEntries = Object.entries(licenseNos) as [LicenseType, string][];
+  // 至少一張證照,且每張都填了證號
+  const licensesValid = licenseEntries.length > 0 && licenseEntries.every(([, no]) => no.trim() !== "");
 
   const submit = async () => {
     setBusy(true);
@@ -36,7 +47,7 @@ export default function AdvisorAuth() {
         }
         const res = await createAdvisorProfile({
           displayName,
-          licenses: licenses.map((type) => ({ type })),
+          licenses: licenseEntries.map(([type, number]) => ({ type, number: number.trim() })),
           firmName: firmName || undefined,
         });
         if (!res.ok) throw new Error(res.error);
@@ -91,16 +102,30 @@ export default function AdvisorAuth() {
             </Field>
             <div>
               <span className="text-sm font-medium">專業證照(佐證專家資格)</span>
+              <p className="mt-0.5 text-xs text-neutral-400">勾選後請填入合格證號以茲確認,至少一張。</p>
               <div className="mt-2 space-y-1.5">
-                {LICENSE_OPTIONS.map((o) => (
-                  <label key={o.value} className="flex items-start gap-2.5 text-sm">
-                    <input type="checkbox" checked={licenses.includes(o.value)} onChange={() => toggleLicense(o.value)} className="mt-0.5 h-4 w-4 accent-sky-600" />
-                    <span>
-                      {o.label}
-                      {o.note && <span className="ml-1 text-xs text-neutral-400">{o.note}</span>}
-                    </span>
-                  </label>
-                ))}
+                {LICENSE_OPTIONS.map((o) => {
+                  const checked = o.value in licenseNos;
+                  return (
+                    <div key={o.value} className="rounded-lg border border-neutral-200 p-2.5 dark:border-neutral-800">
+                      <label className="flex items-start gap-2.5 text-sm">
+                        <input type="checkbox" checked={checked} onChange={() => toggleLicense(o.value)} className="mt-0.5 h-4 w-4 accent-sky-600" />
+                        <span>
+                          {o.label}
+                          {o.note && <span className="ml-1 text-xs text-neutral-400">{o.note}</span>}
+                        </span>
+                      </label>
+                      {checked && (
+                        <input
+                          value={licenseNos[o.value] ?? ""}
+                          onChange={(e) => setLicenseNo(o.value, e.target.value)}
+                          placeholder="合格證號"
+                          className="mt-2 w-full rounded-md border border-neutral-300 bg-white px-2.5 py-1.5 text-sm outline-none focus:border-sky-500 dark:border-neutral-700 dark:bg-neutral-900"
+                        />
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             </div>
           </>
@@ -110,7 +135,7 @@ export default function AdvisorAuth() {
 
         <button
           onClick={submit}
-          disabled={busy || !email || !password || (mode === "register" && !displayName)}
+          disabled={busy || !email || !password || (mode === "register" && (!displayName || !licensesValid))}
           className="w-full rounded-lg bg-sky-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-sky-700 disabled:cursor-not-allowed disabled:opacity-40"
         >
           {busy ? "處理中…" : mode === "login" ? "登入" : "註冊並建立檔案"}

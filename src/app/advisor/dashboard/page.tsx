@@ -63,7 +63,7 @@ export default async function AdvisorDashboard() {
             <h1 className="text-xl font-bold">{advisor.display_name ?? advisor.email}</h1>
             {advisor.licenses.length > 0 && (
               <p className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">
-                {advisor.licenses.map((l) => l.type).join("、")}
+                {advisor.licenses.map((l) => (l.number ? `${l.type}(${l.number})` : l.type)).join("、")}
               </p>
             )}
           </div>
