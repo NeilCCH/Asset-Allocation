@@ -17,9 +17,16 @@ export const metadata: Metadata = {
   description: "跨資產類別的配置檢視與缺口試算 — 檢視、試算、教育",
   manifest: "/manifest.webmanifest",
   appleWebApp: { capable: true, title: "資產健檢", statusBarStyle: "default" },
+  icons: {
+    icon: [
+      { url: "/logo-192.png", sizes: "192x192", type: "image/png" },
+      { url: "/logo-512.png", sizes: "512x512", type: "image/png" },
+    ],
+    apple: "/logo-180.png",
+  },
 };
 
-export const viewport: Viewport = { themeColor: "#10b981" };
+export const viewport: Viewport = { themeColor: "#1e6fd9" };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (

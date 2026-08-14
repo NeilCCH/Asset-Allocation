@@ -24,6 +24,7 @@ import {
 } from "@/lib/domain/calc";
 import { clientDefaultParams } from "@/lib/domain/params";
 import { loadDraft } from "@/lib/draft";
+import { createClient } from "@/lib/supabase/client";
 
 const CATEGORY_COLOR: Record<string, string> = {
   流動: "#10b981",
@@ -41,7 +42,30 @@ function fmt(wan: number): string {
 
 export default function Dashboard() {
   const [data, setData] = useState<QuestionnaireData | null | undefined>(undefined);
-  useEffect(() => setData(loadDraft()), []);
+  const [loggedIn, setLoggedIn] = useState(false);
+
+  useEffect(() => {
+    (async () => {
+      const supabase = createClient();
+      const { data: auth } = await supabase.auth.getUser();
+      if (auth.user) {
+        setLoggedIn(true);
+        const { data: rows } = await supabase
+          .from("clients")
+          .select("questionnaire_responses(basic, core, deep, kyc)")
+          .eq("auth_user_id", auth.user.id)
+          .order("created_at", { ascending: false })
+          .limit(1);
+        const qr = (rows as { questionnaire_responses?: { basic: unknown; core: unknown; deep: unknown; kyc: unknown }[] }[] | null)?.[0]
+          ?.questionnaire_responses?.[0];
+        if (qr?.core) {
+          setData({ basic: qr.basic, core: qr.core, deep: qr.deep ?? undefined, kyc: qr.kyc ?? undefined } as QuestionnaireData);
+          return;
+        }
+      }
+      setData(loadDraft());
+    })();
+  }, []);
 
   const view = useMemo(() => {
     if (!data) return null;
@@ -83,6 +107,16 @@ export default function Dashboard() {
           重新填寫
         </Link>
       </div>
+
+      {!loggedIn && (
+        <Link
+          href="/client/account"
+          className="mt-4 flex items-center justify-between rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-200"
+        >
+          <span>建立帳號,日後可隨時登入回看此健檢</span>
+          <span className="font-medium">建立帳號 →</span>
+        </Link>
+      )}
 
       <header className="mt-4">
         <h1 className="text-2xl font-bold">

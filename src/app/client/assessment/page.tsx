@@ -24,6 +24,7 @@ import {
 } from "@/lib/domain/options";
 import { saveDraft } from "@/lib/draft";
 import { loadReferral } from "@/lib/referral";
+import { saveClientId } from "@/lib/clientSession";
 import { submitClientQuestionnaire } from "@/lib/actions/client";
 import { PDPA_CONSENT_STATEMENT, PDPA_SECTIONS } from "@/lib/domain/pdpa";
 
@@ -141,7 +142,8 @@ export default function Assessment() {
     const ref = loadReferral();
     if (ref) {
       try {
-        await submitClientQuestionnaire({ referralCode: ref, data });
+        const res = await submitClientQuestionnaire({ referralCode: ref, data });
+        if (res.ok) saveClientId(res.clientId);
       } catch {
         /* 靜默失敗:客戶仍可由 localStorage 檢視事實層 */
       }
