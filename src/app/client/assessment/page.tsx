@@ -23,6 +23,8 @@ import {
   URGENCY_OPTIONS,
 } from "@/lib/domain/options";
 import { saveDraft } from "@/lib/draft";
+import { loadReferral } from "@/lib/referral";
+import { submitClientQuestionnaire } from "@/lib/actions/client";
 import { PDPA_CONSENT_STATEMENT, PDPA_SECTIONS } from "@/lib/domain/pdpa";
 
 type AssetForm = Record<keyof Assets, { has: boolean; amount: string }>;
@@ -101,7 +103,7 @@ export default function Assessment() {
     return true;
   }, [step, f]);
 
-  const submit = () => {
+  const submit = async () => {
     const assets = ASSET_FIELDS.reduce((acc, field) => {
       const a = f.assets[field.key];
       acc[field.key] = { has: a.has, amount: a.has ? Number(a.amount) || 0 : 0 };
@@ -135,6 +137,15 @@ export default function Assessment() {
       },
     };
     saveDraft(data);
+    // 有綁定顧問(邀請連結)則存進 Supabase;失敗不擋客戶看自己的儀表板
+    const ref = loadReferral();
+    if (ref) {
+      try {
+        await submitClientQuestionnaire({ referralCode: ref, data });
+      } catch {
+        /* 靜默失敗:客戶仍可由 localStorage 檢視事實層 */
+      }
+    }
     router.push("/client/dashboard");
   };
 
