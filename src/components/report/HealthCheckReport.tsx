@@ -120,6 +120,22 @@ export function HealthCheckReport({ model }: { model: ReportModel }) {
         </p>
       </section>
 
+      {/* 現有保障總覽(保單健檢) */}
+      {model.insurance.length > 0 && (
+        <section className="hcr-card">
+          <h2>現有保障總覽</h2>
+          <div className="hcr-ins">
+            {model.insurance.map((r) => (
+              <div key={r.label} className={`hcr-ins-row ${r.has ? "on" : "off"}`}>
+                <span>{r.has ? "✓ " : "— "}{r.label}</span>
+                <span>{r.has ? r.text : "尚無"}</span>
+              </div>
+            ))}
+          </div>
+          <p className="hcr-note">各險種單位不同:壽險/意外/重疾為保額(萬)、醫療為日額+實支實付、失能/長照為每月給付。</p>
+        </section>
+      )}
+
       {/* 顧問建議(顧問版才有) */}
       {(model.advisorRecommendation || model.selectedDimensions?.length) && (
         <section className="hcr-card hcr-advisor">
@@ -213,6 +229,11 @@ const css = `
 .hcr-gap.ok .hcr-gap-val { color:#059669; font-weight:700; }
 .hcr-gap.pending .hcr-gap-val { color:#999; font-size:12px; }
 .hcr-note { font-size:11px; color:#888; line-height:1.6; margin:10px 0 0; background:#fafafa; padding:10px; border-radius:8px; }
+.hcr-ins { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+.hcr-ins-row { display:flex; justify-content:space-between; font-size:13px; padding:8px 12px; border-radius:8px; border:1px solid #eee; }
+.hcr-ins-row.on { background:#ecfdf5; border-color:#a7f3d0; }
+.hcr-ins-row.on span:last-child { color:#059669; font-weight:600; }
+.hcr-ins-row.off span:last-child { color:#bbb; }
 .hcr-advisor { background:#f0f9ff; border-color:#bae6fd; }
 .hcr-dims { display:grid; gap:8px; margin-bottom:12px; }
 .hcr-dim { font-size:13px; padding:8px 12px; background:#fff; border:1px solid #e0f2fe; border-radius:8px; }

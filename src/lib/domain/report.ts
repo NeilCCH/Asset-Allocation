@@ -27,6 +27,8 @@ export interface ReportModel {
   };
   assets: { label: string; category: string; amount: number; pct: number }[];
   gaps: { name: string; result: GapResult }[];
+  /** 現有保障總覽(保單健檢) */
+  insurance: { label: string; has: boolean; text: string }[];
   profile: {
     age: number;
     retireAge: number;
@@ -84,6 +86,7 @@ export function buildReport(
       { name: "保障缺口", result: gaps.protection },
       { name: "教育金缺口", result: gaps.education },
     ],
+    insurance: insuranceRows(data),
     profile: {
       age: data.core.age,
       retireAge: data.core.retire_age,
@@ -94,6 +97,20 @@ export function buildReport(
     selectedDimensions: opts?.selectedDimensions,
     advisorSignature: opts?.advisorSignature,
   };
+}
+
+/** 現有保障總覽(各險種單位不同) */
+function insuranceRows(data: QuestionnaireData): { label: string; has: boolean; text: string }[] {
+  const ins = data.deep?.insurance_detail;
+  if (!ins) return [];
+  return [
+    { label: "壽險", has: ins.life.has, text: `保額 ${ins.life.coverage} 萬` },
+    { label: "重大疾病", has: ins.critical_illness.has, text: `一次金 ${ins.critical_illness.coverage} 萬` },
+    { label: "意外", has: ins.accident.has, text: `保額 ${ins.accident.coverage} 萬` },
+    { label: "醫療", has: ins.medical.has, text: `日額 ${ins.medical.daily} 元 · 實支 ${ins.medical.reimburse_limit} 萬` },
+    { label: "失能", has: ins.disability.has, text: `每月 ${ins.disability.monthly} 萬` },
+    { label: "長照", has: ins.long_term_care.has, text: `每月 ${ins.long_term_care.monthly} 萬` },
+  ];
 }
 
 export function fmtWan(wan: number): string {
