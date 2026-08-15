@@ -13,6 +13,15 @@ import {
 } from "./calc";
 import { estimateEstateTax, type EstateTaxResult } from "./estateTax";
 
+export interface FamilyModel {
+  self: { label: string; age: number };
+  spouseAge?: number;
+  parents: { count: number; ages: number[] };
+  siblings: number;
+  children: { stage: string; age?: number }[];
+  grandchildren: number;
+}
+
 export interface ReportModel {
   clientName: string;
   generatedAt: string;
@@ -32,6 +41,8 @@ export interface ReportModel {
   insurance: { label: string; has: boolean; text: string }[];
   /** 遺產稅預估(僅達課稅標準時有值) */
   estateTax?: EstateTaxResult;
+  /** 家系關係圖資料 */
+  family: FamilyModel;
   profile: {
     age: number;
     retireAge: number;
@@ -94,6 +105,14 @@ export function buildReport(
       const e = estimateEstateTax(data);
       return e.taxable ? e : undefined;
     })(),
+    family: {
+      self: { label: `本人(${data.basic.honorific}）`, age: data.core.age },
+      spouseAge: data.core.planning_scope === "含配偶" ? data.core.spouse_age : undefined,
+      parents: data.core.dependents.parents,
+      siblings: data.core.dependents.siblings?.count ?? 0,
+      children: data.core.dependents.children.map((c) => ({ stage: c.stage, age: c.age })),
+      grandchildren: data.core.dependents.grandchildren?.count ?? 0,
+    },
     profile: {
       age: data.core.age,
       retireAge: data.core.retire_age,

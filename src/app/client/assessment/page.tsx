@@ -81,6 +81,8 @@ interface Form {
   children: { stage: EduStage; age: string; years_until_school: string }[];
   parentsCount: string;
   parentsAges: string[];
+  siblingsCount: string;
+  grandchildrenCount: string;
   income_type: IncomeType;
   income_band: IncomeBand | "";
   surplus_band: SurplusBand | "";
@@ -115,6 +117,8 @@ const initialForm: Form = {
   spouse_age: "",
   children: [],
   parentsCount: "0",
+  siblingsCount: "0",
+  grandchildrenCount: "0",
   parentsAges: [],
   income_type: "固定薪",
   income_band: "",
@@ -251,6 +255,8 @@ export default function Assessment() {
             count: Number(f.parentsCount) || 0,
             ages: f.parentsAges.filter((a) => a !== "").map((a) => Number(a) || 0),
           },
+          siblings: { count: Number(f.siblingsCount) || 0 },
+          grandchildren: { count: Number(f.grandchildrenCount) || 0 },
         },
         income_type: f.income_type,
         income_band: f.income_band as IncomeBand,
@@ -406,6 +412,21 @@ export default function Assessment() {
                 ))}
               </div>
             )}
+
+            {/* 遺產繼承順位相關成員 */}
+            <div>
+              <span className="text-sm font-medium">其他家庭成員(遺產規劃用)</span>
+              <p className="text-xs text-neutral-400">影響遺產繼承順位與傳承規劃。</p>
+              <div className="mt-1.5 grid grid-cols-2 gap-3">
+                <Field label="兄弟姊妹人數">
+                  <Input value={f.siblingsCount} onChange={(v) => set("siblingsCount", v)} type="number" placeholder="0" />
+                </Field>
+                <Field label="孫子女人數">
+                  <Input value={f.grandchildrenCount} onChange={(v) => set("grandchildrenCount", v)} type="number" placeholder="0" />
+                </Field>
+              </div>
+            </div>
+
             <ContactHint />
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
               <Field label="LINE ID">

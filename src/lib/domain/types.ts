@@ -69,11 +69,15 @@ export interface Child {
   years_until_school?: number;
 }
 
-/** 扶養結構(§6.2) */
+/** 家庭 / 扶養結構(§6.2)。含遺產繼承順位相關成員。 */
 export interface Dependents {
   children: Child[];
-  /** 扶養父母:人數 + 各自年齡 */
+  /** 父母:人數 + 各自年齡 */
   parents: { count: number; ages: number[] };
+  /** 兄弟姊妹(遺產第三順位繼承人):人數 */
+  siblings: { count: number };
+  /** 孫子女(代位繼承 / 傳承規劃):人數 */
+  grandchildren: { count: number };
 }
 
 // ── 必填核心(§6.2) ──────────────────────────────────

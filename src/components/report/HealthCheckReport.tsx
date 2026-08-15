@@ -2,6 +2,7 @@
 // 同一份可用於:App 內閱讀(RWD)、瀏覽器列印、後端無頭瀏覽器印 PDF。
 import type { ReportModel } from "@/lib/domain/report";
 import { fmtWan } from "@/lib/domain/report";
+import { FamilyTree } from "./FamilyTree";
 
 const GAP_FORMULA: Record<string, string> = {
   退休金缺口: "退休後總支出需求 − (現有資產成長估計 + 未來持續投入估計)",
@@ -51,6 +52,7 @@ function Donut({ segments }: { segments: { label: string; value: number; color: 
 
 export function HealthCheckReport({ model, variant = "full" }: { model: ReportModel; variant?: "simple" | "full" }) {
   const full = variant === "full";
+  const family = model.family;
   const catTotals = new Map<string, number>();
   model.assets.forEach((a) => catTotals.set(a.category, (catTotals.get(a.category) ?? 0) + a.amount));
   const segments = [...catTotals.entries()].map(([label, value]) => ({
@@ -150,6 +152,23 @@ export function HealthCheckReport({ model, variant = "full" }: { model: ReportMo
             ))}
           </div>
           <p className="hcr-note">各險種單位不同:壽險/意外/重疾為保額(萬)、醫療為日額+實支實付、失能/長照為每月給付。</p>
+        </section>
+      )}
+
+      {/* 家系關係圖(完整版) */}
+      {full && (
+        <section className="hcr-card">
+          <h2>家系關係圖</h2>
+          <FamilyTree family={model.family} />
+          <p className="hcr-note">
+            本人 {family.self.age} 歲
+            {family.spouseAge != null ? `、配偶 ${family.spouseAge} 歲` : ""}
+            {family.parents.count > 0 ? `、父母 ${family.parents.count} 位` : ""}
+            {family.siblings > 0 ? `、兄弟姊妹 ${family.siblings} 位` : ""}
+            {family.children.length > 0 ? `、子女 ${family.children.length} 位` : ""}
+            {family.grandchildren > 0 ? `、孫子女 ${family.grandchildren} 位` : ""}
+            。供遺產繼承順位與傳承規劃參考。
+          </p>
         </section>
       )}
 
