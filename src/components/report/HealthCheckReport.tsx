@@ -158,8 +158,8 @@ export function HealthCheckReport({ model, variant = "full" }: { model: ReportMo
       {/* 家系關係圖(完整版) */}
       {full && (
         <section className="hcr-card">
-          <h2>家系關係圖</h2>
-          <FamilyTree family={model.family} />
+          <h2>家族關係圖</h2>
+          <FamilyTree family={model.family} selfIsFemale={model.family.selfIsFemale} />
           <p className="hcr-note">
             本人 {family.self.age} 歲
             {family.spouseAge != null ? `、配偶 ${family.spouseAge} 歲` : ""}
