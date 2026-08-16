@@ -2,7 +2,7 @@
 
 // 顧問工作台 — ⚠️ 顧問專屬,此區內容不會、也不得呈現給客戶。
 // 配置面向採「顧問手動勾選」;缺口試算參數可由顧問覆寫(§7 可調參數)。
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import type { LeadScore } from "@/lib/domain/leads";
 import type { QuestionnaireData } from "@/lib/domain/types";
@@ -292,15 +292,26 @@ export function AdvisorWorkbench({
 // ── 子元件 ───────────────────────────────────────────
 
 function ParamInput({ label, suffix, value, onChange, step }: { label: string; suffix: string; value: number; onChange: (v: number) => void; step: number }) {
+  const rounded = Math.round(value * 100) / 100;
+  const [text, setText] = useState(String(rounded));
+  useEffect(() => {
+    if (Number(text) !== rounded) setText(String(rounded));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rounded]);
   return (
     <label className="block">
       <span className="text-xs text-neutral-500 dark:text-neutral-400">{label}</span>
       <div className="mt-1 flex items-center rounded-lg border border-neutral-300 bg-white px-2 dark:border-neutral-700 dark:bg-neutral-900">
         <input
           type="number"
-          value={Math.round(value * 100) / 100}
+          value={text}
           step={step}
-          onChange={(e) => onChange(e.target.value === "" ? 0 : Number(e.target.value))}
+          onChange={(e) => {
+            const v = e.target.value;
+            setText(v);
+            if (v !== "" && !Number.isNaN(Number(v))) onChange(Number(v));
+          }}
+          onBlur={() => { if (text === "" || Number.isNaN(Number(text))) setText(String(rounded)); }}
           className="w-full bg-transparent py-1.5 text-sm outline-none"
         />
         <span className="text-xs text-neutral-400">{suffix}</span>

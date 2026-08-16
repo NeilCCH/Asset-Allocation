@@ -1,7 +1,7 @@
 "use client";
 
 // 互動報告 — ⚠️ 顧問專屬。報告頁上直接調整試算參數,報告即時重算;列印時參數面板自動隱藏。
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import type { QuestionnaireData } from "@/lib/domain/types";
 import { CalcParams } from "@/lib/domain/params";
@@ -86,11 +86,28 @@ export function InteractiveReport({
 }
 
 function P({ label, suffix, value, step, onChange }: { label: string; suffix: string; value: number; step: number; onChange: (v: number) => void }) {
+  const rounded = Math.round(value * 100) / 100;
+  const [text, setText] = useState(String(rounded));
+  useEffect(() => {
+    if (Number(text) !== rounded) setText(String(rounded));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rounded]);
   return (
     <label className="block">
       <span className="text-xs text-sky-800 dark:text-sky-200">{label}</span>
       <div className="mt-1 flex items-center rounded-lg border border-sky-200 bg-white px-2 dark:border-sky-800 dark:bg-neutral-900">
-        <input type="number" value={Math.round(value * 100) / 100} step={step} onChange={(e) => onChange(e.target.value === "" ? 0 : Number(e.target.value))} className="w-full bg-transparent py-1.5 text-sm outline-none" />
+        <input
+          type="number"
+          value={text}
+          step={step}
+          onChange={(e) => {
+            const v = e.target.value;
+            setText(v);
+            if (v !== "" && !Number.isNaN(Number(v))) onChange(Number(v));
+          }}
+          onBlur={() => { if (text === "" || Number.isNaN(Number(text))) setText(String(rounded)); }}
+          className="w-full bg-transparent py-1.5 text-sm outline-none"
+        />
         <span className="text-xs text-neutral-400">{suffix}</span>
       </div>
     </label>
