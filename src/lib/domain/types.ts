@@ -155,8 +155,11 @@ export interface DeepProfile {
 export interface KycProfile {
   exp_years?: number; // 投資經驗年數
   familiar_products?: string[]; // 熟悉哪些商品
-  loss_reaction?: LossReaction; // 核心指標
+  loss_reaction?: LossReaction; // 核心指標(帳面虧 20% 的反應)
   investable_ratio?: number; // 可投資金額占總資產比重 (0-100)
+  invest_goal?: string; // 主要投資目標(保本/穩健/增值/積極)
+  max_loss_tolerance?: number; // 可承受最大帳面虧損 (%)
+  expected_return?: number; // 期望年報酬 (%)
 }
 
 // ── 完整客戶問卷資料 ────────────────────────────────

@@ -11,6 +11,7 @@ import type {
   IncomeBand,
   IncomeType,
   InsuranceDetail,
+  LossReaction,
   PlanningScope,
   QuestionnaireData,
   SurplusBand,
@@ -122,6 +123,14 @@ interface Form {
   insByMember: Record<string, InsForm>;
   // 深化:子女高階教育規劃(每位子女一筆)
   eduGoals: { overseas: boolean; annual_edu_budget: string; annual_living_budget: string }[];
+  // KYC 風險屬性
+  kycExpYears: string;
+  kycFamiliar: string[];
+  kycLossReaction: LossReaction | "";
+  kycInvestableRatio: string;
+  kycInvestGoal: string;
+  kycMaxLoss: string;
+  kycExpectedReturn: string;
 }
 
 const initialForm: Form = {
@@ -160,9 +169,19 @@ const initialForm: Form = {
   incomeSources: { salary: "", bonus: "", rental: "", dividend: "", business: "", other: "" },
   insByMember: { self: emptyInsurance },
   eduGoals: [],
+  kycExpYears: "",
+  kycFamiliar: [],
+  kycLossReaction: "",
+  kycInvestableRatio: "",
+  kycInvestGoal: "",
+  kycMaxLoss: "",
+  kycExpectedReturn: "",
 };
 
-const STEPS = ["個資同意", "基本 · 家庭", "收支 · 時間", "資產盤點", "負債 · 退休", "保障 · 教育"];
+const STEPS = ["個資同意", "基本 · 家庭", "收支 · 時間", "資產盤點", "負債 · 退休", "保障 · 教育", "風險屬性"];
+const FAMILIAR_OPTIONS = ["存款", "保險", "股票", "基金/ETF", "債券", "外幣", "期貨/選擇權", "不動產"];
+const LOSS_OPTIONS: LossReaction[] = ["加碼", "續抱", "部分贖回", "全部出場"];
+const INVEST_GOALS = ["保本", "穩健", "增值", "積極"];
 
 // 問卷填寫進度快取(重新整理 / 離開不丟資料)
 const PROGRESS_KEY = "aa_assessment_progress";
@@ -342,6 +361,15 @@ export default function Assessment() {
           };
         }),
       },
+      kyc: {
+        exp_years: f.kycExpYears ? Number(f.kycExpYears) : undefined,
+        familiar_products: f.kycFamiliar.length ? f.kycFamiliar : undefined,
+        loss_reaction: f.kycLossReaction || undefined,
+        investable_ratio: f.kycInvestableRatio ? Number(f.kycInvestableRatio) : undefined,
+        invest_goal: f.kycInvestGoal || undefined,
+        max_loss_tolerance: f.kycMaxLoss ? Number(f.kycMaxLoss) : undefined,
+        expected_return: f.kycExpectedReturn ? Number(f.kycExpectedReturn) : undefined,
+      },
     };
     saveDraft(data);
     if (typeof window !== "undefined") window.localStorage.removeItem(PROGRESS_KEY);
@@ -386,7 +414,7 @@ export default function Assessment() {
         {step === 1 && (
           <Section title="基本資料與家庭結構">
             <div className="grid grid-cols-3 gap-3">
-              <Field label="姓氏" className="col-span-2">
+              <Field label="姓氏" required className="col-span-2">
                 <Input value={f.surname} onChange={(v) => set("surname", v)} placeholder="王" />
               </Field>
               <Field label="稱謂">
@@ -394,10 +422,10 @@ export default function Assessment() {
               </Field>
             </div>
             <div className="grid grid-cols-2 gap-3">
-              <Field label="目前年齡">
+              <Field label="目前年齡" required>
                 <Input value={f.age} onChange={(v) => set("age", v)} type="number" placeholder="40" />
               </Field>
-              <Field label="預計退休年齡">
+              <Field label="預計退休年齡" required>
                 <Input value={f.retire_age} onChange={(v) => set("retire_age", v)} type="number" placeholder="65" />
               </Field>
             </div>
@@ -490,16 +518,16 @@ export default function Assessment() {
             <Field label="主要收入型態">
               <Select value={f.income_type} onChange={(v) => set("income_type", v as IncomeType)} options={INCOME_TYPE_OPTIONS} />
             </Field>
-            <Field label="家庭年收入(稅前)">
+            <Field label="家庭年收入(稅前)" required>
               <Select value={f.income_band} onChange={(v) => set("income_band", v as IncomeBand)} options={INCOME_BAND_OPTIONS} placeholder="請選擇" />
             </Field>
-            <Field label="每月結餘(收入減支出)">
+            <Field label="每月結餘(收入減支出)" required>
               <Select value={f.surplus_band} onChange={(v) => set("surplus_band", v as SurplusBand)} options={SURPLUS_BAND_OPTIONS} placeholder="請選擇" />
             </Field>
-            <Field label="這筆資金多久內用不到">
+            <Field label="這筆資金多久內用不到" required>
               <Select value={f.horizon} onChange={(v) => set("horizon", v as Horizon)} options={HORIZON_OPTIONS} placeholder="請選擇" />
             </Field>
-            <Field label="規劃急迫性">
+            <Field label="規劃急迫性" required>
               <Select value={f.urgency} onChange={(v) => set("urgency", v as Urgency)} options={URGENCY_OPTIONS} placeholder="請選擇" />
             </Field>
 
@@ -521,6 +549,7 @@ export default function Assessment() {
 
         {step === 3 && (
           <Section title="資產快速盤點">
+            <DeepHint />
             <p className="-mt-2 mb-1 text-sm text-neutral-500 dark:text-neutral-400">
               勾選你持有的類別並填入概略金額(萬元),不確定填大概即可。
             </p>
@@ -562,6 +591,7 @@ export default function Assessment() {
 
         {step === 4 && (
           <Section title="負債 · 退休 · 緊急金">
+            <DeepHint />
             <p className="-mt-2 mb-1 text-sm text-neutral-500 dark:text-neutral-400">
               填寫以下資訊才能完整試算「保障缺口」與退休準備。沒有的項目留白即可。
             </p>
@@ -616,6 +646,7 @@ export default function Assessment() {
 
         {step === 5 && (
           <Section title="現有保障 · 教育金">
+            <DeepHint />
             <p className="-mt-2 mb-1 text-sm text-neutral-500 dark:text-neutral-400">
               勾選<strong>各家庭成員</strong>已有的保障並填入金額(家戶保障計算)。各險種單位不同。
             </p>
@@ -695,6 +726,65 @@ export default function Assessment() {
             )}
           </Section>
         )}
+
+        {step === 6 && (
+          <Section title="風險屬性(KYC)">
+            <DeepHint />
+            <p className="-mt-2 mb-1 text-sm text-neutral-500 dark:text-neutral-400">
+              以行為題了解你的風險承受度,協助顧問做合適的規劃。
+            </p>
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="投資經驗(年)">
+                <Input value={f.kycExpYears} onChange={(v) => set("kycExpYears", v)} type="number" placeholder="選填" />
+              </Field>
+              <Field label="可投資金額占總資產(%)">
+                <Input value={f.kycInvestableRatio} onChange={(v) => set("kycInvestableRatio", v)} type="number" placeholder="選填" />
+              </Field>
+            </div>
+            <div>
+              <span className="text-sm font-medium">熟悉的商品(可複選)</span>
+              <div className="mt-1.5 flex flex-wrap gap-1.5">
+                {FAMILIAR_OPTIONS.map((p) => {
+                  const on = f.kycFamiliar.includes(p);
+                  return (
+                    <button
+                      key={p}
+                      onClick={() => set("kycFamiliar", on ? f.kycFamiliar.filter((x) => x !== p) : [...f.kycFamiliar, p])}
+                      className={`rounded-full px-3 py-1 text-sm ${on ? "bg-emerald-600 text-white" : "bg-neutral-100 text-neutral-600 dark:bg-neutral-800 dark:text-neutral-300"}`}
+                    >
+                      {p}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+            <div>
+              <span className="text-sm font-medium">若這筆錢一年內帳面虧 20%,你會:</span>
+              <div className="mt-1.5 grid grid-cols-2 gap-2">
+                {LOSS_OPTIONS.map((o) => (
+                  <button
+                    key={o}
+                    onClick={() => set("kycLossReaction", o)}
+                    className={`rounded-lg border px-3 py-2 text-sm ${f.kycLossReaction === o ? "border-emerald-500 bg-emerald-50 dark:bg-emerald-950/30" : "border-neutral-200 dark:border-neutral-800"}`}
+                  >
+                    {o}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <Field label="主要投資目標">
+              <Select value={f.kycInvestGoal} onChange={(v) => set("kycInvestGoal", v)} options={INVEST_GOALS.map((g) => ({ value: g, label: g }))} placeholder="請選擇" />
+            </Field>
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="可承受最大帳面虧損(%)">
+                <Input value={f.kycMaxLoss} onChange={(v) => set("kycMaxLoss", v)} type="number" placeholder="選填" />
+              </Field>
+              <Field label="期望年報酬(%)">
+                <Input value={f.kycExpectedReturn} onChange={(v) => set("kycExpectedReturn", v)} type="number" placeholder="選填" />
+              </Field>
+            </div>
+          </Section>
+        )}
       </div>
 
       {/* 導覽按鈕 */}
@@ -738,12 +828,22 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   );
 }
 
-function Field({ label, children, className = "" }: { label: string; children: React.ReactNode; className?: string }) {
+function Field({ label, children, className = "", required = false }: { label: string; children: React.ReactNode; className?: string; required?: boolean }) {
   return (
     <label className={`block ${className}`}>
-      <span className="text-sm font-medium">{label}</span>
+      <span className="text-sm font-medium">
+        {label}
+        {required && <span className="ml-0.5 text-red-500">*</span>}
+      </span>
       <div className="mt-1.5">{children}</div>
     </label>
+  );
+}
+
+// 深化步驟頂部的紅字附註
+function DeepHint() {
+  return (
+    <p className="-mt-1 mb-1 text-xs text-red-500">建議填寫,可提供更精準的分析與建議。</p>
   );
 }
 
