@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
+import { BackLink } from "@/components/ui/BackLink";
 import type {
   Assets,
   EduStage,
@@ -437,9 +437,7 @@ export default function Assessment() {
 
   return (
     <main className="mx-auto w-full max-w-xl flex-1 px-5 py-8 sm:py-12">
-      <Link href="/client" className="text-sm text-neutral-500 hover:text-neutral-800 dark:hover:text-neutral-200">
-        ← 返回
-      </Link>
+      <BackLink href="/client" label="返回" accent="emerald" />
 
       {/* 進度 */}
       <div className="mt-5 flex items-center gap-2">

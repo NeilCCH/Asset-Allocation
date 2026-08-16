@@ -1,6 +1,6 @@
 // 顧問後台 — 單一客戶完整檢視。⚠️ 顧問專屬。
 // leads 評分、配置面向框架皆在此 server component 計算,只把純資料傳給互動元件。
-import Link from "next/link";
+import { BackLink } from "@/components/ui/BackLink";
 import { notFound } from "next/navigation";
 import { getAdvisorWorkbench } from "@/lib/actions/advisor";
 import { loadClientData, isRealClientId } from "@/lib/clientData";
@@ -38,9 +38,7 @@ export default async function ClientDetail({ params }: PageProps<"/advisor/clien
 
   return (
     <main className="mx-auto w-full max-w-3xl flex-1 px-5 py-8 sm:py-10">
-      <Link href="/advisor/dashboard" className="text-sm text-neutral-500 hover:text-neutral-800 dark:hover:text-neutral-200">
-        ← 客戶清單
-      </Link>
+      <BackLink href="/advisor/dashboard" label="客戶清單" accent="sky" />
 
       <header className="mt-4 flex flex-wrap items-center justify-between gap-3">
         <div>

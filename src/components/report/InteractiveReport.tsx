@@ -2,7 +2,7 @@
 
 // 互動報告 — ⚠️ 顧問專屬。報告頁上直接調整試算參數,報告即時重算;列印時參數面板自動隱藏。
 import { useEffect, useMemo, useState } from "react";
-import Link from "next/link";
+import { BackLink } from "@/components/ui/BackLink";
 import type { QuestionnaireData } from "@/lib/domain/types";
 import { CalcParams } from "@/lib/domain/params";
 import { buildReport } from "@/lib/domain/report";
@@ -38,9 +38,7 @@ export function InteractiveReport({
     <div className="flex-1">
       {/* 工具列(列印時隱藏) */}
       <div className="sticky top-0 z-10 flex items-center justify-between border-b border-neutral-200 bg-white/90 px-5 py-3 backdrop-blur print:hidden dark:border-neutral-800 dark:bg-neutral-950/90">
-        <Link href={`/advisor/clients/${clientId}`} className="text-sm text-neutral-500 hover:text-neutral-800 dark:hover:text-neutral-200">
-          ← 返回客戶
-        </Link>
+        <BackLink href={`/advisor/clients/${clientId}`} label="返回客戶" accent="sky" />
         <PrintButton />
       </div>
 

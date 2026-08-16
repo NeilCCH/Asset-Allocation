@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
+import { BackLink } from "@/components/ui/BackLink";
 import { createClient } from "@/lib/supabase/client";
 import { createAdvisorProfile, getMyAdvisor } from "@/lib/actions/advisor";
 import { LICENSE_OPTIONS, LICENSE_REQUIRES_NUMBER, type LicenseType } from "@/lib/domain/licenses";
@@ -128,9 +128,7 @@ export default function AdvisorAuth() {
 
   return (
     <main className="mx-auto w-full max-w-md flex-1 px-6 py-12">
-      <Link href="/" className="text-sm text-neutral-500 hover:text-neutral-800 dark:hover:text-neutral-200">
-        ← 返回
-      </Link>
+      <BackLink href="/" label="返回" accent="sky" />
       <h1 className="mt-6 text-2xl font-bold">財富管理顧問</h1>
 
       <div className="mt-4 inline-flex rounded-lg border border-neutral-200 p-0.5 text-sm dark:border-neutral-800">

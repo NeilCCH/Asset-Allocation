@@ -2,7 +2,7 @@
 
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
+import { BackLink } from "@/components/ui/BackLink";
 import { createClient } from "@/lib/supabase/client";
 import { linkClientAccount } from "@/lib/actions/clientAccount";
 import { loadClientId } from "@/lib/clientSession";
@@ -60,9 +60,7 @@ export default function ClientAccount() {
 
   return (
     <main className="mx-auto w-full max-w-md flex-1 px-6 py-12">
-      <Link href="/client/dashboard" className="text-sm text-neutral-500 hover:text-neutral-800 dark:hover:text-neutral-200">
-        ← 返回
-      </Link>
+      <BackLink href="/client/dashboard" label="返回" accent="emerald" />
       <h1 className="mt-6 text-2xl font-bold">{mode === "register" ? "建立帳號" : "登入"}</h1>
       <p className="mt-2 text-sm text-neutral-600 dark:text-neutral-300">
         {mode === "register" ? "建立帳號後,日後可隨時登入回看你的資產健檢。" : "登入以查看你先前的資產健檢。"}

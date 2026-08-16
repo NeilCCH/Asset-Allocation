@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { BackLink } from "@/components/ui/BackLink";
 import { useRouter } from "next/navigation";
 import { saveReferral } from "@/lib/referral";
 
@@ -17,9 +18,7 @@ export default function ClientEntry() {
 
   return (
     <main className="mx-auto w-full max-w-md flex-1 px-6 py-16">
-      <Link href="/" className="text-sm text-neutral-500 hover:text-neutral-800 dark:hover:text-neutral-200">
-        ← 返回
-      </Link>
+      <BackLink href="/" label="返回" accent="emerald" />
       <h1 className="mt-6 text-2xl font-bold">開始資產健檢</h1>
       <p className="mt-2 text-sm text-neutral-600 dark:text-neutral-300">
         檢視你的資產配置現況與缺口試算。若你收到財富管理顧問的邀請連結,開啟連結即會自動綁定顧問。

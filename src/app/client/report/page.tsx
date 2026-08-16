@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { BackLink } from "@/components/ui/BackLink";
 import type { QuestionnaireData } from "@/lib/domain/types";
 import { buildReport, type ReportModel } from "@/lib/domain/report";
 import { clientDefaultParams } from "@/lib/domain/params";
@@ -31,9 +32,7 @@ export default function ClientReport() {
     <div className="flex-1">
       {/* 工具列(列印時隱藏) */}
       <div className="sticky top-0 z-10 flex items-center justify-between border-b border-neutral-200 bg-white/90 px-5 py-3 backdrop-blur print:hidden dark:border-neutral-800 dark:bg-neutral-950/90">
-        <Link href="/client/dashboard" className="text-sm text-neutral-500 hover:text-neutral-800 dark:hover:text-neutral-200">
-          ← 返回儀表板
-        </Link>
+        <BackLink href="/client/dashboard" label="返回儀表板" accent="emerald" />
         <button
           onClick={() => window.print()}
           className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700"

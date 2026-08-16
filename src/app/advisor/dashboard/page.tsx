@@ -10,6 +10,7 @@ import type { QuestionnaireData } from "@/lib/domain/types";
 import { SignOutButton } from "./SignOutButton";
 import { InviteLink } from "./InviteLink";
 import { PlanCard } from "./PlanCard";
+import { BackLink } from "@/components/ui/BackLink";
 
 // 資產分層徽章配色(取代 A/B/C)
 const TIER_STYLE: Record<WealthTierKey, string> = {
@@ -60,9 +61,7 @@ export default async function AdvisorDashboard() {
   return (
     <main className="mx-auto w-full max-w-4xl flex-1 px-5 py-8 sm:py-10">
       <div className="flex items-center justify-between">
-        <Link href="/" className="text-sm text-neutral-500 hover:text-neutral-800 dark:hover:text-neutral-200">
-          ← 首頁
-        </Link>
+        <BackLink href="/" label="首頁" accent="sky" />
         <SignOutButton />
       </div>
 
