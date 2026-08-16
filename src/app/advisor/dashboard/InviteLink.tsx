@@ -33,7 +33,7 @@ export function InviteLink({ code }: { code: string }) {
           readOnly
           value={url}
           onFocus={(e) => e.currentTarget.select()}
-          className="flex-1 rounded-lg border border-sky-200 bg-white px-3 py-2 font-mono text-xs outline-none dark:border-sky-800 dark:bg-neutral-900"
+          className="min-w-0 flex-1 rounded-lg border border-sky-200 bg-white px-3 py-2 font-mono text-xs outline-none dark:border-sky-800 dark:bg-neutral-900"
         />
         <button
           onClick={copy}
