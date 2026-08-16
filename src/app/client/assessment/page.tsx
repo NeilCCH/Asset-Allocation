@@ -32,6 +32,7 @@ import { loadReferral } from "@/lib/referral";
 import { saveClientId } from "@/lib/clientSession";
 import { submitClientQuestionnaire } from "@/lib/actions/client";
 import { PDPA_CONSENT_STATEMENT, PDPA_SECTIONS } from "@/lib/domain/pdpa";
+import { TaxOcr } from "@/components/TaxOcr";
 
 type AssetForm = Record<keyof Assets, { has: boolean; amount: string }>;
 
@@ -584,6 +585,7 @@ export default function Assessment() {
                   <Input value={f.taxableIncome} onChange={(v) => set("taxableIncome", v)} type="number" placeholder="報稅單上的綜合所得淨額" />
                 </Field>
                 <p className="mt-0.5 text-xs text-neutral-400">填入後可估算所得稅、稅後所得與邊際稅率(供稅務規劃參考)。</p>
+                <TaxOcr onExtract={(wan) => set("taxableIncome", String(wan))} />
               </div>
             </div>
           </Section>
