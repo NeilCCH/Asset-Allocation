@@ -126,14 +126,14 @@ interface Form {
   insByMember: Record<string, InsForm>;
   // 深化:子女高階教育規劃(每位子女一筆)
   eduGoals: { overseas: boolean; annual_edu_budget: string; annual_living_budget: string }[];
-  // KYC 風險屬性
-  kycExpYears: string;
+  // KYC 行為題(風險屬性由系統計算)
+  kycExpBand: string;
+  kycKnowledge: string;
   kycFamiliar: string[];
-  kycLossReaction: LossReaction | "";
-  kycInvestableRatio: string;
   kycInvestGoal: string;
-  kycMaxLoss: string;
-  kycExpectedReturn: string;
+  kycLossReaction: LossReaction | "";
+  kycVolatility: string;
+  kycFundSource: string;
 }
 
 const initialForm: Form = {
@@ -173,19 +173,23 @@ const initialForm: Form = {
   taxableIncome: "",
   insByMember: { self: emptyInsurance },
   eduGoals: [],
-  kycExpYears: "",
+  kycExpBand: "",
+  kycKnowledge: "",
   kycFamiliar: [],
-  kycLossReaction: "",
-  kycInvestableRatio: "",
   kycInvestGoal: "",
-  kycMaxLoss: "",
-  kycExpectedReturn: "",
+  kycLossReaction: "",
+  kycVolatility: "",
+  kycFundSource: "",
 };
 
 const STEPS = ["個資同意", "基本 · 家庭", "收支 · 時間", "資產盤點", "負債 · 退休", "保障 · 教育", "風險屬性"];
 const FAMILIAR_OPTIONS = ["存款", "保險", "股票", "基金/ETF", "債券", "外幣", "期貨/選擇權", "不動產"];
 const LOSS_OPTIONS: LossReaction[] = ["加碼", "續抱", "部分贖回", "全部出場"];
-const INVEST_GOALS = ["保本", "穩健", "增值", "積極"];
+const EXP_BAND_OPTIONS = ["無經驗", "1-3年", "3-10年", "10年以上"];
+const KNOWLEDGE_OPTIONS = ["完全不了解", "略懂", "熟悉", "專精"];
+const INVEST_GOALS = ["保本保值", "穩定領息", "資產增值", "積極獲利"];
+const VOLATILITY_OPTIONS = ["幾乎不能接受損失", "可接受小幅波動", "可接受中度波動", "願承受大幅波動"];
+const FUND_SOURCE_OPTIONS = ["閒置資金", "部分生活儲蓄", "需動用生活費", "借貸資金"];
 
 // 問卷填寫進度快取(重新整理 / 離開不丟資料)
 const PROGRESS_KEY = "aa_assessment_progress";
@@ -381,14 +385,14 @@ export default function Assessment() {
         }),
       },
       kyc: {
-        exp_years: f.kycExpYears ? Number(f.kycExpYears) : undefined,
+        exp_band: f.kycExpBand || undefined,
+        knowledge: f.kycKnowledge || undefined,
         familiar_products: f.kycFamiliar.length ? f.kycFamiliar : undefined,
-        loss_reaction: f.kycLossReaction || undefined,
-        investable_ratio: f.kycInvestableRatio ? Number(f.kycInvestableRatio) : undefined,
         invest_goal: f.kycInvestGoal || undefined,
-        max_loss_tolerance: f.kycMaxLoss ? Number(f.kycMaxLoss) : undefined,
-        expected_return: f.kycExpectedReturn ? Number(f.kycExpectedReturn) : undefined,
-      },
+        loss_reaction: f.kycLossReaction || undefined,
+        volatility_tolerance: f.kycVolatility || undefined,
+        fund_source: f.kycFundSource || undefined,
+      } as unknown as QuestionnaireData["kyc"],
     };
     saveDraft(data);
     if (typeof window !== "undefined") window.localStorage.removeItem(PROGRESS_KEY);
@@ -773,16 +777,15 @@ export default function Assessment() {
 
         {step === 6 && (
           <Section title="風險屬性(KYC)">
-            <DeepHint />
             <p className="-mt-2 mb-1 text-sm text-neutral-500 dark:text-neutral-400">
-              以行為題了解你的風險承受度,協助顧問做合適的規劃。
+              請依實際情況作答;<strong>風險屬性由系統依你的回答與財務狀況自動評估,無需自行判斷</strong>。
             </p>
             <div className="grid grid-cols-2 gap-3">
-              <Field label="投資經驗(年)">
-                <Input value={f.kycExpYears} onChange={(v) => set("kycExpYears", v)} type="number" placeholder="選填" />
+              <Field label="投資經驗">
+                <Select value={f.kycExpBand} onChange={(v) => set("kycExpBand", v)} options={EXP_BAND_OPTIONS.map((g) => ({ value: g, label: g }))} placeholder="請選擇" />
               </Field>
-              <Field label="可投資金額占總資產(%)">
-                <Input value={f.kycInvestableRatio} onChange={(v) => set("kycInvestableRatio", v)} type="number" placeholder="選填" />
+              <Field label="投資知識程度">
+                <Select value={f.kycKnowledge} onChange={(v) => set("kycKnowledge", v)} options={KNOWLEDGE_OPTIONS.map((g) => ({ value: g, label: g }))} placeholder="請選擇" />
               </Field>
             </div>
             <div>
@@ -802,6 +805,9 @@ export default function Assessment() {
                 })}
               </div>
             </div>
+            <Field label="主要投資目的">
+              <Select value={f.kycInvestGoal} onChange={(v) => set("kycInvestGoal", v)} options={INVEST_GOALS.map((g) => ({ value: g, label: g }))} placeholder="請選擇" />
+            </Field>
             <div>
               <span className="text-sm font-medium">若這筆錢一年內帳面虧 20%,你會:</span>
               <div className="mt-1.5 grid grid-cols-2 gap-2">
@@ -816,17 +822,12 @@ export default function Assessment() {
                 ))}
               </div>
             </div>
-            <Field label="主要投資目標">
-              <Select value={f.kycInvestGoal} onChange={(v) => set("kycInvestGoal", v)} options={INVEST_GOALS.map((g) => ({ value: g, label: g }))} placeholder="請選擇" />
+            <Field label="對投資波動的接受度">
+              <Select value={f.kycVolatility} onChange={(v) => set("kycVolatility", v)} options={VOLATILITY_OPTIONS.map((g) => ({ value: g, label: g }))} placeholder="請選擇" />
             </Field>
-            <div className="grid grid-cols-2 gap-3">
-              <Field label="可承受最大帳面虧損(%)">
-                <Input value={f.kycMaxLoss} onChange={(v) => set("kycMaxLoss", v)} type="number" placeholder="選填" />
-              </Field>
-              <Field label="期望年報酬(%)">
-                <Input value={f.kycExpectedReturn} onChange={(v) => set("kycExpectedReturn", v)} type="number" placeholder="選填" />
-              </Field>
-            </div>
+            <Field label="這筆投資資金的來源">
+              <Select value={f.kycFundSource} onChange={(v) => set("kycFundSource", v)} options={FUND_SOURCE_OPTIONS.map((g) => ({ value: g, label: g }))} placeholder="請選擇" />
+            </Field>
           </Section>
         )}
       </div>

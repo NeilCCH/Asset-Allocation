@@ -156,14 +156,21 @@ export interface DeepProfile {
 
 // ── KYC 風險(§6.4,行為題不用自評) ────────────────
 
+export type ExpBand = "無經驗" | "1-3年" | "3-10年" | "10年以上";
+export type Knowledge = "完全不了解" | "略懂" | "熟悉" | "專精";
+export type VolatilityTolerance = "幾乎不能接受損失" | "可接受小幅波動" | "可接受中度波動" | "願承受大幅波動";
+export type FundSource = "閒置資金" | "部分生活儲蓄" | "需動用生活費" | "借貸資金";
+export type InvestGoal = "保本保值" | "穩定領息" | "資產增值" | "積極獲利";
+
+/** KYC 行為題 — 客戶只回答行為與偏好;風險屬性由系統計算(不自評、不問投資占比) */
 export interface KycProfile {
-  exp_years?: number; // 投資經驗年數
+  exp_band?: ExpBand; // 投資經驗
+  knowledge?: Knowledge; // 投資知識程度
   familiar_products?: string[]; // 熟悉哪些商品
-  loss_reaction?: LossReaction; // 核心指標(帳面虧 20% 的反應)
-  investable_ratio?: number; // 可投資金額占總資產比重 (0-100)
-  invest_goal?: string; // 主要投資目標(保本/穩健/增值/積極)
-  max_loss_tolerance?: number; // 可承受最大帳面虧損 (%)
-  expected_return?: number; // 期望年報酬 (%)
+  invest_goal?: InvestGoal; // 主要投資目的
+  loss_reaction?: LossReaction; // 帳面虧 20% 的反應
+  volatility_tolerance?: VolatilityTolerance; // 對波動的接受度
+  fund_source?: FundSource; // 投資資金來源
 }
 
 // ── 完整客戶問卷資料 ────────────────────────────────

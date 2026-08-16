@@ -56,7 +56,7 @@ export const MOCK_CLIENTS: MockClient[] = [
           { life: { has: false, coverage: 0 }, critical_illness: { has: false, coverage: 0 }, cancer_lump: { has: false, coverage: 0 }, accident: { has: true, coverage: 100 }, medical: { has: true, daily: 1500, reimburse_limit: 10 }, cancer_hospital: { has: false, daily: 0 }, disability: { has: false, monthly: 0 }, long_term_care: { has: false, monthly: 0 } },
         ],
       },
-      kyc: { exp_years: 12, familiar_products: ["股票", "基金", "ETF"], loss_reaction: "續抱", investable_ratio: 40 },
+      kyc: { exp_band: "10年以上", knowledge: "熟悉", familiar_products: ["股票", "基金/ETF"], invest_goal: "資產增值", loss_reaction: "續抱", volatility_tolerance: "可接受中度波動", fund_source: "閒置資金" },
     },
   },
   {

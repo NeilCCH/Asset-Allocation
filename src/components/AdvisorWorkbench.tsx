@@ -8,6 +8,7 @@ import type { LeadScore } from "@/lib/domain/leads";
 import type { QuestionnaireData } from "@/lib/domain/types";
 import { CalcParams, clientDefaultParams } from "@/lib/domain/params";
 import { computeGaps, gapSolutions, retirementReserve, type GapResult } from "@/lib/domain/calc";
+import { assessRisk } from "@/lib/domain/risk";
 import { saveAdvisorWorkbench } from "@/lib/actions/advisor";
 
 interface Dimension {
@@ -56,6 +57,7 @@ export function AdvisorWorkbench({
     [data, params, targetMonthly],
   );
   const solutions = useMemo(() => gapSolutions(data, params), [data, params]);
+  const risk = useMemo(() => assessRisk(data), [data]);
   const isDefault = JSON.stringify(params) === JSON.stringify(clientDefaults);
 
   const toggle = (k: string) => setChecked((p) => ({ ...p, [k]: !p[k] }));
@@ -110,6 +112,27 @@ export function AdvisorWorkbench({
           })}
         </div>
       </section>
+
+      {/* 風險屬性(系統計算) */}
+      {risk && (
+        <section className="rounded-2xl border border-neutral-200 bg-white p-5 dark:border-neutral-800 dark:bg-neutral-950">
+          <div className="flex items-center justify-between">
+            <h2 className="text-base font-semibold">風險屬性評估(系統計算)</h2>
+            <span className="flex items-center gap-2">
+              <span className="rounded-full bg-violet-100 px-2.5 py-0.5 text-sm font-bold text-violet-700 dark:bg-violet-900/40 dark:text-violet-300">
+                RR{risk.rr} · {risk.profile}
+              </span>
+            </span>
+          </div>
+          <div className="mt-3 grid grid-cols-2 gap-3">
+            <RiskGauge label="承受能力(客觀)" value={risk.capacity} factors={risk.capacityFactors} />
+            <RiskGauge label="承受意願(行為)" value={risk.tolerance} factors={risk.toleranceFactors} />
+          </div>
+          <p className="mt-2 text-xs text-neutral-400">
+            綜合分數 {risk.score}(承受能力與意願取其低);可投資資產占比 {risk.investableRatio}% 由系統自算。此為系統評估,顧問可依專業覆核。
+          </p>
+        </section>
+      )}
 
       {/* 試算參數 + 缺口 */}
       <section className="rounded-2xl border border-neutral-200 bg-white p-5 dark:border-neutral-800 dark:bg-neutral-950">
@@ -317,6 +340,28 @@ function ParamInput({ label, suffix, value, onChange, step }: { label: string; s
         <span className="text-xs text-neutral-400">{suffix}</span>
       </div>
     </label>
+  );
+}
+
+function RiskGauge({ label, value, factors }: { label: string; value: number; factors: { label: string; val: number }[] }) {
+  return (
+    <div className="rounded-lg border border-neutral-200 p-3 dark:border-neutral-800">
+      <div className="flex items-center justify-between">
+        <span className="text-xs text-neutral-500 dark:text-neutral-400">{label}</span>
+        <span className="text-sm font-bold">{value}</span>
+      </div>
+      <div className="mt-1.5 h-2 overflow-hidden rounded-full bg-neutral-100 dark:bg-neutral-800">
+        <div className="h-full rounded-full bg-violet-500" style={{ width: `${value}%` }} />
+      </div>
+      <ul className="mt-2 space-y-0.5">
+        {factors.map((f) => (
+          <li key={f.label} className="flex justify-between text-[11px] text-neutral-400">
+            <span>{f.label}</span>
+            <span>{f.val}</span>
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }
 
