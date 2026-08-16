@@ -298,9 +298,9 @@ function ParamInput({ label, suffix, value, onChange, step }: { label: string; s
       <div className="mt-1 flex items-center rounded-lg border border-neutral-300 bg-white px-2 dark:border-neutral-700 dark:bg-neutral-900">
         <input
           type="number"
-          value={value}
+          value={Math.round(value * 100) / 100}
           step={step}
-          onChange={(e) => onChange(Number(e.target.value))}
+          onChange={(e) => onChange(e.target.value === "" ? 0 : Number(e.target.value))}
           className="w-full bg-transparent py-1.5 text-sm outline-none"
         />
         <span className="text-xs text-neutral-400">{suffix}</span>

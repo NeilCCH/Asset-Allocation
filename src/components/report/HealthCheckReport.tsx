@@ -2,6 +2,7 @@
 // 同一份可用於:App 內閱讀(RWD)、瀏覽器列印、後端無頭瀏覽器印 PDF。
 import type { ReportModel } from "@/lib/domain/report";
 import { fmtWan } from "@/lib/domain/report";
+import type { PersonalStatements } from "@/lib/domain/statements";
 import { FamilyTree } from "./FamilyTree";
 
 const GAP_FORMULA: Record<string, string> = {
@@ -83,6 +84,9 @@ export function HealthCheckReport({ model, variant = "full" }: { model: ReportMo
         <Stat label="流動資產" value={`${model.summary.liquidPct}%`} sub={fmtWan(model.summary.liquid)} />
         <Stat label="保障型占比" value={`${model.summary.protectionPct}%`} sub="保障 vs 投資" />
       </section>
+
+      {/* 個人財務三表(參考公司三表結構) */}
+      <PersonalStatementsBlock s={model.statements} />
 
       {/* 資產分布 */}
       <section className="hcr-card">
@@ -292,6 +296,60 @@ export function HealthCheckReport({ model, variant = "full" }: { model: ReportMo
   );
 }
 
+function PersonalStatementsBlock({ s }: { s: PersonalStatements }) {
+  const bs = s.balanceSheet;
+  const is = s.incomeStatement;
+  const cf = s.cashFlow;
+  return (
+    <section className="hcr-card">
+      <h2>個人財務三表</h2>
+      <p className="hcr-note" style={{ marginTop: 0, marginBottom: 10 }}>參考公司三表結構,依會計邏輯分列:資產負債表、損益表、現金流量表。</p>
+
+      {/* ① 資產負債表 */}
+      <div className="hcr-stmt">
+        <div className="hcr-stmt-title">① 資產負債表(資產 = 負債 + 淨值)</div>
+        <div className="hcr-stmt-grid">
+          <div>
+            <div className="hcr-stmt-sub">資產</div>
+            {bs.assets.map((a) => (
+              <div key={a.label} className="hcr-stmt-row"><span>{a.label}</span><span>{fmtWan(a.amount)}</span></div>
+            ))}
+            <div className="hcr-stmt-row total"><span>資產總額</span><span>{fmtWan(bs.totalAssets)}</span></div>
+          </div>
+          <div>
+            <div className="hcr-stmt-sub">負債</div>
+            {bs.liabilities.length ? bs.liabilities.map((l) => (
+              <div key={l.label} className="hcr-stmt-row"><span>{l.label}</span><span>{fmtWan(l.amount)}</span></div>
+            )) : <div className="hcr-stmt-row"><span>無負債</span><span>0</span></div>}
+            <div className="hcr-stmt-row total"><span>負債總額</span><span>{fmtWan(bs.totalLiabilities)}</span></div>
+            <div className="hcr-stmt-row total" style={{ color: "#059669" }}><span>淨值</span><span>{fmtWan(bs.netWorth)}</span></div>
+          </div>
+        </div>
+      </div>
+
+      {/* ② 損益表 */}
+      <div className="hcr-stmt">
+        <div className="hcr-stmt-title">② 損益表 · 年(收入 − 支出 = 結餘)</div>
+        {is.income.map((l) => (
+          <div key={l.label} className="hcr-stmt-row"><span>{l.label}{l.tag ? ` (${l.tag})` : ""}</span><span>{fmtWan(l.amount)}</span></div>
+        ))}
+        <div className="hcr-stmt-row total"><span>年收入合計</span><span>{fmtWan(is.totalIncome)}</span></div>
+        <div className="hcr-stmt-row"><span>年支出(推估)</span><span>−{fmtWan(is.totalExpense)}</span></div>
+        <div className="hcr-stmt-row total" style={{ color: "#059669" }}><span>年結餘</span><span>{fmtWan(is.surplus)}</span></div>
+        {is.passiveIncome > 0 && <div className="hcr-stmt-note">被動收入 {fmtWan(is.passiveIncome)}(占總收入 {is.passiveRatio}%)</div>}
+      </div>
+
+      {/* ③ 現金流量表 */}
+      <div className="hcr-stmt">
+        <div className="hcr-stmt-title">③ 現金流量表 · 月(流入 − 流出 = 淨現金流)</div>
+        <div className="hcr-stmt-row"><span>每月現金流入(收入)</span><span>{fmtWan(cf.inflow)}</span></div>
+        <div className="hcr-stmt-row"><span>每月現金流出(支出,含還款 {fmtWan(cf.debtPayment)})</span><span>−{fmtWan(cf.outflow)}</span></div>
+        <div className="hcr-stmt-row total" style={{ color: cf.net >= 0 ? "#059669" : "#b45309" }}><span>每月淨現金流</span><span>{fmtWan(cf.net)}</span></div>
+      </div>
+    </section>
+  );
+}
+
 function Stat({ label, value, sub }: { label: string; value: string; sub?: string }) {
   return (
     <div className="hcr-stat">
@@ -363,6 +421,13 @@ const css = `
 .hcr-calc-list { list-style:none; margin:0; padding:0; }
 .hcr-calc-list li { display:flex; justify-content:space-between; font-size:12px; padding:2px 0; color:#555; border-bottom:1px dashed #f0f0f0; }
 .hcr-calc-result { text-align:right; font-size:13px; font-weight:700; margin-top:6px; }
+.hcr-stmt { border:1px solid #eee; border-radius:10px; padding:12px; margin-bottom:10px; break-inside:avoid; }
+.hcr-stmt-title { font-size:13px; font-weight:700; color:#334155; margin-bottom:6px; }
+.hcr-stmt-grid { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+.hcr-stmt-sub { font-size:11px; color:#94a3b8; border-bottom:1px solid #eee; padding-bottom:2px; margin-bottom:2px; }
+.hcr-stmt-row { display:flex; justify-content:space-between; font-size:12px; padding:2px 0; color:#555; }
+.hcr-stmt-row.total { font-weight:700; color:#334155; border-top:1px solid #eee; margin-top:2px; padding-top:3px; }
+.hcr-stmt-note { font-size:11px; color:#0369a1; margin-top:4px; }
 .hcr-advisor { background:#f0f9ff; border-color:#bae6fd; }
 .hcr-dims { display:grid; gap:8px; margin-bottom:12px; }
 .hcr-dim { font-size:13px; padding:8px 12px; background:#fff; border:1px solid #e0f2fe; border-radius:8px; }

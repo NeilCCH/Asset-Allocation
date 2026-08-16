@@ -14,6 +14,7 @@ import {
   type GapSolution,
 } from "./calc";
 import { estimateEstateTax, type EstateTaxResult } from "./estateTax";
+import { personalStatements, type PersonalStatements } from "./statements";
 
 export interface FamilyModel {
   self: { label: string; age: number };
@@ -50,6 +51,8 @@ export interface ReportModel {
   family: FamilyModel;
   /** 缺口補足建議(解決方向) */
   solutions: GapSolution[];
+  /** 個人財務三表(資產負債 / 損益 / 現金流) */
+  statements: PersonalStatements;
   profile: {
     age: number;
     retireAge: number;
@@ -127,6 +130,7 @@ export function buildReport(
       grandchildren: data.core.dependents.grandchildren?.count ?? 0,
     },
     solutions: gapSolutions(data, params),
+    statements: personalStatements(data),
     profile: {
       age: data.core.age,
       retireAge: data.core.retire_age,

@@ -90,7 +90,7 @@ function P({ label, suffix, value, step, onChange }: { label: string; suffix: st
     <label className="block">
       <span className="text-xs text-sky-800 dark:text-sky-200">{label}</span>
       <div className="mt-1 flex items-center rounded-lg border border-sky-200 bg-white px-2 dark:border-sky-800 dark:bg-neutral-900">
-        <input type="number" value={value} step={step} onChange={(e) => onChange(Number(e.target.value))} className="w-full bg-transparent py-1.5 text-sm outline-none" />
+        <input type="number" value={Math.round(value * 100) / 100} step={step} onChange={(e) => onChange(e.target.value === "" ? 0 : Number(e.target.value))} className="w-full bg-transparent py-1.5 text-sm outline-none" />
         <span className="text-xs text-neutral-400">{suffix}</span>
       </div>
     </label>
