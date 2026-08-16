@@ -385,6 +385,13 @@ function PersonalStatementsBlock({ s }: { s: PersonalStatements }) {
         <div className="hcr-stmt-row total"><span>年收入合計</span><span>{fmtWan(is.totalIncome)}</span></div>
         <div className="hcr-stmt-row"><span>年支出(推估)</span><span>−{fmtWan(is.totalExpense)}</span></div>
         <div className="hcr-stmt-row total" style={{ color: "#059669" }}><span>年結餘</span><span>{fmtWan(is.surplus)}</span></div>
+        {is.incomeTax != null && (
+          <>
+            <div className="hcr-stmt-row"><span>綜所稅(估)</span><span>−{fmtWan(is.incomeTax)}</span></div>
+            <div className="hcr-stmt-row"><span>稅後所得</span><span>{fmtWan(is.afterTaxIncome ?? 0)}</span></div>
+            <div className="hcr-stmt-note">邊際稅率 {Math.round((is.marginalRate ?? 0) * 100)}%</div>
+          </>
+        )}
         <StackBar segments={[{ label: "支出", value: is.totalExpense, color: "#94a3b8" }, { label: "結餘", value: Math.max(0, is.surplus), color: "#10b981" }]} />
         {is.passiveIncome > 0 && (
           <>

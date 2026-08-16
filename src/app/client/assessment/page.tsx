@@ -120,6 +120,7 @@ interface Form {
   majorExpenseYears: string;
   // 深化:收入來源拆解(含被動收入,年/萬)
   incomeSources: { salary: string; bonus: string; rental: string; dividend: string; business: string; other: string };
+  taxableIncome: string; // 綜合所得淨額(報稅用)
   // 深化:現有保障明細(家戶:依成員 self / spouse / child0...)
   insByMember: Record<string, InsForm>;
   // 深化:子女高階教育規劃(每位子女一筆)
@@ -168,6 +169,7 @@ const initialForm: Form = {
   majorExpenseAmount: "",
   majorExpenseYears: "",
   incomeSources: { salary: "", bonus: "", rental: "", dividend: "", business: "", other: "" },
+  taxableIncome: "",
   insByMember: { self: emptyInsurance },
   eduGoals: [],
   kycExpYears: "",
@@ -364,6 +366,7 @@ export default function Assessment() {
             ? { salary: vals[0], bonus: vals[1], rental: vals[2], dividend: vals[3], business: vals[4], other: vals[5] }
             : undefined;
         })(),
+        taxable_income: f.taxableIncome ? Number(f.taxableIncome) : undefined,
         insurance_detail: insFormToDetail(f.insByMember.self ?? emptyInsurance),
         spouse_insurance: f.planning_scope === "含配偶" && f.insByMember.spouse ? insFormToDetail(f.insByMember.spouse) : undefined,
         children_insurance: f.children.length > 0 ? f.children.map((_, i) => insFormToDetail(f.insByMember[`child${i}`] ?? emptyInsurance)) : undefined,
@@ -575,6 +578,12 @@ export default function Assessment() {
                 <Field label="股利/利息(被動)"><Input value={f.incomeSources.dividend} onChange={(v) => setIncome("dividend", v)} type="number" placeholder="0" /></Field>
                 <Field label="事業盈餘"><Input value={f.incomeSources.business} onChange={(v) => setIncome("business", v)} type="number" placeholder="0" /></Field>
                 <Field label="其他"><Input value={f.incomeSources.other} onChange={(v) => setIncome("other", v)} type="number" placeholder="0" /></Field>
+              </div>
+              <div className="mt-2">
+                <Field label="綜合所得淨額(報稅用,選填)">
+                  <Input value={f.taxableIncome} onChange={(v) => set("taxableIncome", v)} type="number" placeholder="報稅單上的綜合所得淨額" />
+                </Field>
+                <p className="mt-0.5 text-xs text-neutral-400">填入後可估算所得稅、稅後所得與邊際稅率(供稅務規劃參考)。</p>
               </div>
             </div>
           </Section>

@@ -3,6 +3,7 @@
 import type { QuestionnaireData } from "./types";
 import { assetBreakdown } from "./calc";
 import { INCOME_BAND_VALUE, SURPLUS_BAND_VALUE } from "./params";
+import { estimateIncomeTax } from "./incomeTax";
 
 export interface Line {
   label: string;
@@ -27,6 +28,9 @@ export interface PersonalStatements {
     surplus: number;
     passiveIncome: number;
     passiveRatio: number; // 被動收入占總收入
+    incomeTax?: number; // 應納所得稅(萬),有填綜合所得淨額時
+    afterTaxIncome?: number; // 稅後所得(萬)
+    marginalRate?: number; // 邊際稅率
   };
   // 現金流量表(月):流入 − 流出 = 淨現金流
   cashFlow: {
@@ -82,6 +86,9 @@ export function personalStatements(data: QuestionnaireData): PersonalStatements 
   const outflow = inflow - net;
   const debtPayment = deep?.liabilities?.monthly_payment ?? 0;
 
+  // ── 所得稅(有填綜合所得淨額時) ──
+  const tax = deep?.taxable_income != null ? estimateIncomeTax(deep.taxable_income) : null;
+
   return {
     balanceSheet: {
       assets,
@@ -97,6 +104,9 @@ export function personalStatements(data: QuestionnaireData): PersonalStatements 
       surplus: r1(annualSurplus),
       passiveIncome: r1(passiveIncome),
       passiveRatio: totalIncome > 0 ? Math.round((passiveIncome / totalIncome) * 100) : 0,
+      incomeTax: tax ? tax.tax : undefined,
+      afterTaxIncome: tax ? r1(totalIncome - tax.tax) : undefined,
+      marginalRate: tax ? tax.marginalRate : undefined,
     },
     cashFlow: {
       inflow: r1(inflow),
