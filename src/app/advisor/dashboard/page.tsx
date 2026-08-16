@@ -1,6 +1,6 @@
 // 顧問後台 — 名下客戶清單 + 資產分層(HNW)。⚠️ 顧問專屬。
 // 讀取真實登入顧問的檔案與名下客戶;未登入導回 /advisor。
-import Link from "next/link";
+import { ForwardLink } from "@/components/ui/ForwardLink";
 import { redirect } from "next/navigation";
 import { createServerSupabase } from "@/lib/supabase/server";
 import { getMyAdvisor } from "@/lib/actions/advisor";
@@ -97,9 +97,7 @@ export default async function AdvisorDashboard() {
             尚無綁定客戶。把推薦碼 <span className="font-mono font-semibold">{advisor.referral_code}</span> 分享給客戶,
             <br />他們註冊後會自動出現在這裡並完成資產分層。
           </p>
-          <Link href="/advisor/clients/c001" className="mt-4 inline-block text-sm text-sky-600 hover:underline dark:text-sky-400">
-            先看示範客戶檔案 →
-          </Link>
+          <ForwardLink href="/advisor/clients/c001" label="先看示範客戶檔案" accent="sky" className="mt-4" />
         </div>
       ) : (
         <div className="mt-3 overflow-hidden rounded-xl border border-neutral-200 dark:border-neutral-800">
@@ -131,9 +129,7 @@ export default async function AdvisorDashboard() {
                   <td className="hidden px-4 py-3 sm:table-cell">{fmtWan(r.investable)}</td>
                   <td className="px-4 py-3 font-semibold">{fmtWan(r.total)}</td>
                   <td className="px-4 py-3 text-right">
-                    <Link href={`/advisor/clients/${r.id}`} className="text-sky-600 hover:underline dark:text-sky-400">
-                      檢視 →
-                    </Link>
+                    <ForwardLink href={`/advisor/clients/${r.id}`} label="檢視" accent="sky" />
                   </td>
                 </tr>
               ))}
