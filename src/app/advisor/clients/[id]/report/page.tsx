@@ -1,13 +1,11 @@
 // 顧問版健檢報告 — 含顧問建議、勾選的配置面向與落款(姓名+證照)。⚠️ 顧問專屬。
-import Link from "next/link";
+// 報告頁提供可調試算參數,即時重算(見 InteractiveReport)。
 import { notFound } from "next/navigation";
 import { getAdvisorWorkbench, getMyAdvisor } from "@/lib/actions/advisor";
 import { loadClientData, isRealClientId } from "@/lib/clientData";
 import { ALLOCATION_DIMENSIONS } from "@/lib/domain/allocation";
 import { clientDefaultParams } from "@/lib/domain/params";
-import { buildReport } from "@/lib/domain/report";
-import { HealthCheckReport } from "@/components/report/HealthCheckReport";
-import { PrintButton } from "@/components/report/PrintButton";
+import { InteractiveReport } from "@/components/report/InteractiveReport";
 
 export default async function AdvisorReport({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -22,28 +20,18 @@ export default async function AdvisorReport({ params }: { params: Promise<{ id: 
     .filter((d): d is NonNullable<typeof d> => !!d)
     .map((d) => ({ title: d.title, desc: d.desc }));
 
-  const model = buildReport(data, {
-    params: { ...clientDefaultParams(data.basic.honorific), ...(saved?.paramsOverride ?? {}) },
-    advisorRecommendation: saved?.recommendation || undefined,
-    selectedDimensions: selectedDimensions.length ? selectedDimensions : undefined,
-    advisorSignature: advisor
-      ? { name: advisor.full_name ?? advisor.display_name ?? advisor.email, licenses: advisor.licenses.map((l) => l.type) }
-      : undefined,
-  });
-
   return (
-    <div className="flex-1">
-      <div className="sticky top-0 z-10 flex items-center justify-between border-b border-neutral-200 bg-white/90 px-5 py-3 backdrop-blur print:hidden dark:border-neutral-800 dark:bg-neutral-950/90">
-        <Link href={`/advisor/clients/${id}`} className="text-sm text-neutral-500 hover:text-neutral-800 dark:hover:text-neutral-200">
-          ← 返回客戶
-        </Link>
-        <PrintButton />
-      </div>
-      <div className="bg-neutral-100 py-6 dark:bg-neutral-900 print:bg-white print:py-0">
-        <div className="mx-auto max-w-3xl rounded-xl bg-white shadow-sm print:shadow-none">
-          <HealthCheckReport model={model} />
-        </div>
-      </div>
-    </div>
+    <InteractiveReport
+      clientId={id}
+      data={data}
+      initialParams={{ ...clientDefaultParams(data.basic.honorific), ...(saved?.paramsOverride ?? {}) }}
+      advisorRecommendation={saved?.recommendation || undefined}
+      selectedDimensions={selectedDimensions.length ? selectedDimensions : undefined}
+      advisorSignature={
+        advisor
+          ? { name: advisor.full_name ?? advisor.display_name ?? advisor.email, licenses: advisor.licenses.map((l) => l.type) }
+          : undefined
+      }
+    />
   );
 }
