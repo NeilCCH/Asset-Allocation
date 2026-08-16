@@ -64,10 +64,6 @@ export default function ClientEntry() {
           </div>
         )}
       </div>
-
-      <p className="mt-6 rounded-lg bg-neutral-100 p-3 text-xs text-neutral-500 dark:bg-neutral-800 dark:text-neutral-400">
-        流程:個資使用同意(PDPA)→ 必填核心問卷 → 快速盤點 → 彙整儀表板。
-      </p>
     </main>
   );
 }

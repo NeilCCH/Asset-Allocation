@@ -40,10 +40,6 @@ export default function Join() {
       >
         開始資產健檢
       </Link>
-
-      <p className="mt-6 text-xs text-neutral-400">
-        接下來:個資使用同意(PDPA)→ 必填問卷 → 快速盤點 → 彙整儀表板
-      </p>
     </main>
   );
 }
