@@ -296,6 +296,54 @@ export function HealthCheckReport({ model, variant = "full" }: { model: ReportMo
   );
 }
 
+// 水平堆疊條(資產負債表 / 損益表用)
+function StackBar({ segments }: { segments: { label: string; value: number; color: string }[] }) {
+  const total = segments.reduce((s, x) => s + Math.max(0, x.value), 0) || 1;
+  return (
+    <div style={{ margin: "6px 0 2px" }}>
+      <div style={{ display: "flex", height: 20, borderRadius: 10, overflow: "hidden", background: "#f1f5f9" }}>
+        {segments.map((s) => s.value > 0 && <div key={s.label} style={{ width: `${(s.value / total) * 100}%`, background: s.color }} />)}
+      </div>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 12, marginTop: 6, fontSize: 11, color: "#555" }}>
+        {segments.map((s) => (
+          <span key={s.label} style={{ display: "flex", alignItems: "center", gap: 4 }}>
+            <span style={{ width: 9, height: 9, borderRadius: 2, background: s.color, display: "inline-block" }} />
+            {s.label} {fmtWan(s.value)}（{Math.round((s.value / total) * 100)}%）
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// 現金流量瀑布圖(流入 → 流出 → 淨流)
+function Waterfall({ inflow, outflow, net }: { inflow: number; outflow: number; net: number }) {
+  const maxV = Math.max(inflow, 0.01);
+  const W = 300, H = 118, top = 10, bottom = H - 26, plotH = bottom - top, barW = 56;
+  const xs = [24, 24 + barW + 40, 24 + (barW + 40) * 2];
+  const y = (v: number) => bottom - (Math.max(0, v) / maxV) * plotH;
+  const bars = [
+    { x: xs[0], y0: bottom, y1: y(inflow), color: "#10b981", label: "流入", val: inflow },
+    { x: xs[1], y0: y(inflow), y1: y(net), color: "#f59e0b", label: "流出", val: outflow },
+    { x: xs[2], y0: bottom, y1: y(net), color: net >= 0 ? "#0ea5e9" : "#ef4444", label: "淨流", val: net },
+  ];
+  return (
+    <svg viewBox={`0 0 ${W} ${H}`} width="100%" style={{ maxWidth: 320 }} role="img" aria-label="現金流量瀑布圖">
+      <line x1="12" y1={bottom} x2={W - 8} y2={bottom} stroke="#e5e7eb" strokeWidth="1" />
+      {/* 連接虛線 */}
+      <line x1={xs[0] + barW} y1={y(inflow)} x2={xs[1]} y2={y(inflow)} stroke="#cbd5e1" strokeWidth="1" strokeDasharray="3 3" />
+      <line x1={xs[1] + barW} y1={y(net)} x2={xs[2]} y2={y(net)} stroke="#cbd5e1" strokeWidth="1" strokeDasharray="3 3" />
+      {bars.map((b) => (
+        <g key={b.label}>
+          <rect x={b.x} y={Math.min(b.y0, b.y1)} width={barW} height={Math.abs(b.y1 - b.y0) || 1} rx="3" fill={b.color} />
+          <text x={b.x + barW / 2} y={bottom + 12} textAnchor="middle" fontSize="11" fill="#334155">{b.label}</text>
+          <text x={b.x + barW / 2} y={bottom + 23} textAnchor="middle" fontSize="10" fill="#64748b">{fmtWan(b.val)}</text>
+        </g>
+      ))}
+    </svg>
+  );
+}
+
 function PersonalStatementsBlock({ s }: { s: PersonalStatements }) {
   const bs = s.balanceSheet;
   const is = s.incomeStatement;
@@ -325,6 +373,7 @@ function PersonalStatementsBlock({ s }: { s: PersonalStatements }) {
             <div className="hcr-stmt-row total" style={{ color: "#059669" }}><span>淨值</span><span>{fmtWan(bs.netWorth)}</span></div>
           </div>
         </div>
+        <StackBar segments={[{ label: "負債", value: bs.totalLiabilities, color: "#f59e0b" }, { label: "淨值", value: Math.max(0, bs.netWorth), color: "#10b981" }]} />
       </div>
 
       {/* ② 損益表 */}
@@ -336,7 +385,13 @@ function PersonalStatementsBlock({ s }: { s: PersonalStatements }) {
         <div className="hcr-stmt-row total"><span>年收入合計</span><span>{fmtWan(is.totalIncome)}</span></div>
         <div className="hcr-stmt-row"><span>年支出(推估)</span><span>−{fmtWan(is.totalExpense)}</span></div>
         <div className="hcr-stmt-row total" style={{ color: "#059669" }}><span>年結餘</span><span>{fmtWan(is.surplus)}</span></div>
-        {is.passiveIncome > 0 && <div className="hcr-stmt-note">被動收入 {fmtWan(is.passiveIncome)}(占總收入 {is.passiveRatio}%)</div>}
+        <StackBar segments={[{ label: "支出", value: is.totalExpense, color: "#94a3b8" }, { label: "結餘", value: Math.max(0, is.surplus), color: "#10b981" }]} />
+        {is.passiveIncome > 0 && (
+          <>
+            <div className="hcr-stmt-note" style={{ marginTop: 8 }}>收入結構(主動 vs 被動)</div>
+            <StackBar segments={[{ label: "被動收入", value: is.passiveIncome, color: "#0ea5e9" }, { label: "其他收入", value: Math.max(0, is.totalIncome - is.passiveIncome), color: "#cbd5e1" }]} />
+          </>
+        )}
       </div>
 
       {/* ③ 現金流量表 */}
@@ -345,6 +400,7 @@ function PersonalStatementsBlock({ s }: { s: PersonalStatements }) {
         <div className="hcr-stmt-row"><span>每月現金流入(收入)</span><span>{fmtWan(cf.inflow)}</span></div>
         <div className="hcr-stmt-row"><span>每月現金流出(支出,含還款 {fmtWan(cf.debtPayment)})</span><span>−{fmtWan(cf.outflow)}</span></div>
         <div className="hcr-stmt-row total" style={{ color: cf.net >= 0 ? "#059669" : "#b45309" }}><span>每月淨現金流</span><span>{fmtWan(cf.net)}</span></div>
+        <div style={{ marginTop: 8 }}><Waterfall inflow={cf.inflow} outflow={cf.outflow} net={cf.net} /></div>
       </div>
     </section>
   );
