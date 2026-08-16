@@ -14,6 +14,7 @@ import type {
   LossReaction,
   PlanningScope,
   QuestionnaireData,
+  SiblingRelation,
   SurplusBand,
   Urgency,
 } from "@/lib/domain/types";
@@ -96,7 +97,7 @@ interface Form {
   children: { stage: EduStage; age: string; years_until_school: string }[];
   parentsCount: string;
   parentsAges: string[];
-  siblingsCount: string;
+  siblings: { relation: string }[];
   grandchildrenCount: string;
   income_type: IncomeType;
   income_band: IncomeBand | "";
@@ -146,7 +147,7 @@ const initialForm: Form = {
   spouse_age: "",
   children: [],
   parentsCount: "0",
-  siblingsCount: "0",
+  siblings: [],
   grandchildrenCount: "0",
   parentsAges: [],
   income_type: "固定薪",
@@ -257,6 +258,20 @@ export default function Assessment() {
       ages[i] = v;
       return { ...p, parentsAges: ages };
     });
+  const setSiblingsCount = (n: number) =>
+    setF((p) => {
+      const count = Math.max(0, Math.min(12, n || 0));
+      const siblings = [...p.siblings];
+      siblings.length = count;
+      for (let i = 0; i < count; i++) if (siblings[i] == null) siblings[i] = { relation: "弟" };
+      return { ...p, siblings };
+    });
+  const setSiblingRelation = (i: number, relation: string) =>
+    setF((p) => {
+      const siblings = [...p.siblings];
+      siblings[i] = { relation };
+      return { ...p, siblings };
+    });
 
   const setAsset = (key: keyof Assets, patch: Partial<{ has: boolean; amount: string }>) =>
     setF((p) => ({ ...p, assets: { ...p.assets, [key]: { ...p.assets[key], ...patch } } }));
@@ -317,7 +332,7 @@ export default function Assessment() {
             count: Number(f.parentsCount) || 0,
             ages: f.parentsAges.filter((a) => a !== "").map((a) => Number(a) || 0),
           },
-          siblings: { count: Number(f.siblingsCount) || 0 },
+          siblings: f.siblings.map((s) => ({ relation: (s.relation || "弟") as SiblingRelation })),
           grandchildren: { count: Number(f.grandchildrenCount) || 0 },
         },
         income_type: f.income_type,
@@ -487,15 +502,33 @@ export default function Assessment() {
             {/* 遺產繼承順位相關成員 */}
             <div>
               <span className="text-sm font-medium">其他家庭成員(遺產規劃用)</span>
-              <p className="text-xs text-neutral-400">影響遺產繼承順位與傳承規劃。</p>
+              <p className="text-xs text-neutral-400">影響遺產繼承順位與傳承規劃。兄弟姊妹請逐位註明關係。</p>
               <div className="mt-1.5 grid grid-cols-2 gap-3">
                 <Field label="兄弟姊妹人數">
-                  <Input value={f.siblingsCount} onChange={(v) => set("siblingsCount", v)} type="number" placeholder="0" />
+                  <Input value={String(f.siblings.length)} onChange={(v) => setSiblingsCount(Number(v))} type="number" placeholder="0" />
                 </Field>
                 <Field label="孫子女人數">
                   <Input value={f.grandchildrenCount} onChange={(v) => set("grandchildrenCount", v)} type="number" placeholder="0" />
                 </Field>
               </div>
+              {f.siblings.length > 0 && (
+                <div className="mt-2 grid grid-cols-3 gap-2">
+                  {f.siblings.map((s, i) => (
+                    <Field key={i} label={`第 ${i + 1} 位`}>
+                      <Select
+                        value={s.relation}
+                        onChange={(v) => setSiblingRelation(i, v)}
+                        options={[
+                          { value: "兄", label: "兄(哥哥)" },
+                          { value: "弟", label: "弟(弟弟)" },
+                          { value: "姊", label: "姊(姊姊)" },
+                          { value: "妹", label: "妹(妹妹)" },
+                        ]}
+                      />
+                    </Field>
+                  ))}
+                </div>
+              )}
             </div>
 
             <ContactHint />

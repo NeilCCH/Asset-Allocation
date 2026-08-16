@@ -69,14 +69,17 @@ export interface Child {
   years_until_school?: number;
 }
 
+/** 兄弟姊妹關係(隱含性別與長幼):兄/弟=男,姊/妹=女 */
+export type SiblingRelation = "兄" | "弟" | "姊" | "妹";
+
 /** 家庭 / 扶養結構(§6.2)。含遺產繼承順位相關成員。 */
 export interface Dependents {
   children: Child[];
   /** 父母:人數 + 各自年齡 */
   parents: { count: number; ages: number[] };
-  /** 兄弟姊妹(遺產第三順位繼承人):人數 */
-  siblings: { count: number };
-  /** 孫子女(代位繼承 / 傳承規劃):人數 */
+  /** 兄弟姊妹(遺產第三順位繼承人,旁系):逐位關係 */
+  siblings: { relation: SiblingRelation }[];
+  /** 孫子女(代位繼承 / 傳承規劃,直系卑親屬):人數 */
   grandchildren: { count: number };
 }
 

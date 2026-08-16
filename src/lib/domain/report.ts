@@ -18,7 +18,7 @@ export interface FamilyModel {
   selfIsFemale: boolean;
   spouseAge?: number;
   parents: { count: number; ages: number[] };
-  siblings: number;
+  siblings: { relation: string; isFemale: boolean }[];
   children: { stage: string; age?: number }[];
   grandchildren: number;
 }
@@ -118,7 +118,7 @@ export function buildReport(
       selfIsFemale: data.basic.honorific === "女士",
       spouseAge: data.core.planning_scope === "含配偶" ? data.core.spouse_age : undefined,
       parents: data.core.dependents.parents,
-      siblings: data.core.dependents.siblings?.count ?? 0,
+      siblings: (data.core.dependents.siblings ?? []).map((s) => ({ relation: s.relation, isFemale: s.relation === "姊" || s.relation === "妹" })),
       children: data.core.dependents.children.map((c) => ({ stage: c.stage, age: c.age })),
       grandchildren: data.core.dependents.grandchildren?.count ?? 0,
     },

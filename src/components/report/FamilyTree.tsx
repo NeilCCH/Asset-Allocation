@@ -59,7 +59,7 @@ export function FamilyTree({ family, selfIsFemale = false }: { family: FamilyMod
   const yGrand = 440;
 
   // 本人世代橫排:兄弟姊妹(左)+ 本人 + 配偶(右),整組置中於 0
-  const nSib = Math.max(0, family.siblings);
+  const nSib = family.siblings.length;
   const genCount = nSib + 1 + (hasSpouse ? 1 : 0);
   const genStart = -((genCount - 1) * SP) / 2;
   const genX = (i: number) => genStart + i * SP;
@@ -131,9 +131,9 @@ export function FamilyTree({ family, selfIsFemale = false }: { family: FamilyMod
           </>
         ))}
 
-      {/* 兄弟姊妹(旁系血親)— 依人數個別人偶 */}
-      {Array.from({ length: nSib }, (_, i) => (
-        <Person key={`sib${i}`} cx={sibX(i)} cy={ySelf} variant={i % 2 === 0 ? "male" : "female"} color={ROLE_COLOR.sibling} label={`手足${i + 1}`} kin="旁系血親" />
+      {/* 兄弟姊妹(旁系血親)— 逐位關係 + 性別 */}
+      {family.siblings.map((s, i) => (
+        <Person key={`sib${i}`} cx={sibX(i)} cy={ySelf} variant={s.isFemale ? "female" : "male"} color={ROLE_COLOR.sibling} label={s.relation} kin="旁系血親" />
       ))}
 
       {/* 本人 + 配偶 */}
