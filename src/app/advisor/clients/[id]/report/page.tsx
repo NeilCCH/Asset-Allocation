@@ -33,7 +33,7 @@ export default async function AdvisorReport({ params }: { params: Promise<{ id: 
               name: advisor.full_name ?? advisor.display_name ?? advisor.email,
               company: advisor.company_name ?? undefined,
               title: advisor.job_title ?? undefined,
-              licenses: advisor.licenses.map((l) => l.type),
+              licenses: advisor.licenses.map((l) => ({ type: l.type, number: l.number })),
             }
           : undefined
       }

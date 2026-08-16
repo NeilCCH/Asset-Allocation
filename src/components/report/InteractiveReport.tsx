@@ -22,7 +22,7 @@ export function InteractiveReport({
   initialParams: CalcParams;
   advisorRecommendation?: string;
   selectedDimensions?: { title: string; desc: string }[];
-  advisorSignature?: { name: string; company?: string; title?: string; licenses: string[] };
+  advisorSignature?: { name: string; company?: string; title?: string; licenses: { type: string; number?: string }[] };
 }) {
   const [params, setParams] = useState<CalcParams>(initialParams);
   const [showAdvanced, setShowAdvanced] = useState(false);
