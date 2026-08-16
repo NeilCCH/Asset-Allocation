@@ -7,7 +7,7 @@ import Link from "next/link";
 import type { LeadScore } from "@/lib/domain/leads";
 import type { QuestionnaireData } from "@/lib/domain/types";
 import { CalcParams, clientDefaultParams } from "@/lib/domain/params";
-import { computeGaps, retirementReserve, type GapResult } from "@/lib/domain/calc";
+import { computeGaps, gapSolutions, retirementReserve, type GapResult } from "@/lib/domain/calc";
 import { saveAdvisorWorkbench } from "@/lib/actions/advisor";
 
 interface Dimension {
@@ -55,6 +55,7 @@ export function AdvisorWorkbench({
     () => (targetMonthly ? retirementReserve(data, params, Number(targetMonthly)) : null),
     [data, params, targetMonthly],
   );
+  const solutions = useMemo(() => gapSolutions(data, params), [data, params]);
   const isDefault = JSON.stringify(params) === JSON.stringify(clientDefaults);
 
   const toggle = (k: string) => setChecked((p) => ({ ...p, [k]: !p[k] }));
@@ -184,6 +185,27 @@ export function AdvisorWorkbench({
           </div>
         )}
       </section>
+
+      {/* 缺口補足建議 */}
+      {solutions.length > 0 && (
+        <section className="rounded-2xl border border-amber-200 bg-amber-50 p-5 dark:border-amber-900 dark:bg-amber-950/30">
+          <h2 className="text-base font-semibold text-amber-900 dark:text-amber-100">缺口補足建議</h2>
+          <p className="mt-1 text-xs text-amber-700/80 dark:text-amber-300/80">依現有缺口的補足方向與每月儲蓄估計(採上方參數,屬客觀試算)。</p>
+          <div className="mt-3 space-y-2">
+            {solutions.map((s) => (
+              <div key={s.name} className="flex items-center justify-between rounded-lg bg-white/70 px-4 py-3 text-sm dark:bg-neutral-900/60">
+                <div>
+                  <span className="font-medium">{s.name}</span>
+                  <span className="ml-2 text-xs text-neutral-500 dark:text-neutral-400">缺 {Math.round(s.gap).toLocaleString("zh-TW")} 萬 · {s.action}</span>
+                </div>
+                <span className="font-semibold text-amber-700 dark:text-amber-300">
+                  {s.monthly != null ? `每月 ${s.monthly.toLocaleString("zh-TW")} 萬` : s.lump != null ? `補足 ${Math.round(s.lump).toLocaleString("zh-TW")} 萬` : ""}
+                </span>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* 配置面向參考框架 */}
       <section className="rounded-2xl border border-neutral-200 bg-white p-5 dark:border-neutral-800 dark:bg-neutral-950">

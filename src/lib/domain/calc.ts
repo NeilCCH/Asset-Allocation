@@ -270,6 +270,36 @@ export interface ReserveResult {
   sufficient: boolean; // 現有資產是否已足夠
 }
 
+export interface GapSolution {
+  name: string;
+  gap: number; // 缺口(萬)
+  action: string; // 建議做法
+  monthly?: number; // 建議每月儲蓄(萬),適用時
+  lump?: number; // 建議補足金額(萬),適用時
+}
+
+/** 缺口補足建議 — 各缺口對應的解決方向與每月儲蓄估計 */
+export function gapSolutions(data: QuestionnaireData, params: CalcParams = DEFAULT_PARAMS): GapSolution[] {
+  const gaps = computeGaps(data, params);
+  const r = params.returnRate;
+  const yearsToRetire = Math.max(1, data.core.retire_age - data.core.age);
+  const fv = (n: number) => (n <= 0 ? 0 : r === 0 ? n : (Math.pow(1 + r, n) - 1) / r);
+  const out: GapSolution[] = [];
+
+  if (gaps.retirement.status === "computed" && gaps.retirement.gap > 0) {
+    out.push({ name: "退休金", gap: gaps.retirement.gap, action: "退休前每月增加儲蓄", monthly: round(gaps.retirement.gap / (fv(yearsToRetire) || 1) / 12) });
+  }
+  if (gaps.protection.status === "computed" && gaps.protection.gap > 0) {
+    out.push({ name: "保障", gap: gaps.protection.gap, action: "補足保障保額(如壽險)", lump: round(gaps.protection.gap) });
+  }
+  if (gaps.education.status === "computed" && gaps.education.gap > 0) {
+    const ages = data.core.dependents.children.map((c) => c.age ?? 0);
+    const yrs = ages.length ? Math.max(1, 18 - Math.min(...ages)) : yearsToRetire;
+    out.push({ name: "教育金", gap: gaps.education.gap, action: "每月為子女教育儲蓄", monthly: round(gaps.education.gap / (fv(yrs) || 1) / 12) });
+  }
+  return out;
+}
+
 export function retirementReserve(
   data: QuestionnaireData,
   params: CalcParams,
