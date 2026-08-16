@@ -32,6 +32,13 @@ export default function ClientEntry() {
         開始資產健檢
       </Link>
 
+      <div className="mt-3 text-center text-sm">
+        <span className="text-neutral-500 dark:text-neutral-400">已有帳號,或想保存資料日後查看?</span>{" "}
+        <Link href="/client/account" className="font-medium text-emerald-700 hover:underline dark:text-emerald-400">
+          登入 / 註冊
+        </Link>
+      </div>
+
       {/* 手動輸入推薦碼(次要方式,主畫面收合) */}
       <div className="mt-6">
         <button

@@ -27,7 +27,7 @@ import {
   SURPLUS_BAND_OPTIONS,
   URGENCY_OPTIONS,
 } from "@/lib/domain/options";
-import { saveDraft } from "@/lib/draft";
+import { saveDraft, loadDraft } from "@/lib/draft";
 import { loadReferral } from "@/lib/referral";
 import { saveClientId } from "@/lib/clientSession";
 import { submitClientQuestionnaire } from "@/lib/actions/client";
@@ -193,7 +193,7 @@ const FUND_SOURCE_OPTIONS = ["閒置資金", "部分生活儲蓄", "需動用生
 
 // 問卷填寫進度快取(重新整理 / 離開不丟資料)
 const PROGRESS_KEY = "aa_assessment_progress";
-function loadProgress(): { f: Form; step: number } | null {
+function loadProgress(): { f: Form; step: number; maxStep?: number } | null {
   if (typeof window === "undefined") return null;
   try {
     const raw = window.localStorage.getItem(PROGRESS_KEY);
@@ -210,13 +210,22 @@ export default function Assessment() {
     const p = loadProgress();
     return p ? { ...initialForm, ...p.f } : initialForm;
   });
+  // 已到達的最遠步驟(用於進度條可點跳)。填完一次後全解鎖。
+  const [maxStep, setMaxStep] = useState(() => {
+    const p = loadProgress();
+    const done = typeof window !== "undefined" && !!loadDraft();
+    return done ? STEPS.length - 1 : p?.maxStep ?? p?.step ?? 0;
+  });
+
+  // 前進時更新最遠步驟
+  useEffect(() => setMaxStep((m) => Math.max(m, step)), [step]);
 
   // 自動存檔進度
   useEffect(() => {
     if (typeof window !== "undefined") {
-      window.localStorage.setItem(PROGRESS_KEY, JSON.stringify({ f, step }));
+      window.localStorage.setItem(PROGRESS_KEY, JSON.stringify({ f, step, maxStep }));
     }
-  }, [f, step]);
+  }, [f, step, maxStep]);
 
   const set = <K extends keyof Form>(k: K, v: Form[K]) => setF((p) => ({ ...p, [k]: v }));
 
@@ -395,7 +404,7 @@ export default function Assessment() {
       } as unknown as QuestionnaireData["kyc"],
     };
     saveDraft(data);
-    if (typeof window !== "undefined") window.localStorage.removeItem(PROGRESS_KEY);
+    setMaxStep(STEPS.length - 1); // 完成後全部步驟解鎖,可回來點選編輯
     // 有綁定顧問(邀請連結)則存進 Supabase;失敗不擋客戶看自己的儀表板
     const ref = loadReferral();
     if (ref) {
@@ -417,18 +426,28 @@ export default function Assessment() {
 
       {/* 進度 */}
       <div className="mt-5 flex items-center gap-2">
-        {STEPS.map((s, i) => (
-          <div key={s} className="flex flex-1 flex-col items-center gap-1.5">
-            <div
-              className={`h-1.5 w-full rounded-full ${
-                i <= step ? "bg-emerald-500" : "bg-neutral-200 dark:bg-neutral-700"
-              }`}
-            />
-            <span className={`text-[11px] ${i === step ? "font-medium text-emerald-700 dark:text-emerald-400" : "text-neutral-400"}`}>
-              {s}
-            </span>
-          </div>
-        ))}
+        {STEPS.map((s, i) => {
+          const reachable = i <= maxStep;
+          return (
+            <button
+              key={s}
+              type="button"
+              disabled={!reachable}
+              onClick={() => reachable && setStep(i)}
+              title={reachable ? `跳至「${s}」` : "尚未填到此步驟"}
+              className={`flex flex-1 flex-col items-center gap-1.5 ${reachable ? "cursor-pointer" : "cursor-not-allowed"}`}
+            >
+              <div
+                className={`h-1.5 w-full rounded-full ${
+                  i === step ? "bg-emerald-600" : i <= maxStep ? "bg-emerald-400" : "bg-neutral-200 dark:bg-neutral-700"
+                }`}
+              />
+              <span className={`text-[11px] ${i === step ? "font-medium text-emerald-700 dark:text-emerald-400" : reachable ? "text-neutral-500 dark:text-neutral-400" : "text-neutral-300 dark:text-neutral-600"}`}>
+                {s}
+              </span>
+            </button>
+          );
+        })}
       </div>
 
       <div className="mt-7">
