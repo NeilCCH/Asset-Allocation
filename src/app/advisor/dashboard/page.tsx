@@ -2,6 +2,7 @@
 // 讀取真實登入顧問的檔案與名下客戶;未登入導回 /advisor。
 import { ForwardLink } from "@/components/ui/ForwardLink";
 import { isAdminEmail } from "@/lib/admin";
+import { groupLicensesByCategory } from "@/lib/domain/licenses";
 import { redirect } from "next/navigation";
 import { createServerSupabase } from "@/lib/supabase/server";
 import { getMyAdvisor } from "@/lib/actions/advisor";
@@ -77,9 +78,22 @@ export default async function AdvisorDashboard() {
               </p>
             )}
             {advisor.licenses.length > 0 && (
-              <p className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">
-                {advisor.licenses.map((l) => (l.number ? `${l.type}(${l.number})` : l.type)).join("、")}
-              </p>
+              <div className="mt-2 space-y-1.5">
+                {groupLicensesByCategory(advisor.licenses).map((g) => (
+                  <div key={g.category} className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                    <span className="w-full text-[11px] font-semibold tracking-wide text-neutral-400 sm:w-auto">{g.category}</span>
+                    {g.items.map((l) => (
+                      <span
+                        key={l.type}
+                        className="inline-flex items-center gap-1.5 rounded-md border border-neutral-200 bg-neutral-50 px-2 py-0.5 text-xs dark:border-neutral-700 dark:bg-neutral-800"
+                      >
+                        <span className="font-medium text-neutral-700 dark:text-neutral-200">{l.type}</span>
+                        {l.number && <span className="font-mono text-[10px] text-neutral-400">{l.number}</span>}
+                      </span>
+                    ))}
+                  </div>
+                ))}
+              </div>
             )}
           </div>
           <div className="rounded-lg bg-sky-50 px-4 py-2 text-center dark:bg-sky-950/40">
