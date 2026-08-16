@@ -29,7 +29,12 @@ export default async function AdvisorReport({ params }: { params: Promise<{ id: 
       selectedDimensions={selectedDimensions.length ? selectedDimensions : undefined}
       advisorSignature={
         advisor
-          ? { name: advisor.full_name ?? advisor.display_name ?? advisor.email, licenses: advisor.licenses.map((l) => l.type) }
+          ? {
+              name: advisor.full_name ?? advisor.display_name ?? advisor.email,
+              company: advisor.company_name ?? undefined,
+              title: advisor.job_title ?? undefined,
+              licenses: advisor.licenses.map((l) => l.type),
+            }
           : undefined
       }
     />

@@ -155,21 +155,30 @@ export async function getMyAdvisor(): Promise<AdvisorProfile | null> {
   const supabase = await createServerSupabase();
   const { data: auth } = await supabase.auth.getUser();
   if (!auth.user) return null;
-  // base = 保證存在的欄位(fallback 用);ext 另含 migration 0003/0004 新欄位
+  // base = 保證存在的欄位;新欄位分屬 migration 0003(featured)/0004(company/title)。
+  // 逐段嘗試,任一 migration 未執行也能讀到另一段(避免整段 fallback 掉、後台不掛)。
   const base = "id, email, display_name, full_name, mobile, referral_code, licenses, card_front_path, card_back_path, verified";
-  const ext = `${base}, featured, featured_requested, company_name, job_title`;
-  // migration 尚未執行時退回 base(避免整個後台掛掉),缺的欄位以預設補上
-  const tryExt = await supabase.from("advisors").select(ext).eq("id", auth.user.id).maybeSingle();
-  const { data } = tryExt.error
-    ? await supabase.from("advisors").select(base).eq("id", auth.user.id).maybeSingle()
-    : tryExt;
+  const selects = [
+    `${base}, featured, featured_requested, company_name, job_title`, // 0003 + 0004 皆有
+    `${base}, company_name, job_title`, // 只有 0004
+    `${base}, featured, featured_requested`, // 只有 0003
+    base, // 皆無
+  ];
+  let data: Record<string, unknown> | null = null;
+  for (const sel of selects) {
+    const r = await supabase.from("advisors").select(sel).eq("id", auth.user.id).maybeSingle();
+    if (!r.error) {
+      data = r.data as Record<string, unknown> | null;
+      break;
+    }
+  }
   if (!data) return null;
   return {
     featured: false,
     featured_requested: false,
     company_name: null,
     job_title: null,
-    ...(data as Record<string, unknown>),
+    ...data,
   } as unknown as AdvisorProfile;
 }
 

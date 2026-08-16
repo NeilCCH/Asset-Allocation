@@ -290,6 +290,11 @@ export function HealthCheckReport({ model, variant = "full" }: { model: ReportMo
               {model.advisorSignature.licenses.length > 0 && (
                 <span className="hcr-lic">({model.advisorSignature.licenses.join("、")})</span>
               )}
+              {(model.advisorSignature.company || model.advisorSignature.title) && (
+                <div className="hcr-sign-org">
+                  {[model.advisorSignature.company, model.advisorSignature.title].filter(Boolean).join(" · ")}
+                </div>
+              )}
             </div>
           )}
         </section>
@@ -505,6 +510,7 @@ const css = `
 .hcr-dim span { color:#666; }
 .hcr-reco { font-size:21px; line-height:1.8; white-space:pre-wrap; margin:0; }
 .hcr-sign { margin-top:14px; padding-top:12px; border-top:1px solid #bae6fd; font-size:20px; color:#333; }
+.hcr-sign-org { font-size:16px; color:#666; margin-top:3px; }
 .hcr-lic { color:#0369a1; margin-left:6px; font-size:18px; }
 .hcr-foot { font-size:17px; color:#999; text-align:center; margin-top:20px; line-height:1.7; }
 /* 家族關係圖 + 繼承順位(左圖右表,窄螢幕/列印自動堆疊) */

@@ -65,7 +65,7 @@ export interface ReportModel {
   /** 顧問版:勾選的配置面向(類別層級) */
   selectedDimensions?: { title: string; desc: string }[];
   /** 落款:產出建議的顧問與其資格 */
-  advisorSignature?: { name: string; licenses: string[] };
+  advisorSignature?: { name: string; company?: string; title?: string; licenses: string[] };
 }
 
 export function buildReport(
@@ -74,7 +74,7 @@ export function buildReport(
     params?: CalcParams;
     advisorRecommendation?: string;
     selectedDimensions?: { title: string; desc: string }[];
-    advisorSignature?: { name: string; licenses: string[] };
+    advisorSignature?: { name: string; company?: string; title?: string; licenses: string[] };
   },
 ): ReportModel {
   const params = opts?.params ?? DEFAULT_PARAMS;
