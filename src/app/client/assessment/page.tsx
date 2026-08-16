@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import type {
@@ -211,7 +211,8 @@ export default function Assessment() {
   const [f, setF] = useState<Form>(initialForm);
   const [maxStep, setMaxStep] = useState(0); // 已到達的最遠步驟(進度條可點跳)
   const [hydrated, setHydrated] = useState(false);
-  const [submitting, setSubmitting] = useState(false); // 送出中,防連點重複建檔
+  const [submitting, setSubmitting] = useState(false); // 送出中(UI 顯示用)
+  const submittingRef = useRef(false); // 同步防連點(避免 state 閉包時間差,快速雙擊仍會重複建檔)
 
   useEffect(() => {
     const p = loadProgress();
@@ -332,7 +333,8 @@ export default function Assessment() {
   }, [step, f]);
 
   const submit = async () => {
-    if (submitting) return; // 防手機連點造成重複建檔
+    if (submittingRef.current) return; // 同步防連點:ref 立即生效,不受 state 重繪時間差影響
+    submittingRef.current = true;
     setSubmitting(true);
     const assets = ASSET_FIELDS.reduce((acc, field) => {
       const a = f.assets[field.key];
