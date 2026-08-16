@@ -12,8 +12,8 @@ export default function Home() {
           資產配置健檢
         </h1>
         <p className="mx-auto mt-4 max-w-2xl text-base leading-relaxed text-neutral-600 dark:text-neutral-300 sm:text-lg">
-          跨資產類別的配置檢視與缺口試算。客戶輸入資產現況,系統彙整出全貌與缺口,
-          由具專業資格的顧問提供規劃建議。
+          跨資產類別的配置檢視試算工具。協助快速覺察個人或家庭的財務健康度,
+          透過專業顧問的協助解讀,幫助您穩健累積財富。
         </p>
         <p className="mx-auto mt-3 inline-block rounded-full bg-neutral-100 px-4 py-1 text-xs text-neutral-500 dark:bg-neutral-800 dark:text-neutral-400">
           定位:檢視 · 試算 · 教育,非投資推介
