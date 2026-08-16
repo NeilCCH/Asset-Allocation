@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
-import { createAdvisorProfile } from "@/lib/actions/advisor";
+import { createAdvisorProfile, getMyAdvisor } from "@/lib/actions/advisor";
 import { LICENSE_OPTIONS, LICENSE_REQUIRES_NUMBER, type LicenseType } from "@/lib/domain/licenses";
 
 export default function AdvisorAuth() {
@@ -20,13 +20,20 @@ export default function AdvisorAuth() {
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
 
-  // 已登入則直接進後台,避免看到登入表單誤以為被登出
+  // 已登入:有顧問檔案→進後台;無檔案(如 Email 驗證回來後)→留在本頁補完,避免無限跳轉。
   useEffect(() => {
-    createClient()
-      .auth.getUser()
-      .then(({ data }) => {
-        if (data.user) router.replace("/advisor/dashboard");
-      });
+    (async () => {
+      const { data } = await createClient().auth.getUser();
+      if (!data.user) return;
+      const adv = await getMyAdvisor();
+      if (adv) {
+        router.replace("/advisor/dashboard");
+        return;
+      }
+      setMode("register");
+      setEmail(data.user.email ?? "");
+      setMsg("此帳號尚未建立顧問檔案,請填寫下方資料完成啟用。");
+    })();
   }, [router]);
 
   const toggleLicense = (l: LicenseType) =>
@@ -62,31 +69,44 @@ export default function AdvisorAuth() {
     setMsg(null);
     const supabase = createClient();
     try {
-      if (mode === "register") {
+      if (mode === "login") {
+        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        if (error) throw error;
+        // 登入後確認是否已建顧問檔案;沒有則留在本頁補完(常見於開啟 Email 驗證時)
+        const adv = await getMyAdvisor();
+        if (!adv) {
+          setMode("register");
+          setMsg("登入成功,但此帳號尚未建立顧問檔案,請填寫下方資料完成啟用。");
+          return;
+        }
+        router.push("/advisor/dashboard");
+        return;
+      }
+
+      // 註冊 / 補完檔案:若已有 session(驗證信回來後登入)則略過 signUp
+      let user = (await supabase.auth.getUser()).data.user;
+      if (!user) {
         const { data, error } = await supabase.auth.signUp({ email, password });
         if (error) throw error;
         if (!data.session || !data.user) {
-          setMsg("註冊成功!請至 Email 收信完成驗證後再登入。");
+          setMsg("註冊成功!請至 Email 收信完成驗證,回到本頁『登入』即可補完顧問檔案。");
           setMode("login");
           return;
         }
-        const uid = data.user.id;
-        const cardFrontPath = await uploadCard(supabase, uid, cardFront!, "front");
-        const cardBackPath = await uploadCard(supabase, uid, cardBack!, "back");
-        const res = await createAdvisorProfile({
-          fullName: fullName.trim(),
-          mobile: mobile.trim(),
-          licenses: licenseEntries.map(([type, number]) => ({ type, number: number.trim() || undefined })),
-          cardFrontPath,
-          cardBackPath,
-        });
-        if (!res.ok) throw new Error(res.error);
-        router.push("/advisor/dashboard");
-      } else {
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
-        if (error) throw error;
-        router.push("/advisor/dashboard");
+        user = data.user;
       }
+      const uid = user.id;
+      const cardFrontPath = await uploadCard(supabase, uid, cardFront!, "front");
+      const cardBackPath = await uploadCard(supabase, uid, cardBack!, "back");
+      const res = await createAdvisorProfile({
+        fullName: fullName.trim(),
+        mobile: mobile.trim(),
+        licenses: licenseEntries.map(([type, number]) => ({ type, number: number.trim() || undefined })),
+        cardFrontPath,
+        cardBackPath,
+      });
+      if (!res.ok) throw new Error(res.error);
+      router.push("/advisor/dashboard");
     } catch (e) {
       setMsg(e instanceof Error ? e.message : "發生錯誤,請重試");
     } finally {

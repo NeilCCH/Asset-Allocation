@@ -35,7 +35,7 @@ export default function Home() {
           role="顧問"
           title="我是財富管理顧問"
           desc="管理名下客戶、檢視完整缺口分析,參考系統配置面向框架,產出健檢報告。"
-          bullets={["客戶清單 A/B/C 分級", "配置面向參考(僅顧問可見)", "PDF 健檢報告"]}
+          bullets={["客戶清單資產分層(高淨值 / 中產…)", "配置面向參考(僅顧問可見)", "PDF 健檢報告"]}
           href="/advisor"
           cta="顧問登入 / 註冊"
           accent="sky"

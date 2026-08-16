@@ -1,19 +1,22 @@
-// 顧問後台 — 名下客戶清單 + A/B/C 分級。⚠️ 顧問專屬。
+// 顧問後台 — 名下客戶清單 + 資產分層(HNW)。⚠️ 顧問專屬。
 // 讀取真實登入顧問的檔案與名下客戶;未登入導回 /advisor。
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createServerSupabase } from "@/lib/supabase/server";
 import { getMyAdvisor } from "@/lib/actions/advisor";
-import { scoreLead, type LeadGrade } from "@/lib/domain/leads";
-import { sumAssets } from "@/lib/domain/calc";
+import { investableAssets, sumAssets } from "@/lib/domain/calc";
+import { wealthTier, type WealthTierKey } from "@/lib/domain/wealthTier";
 import type { QuestionnaireData } from "@/lib/domain/types";
 import { SignOutButton } from "./SignOutButton";
 import { InviteLink } from "./InviteLink";
 
-const GRADE_STYLE: Record<LeadGrade, string> = {
-  A: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300",
-  B: "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300",
-  C: "bg-neutral-200 text-neutral-600 dark:bg-neutral-700 dark:text-neutral-300",
+// 資產分層徽章配色(取代 A/B/C)
+const TIER_STYLE: Record<WealthTierKey, string> = {
+  uhnw: "bg-violet-100 text-violet-700 dark:bg-violet-900/40 dark:text-violet-300",
+  hnw: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300",
+  affluent: "bg-sky-100 text-sky-700 dark:bg-sky-900/40 dark:text-sky-300",
+  mass_affluent: "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300",
+  mass: "bg-neutral-200 text-neutral-600 dark:bg-neutral-700 dark:text-neutral-300",
 };
 
 function fmtWan(wan: number) {
@@ -43,10 +46,11 @@ export default async function AdvisorDashboard() {
       const qr = c.questionnaire_responses?.[0];
       if (!qr?.core) return null;
       const data = { basic: qr.basic, core: qr.core, deep: qr.deep ?? undefined, kyc: qr.kyc ?? undefined } as QuestionnaireData;
-      return { id: c.id, data, score: scoreLead(data), total: sumAssets(data.core.assets) };
+      const investable = investableAssets(data.core.assets);
+      return { id: c.id, data, tier: wealthTier(investable), total: sumAssets(data.core.assets), investable };
     })
     .filter((r): r is NonNullable<typeof r> => r !== null)
-    .sort((a, b) => b.score.total - a.score.total);
+    .sort((a, b) => b.investable - a.investable);
 
   return (
     <main className="mx-auto w-full max-w-4xl flex-1 px-5 py-8 sm:py-10">
@@ -84,7 +88,7 @@ export default async function AdvisorDashboard() {
         <div className="mt-3 rounded-xl border border-dashed border-neutral-300 p-8 text-center dark:border-neutral-700">
           <p className="text-sm text-neutral-500 dark:text-neutral-400">
             尚無綁定客戶。把推薦碼 <span className="font-mono font-semibold">{advisor.referral_code}</span> 分享給客戶,
-            <br />他們註冊後會自動出現在這裡並完成分級。
+            <br />他們註冊後會自動出現在這裡並完成資產分層。
           </p>
           <Link href="/advisor/clients/c001" className="mt-4 inline-block text-sm text-sky-600 hover:underline dark:text-sky-400">
             先看示範客戶檔案 →
@@ -95,10 +99,10 @@ export default async function AdvisorDashboard() {
           <table className="w-full text-sm">
             <thead className="bg-neutral-50 text-left text-xs text-neutral-500 dark:bg-neutral-900 dark:text-neutral-400">
               <tr>
-                <th className="px-4 py-3 font-medium">分級</th>
+                <th className="px-4 py-3 font-medium">資產分層</th>
                 <th className="px-4 py-3 font-medium">客戶</th>
-                <th className="hidden px-4 py-3 font-medium sm:table-cell">資產總額</th>
-                <th className="px-4 py-3 font-medium">評分</th>
+                <th className="hidden px-4 py-3 font-medium sm:table-cell">可投資資產</th>
+                <th className="px-4 py-3 font-medium">資產總額</th>
                 <th className="px-4 py-3"></th>
               </tr>
             </thead>
@@ -106,16 +110,19 @@ export default async function AdvisorDashboard() {
               {rows.map((r) => (
                 <tr key={r.id} className="hover:bg-neutral-50 dark:hover:bg-neutral-900/50">
                   <td className="px-4 py-3">
-                    <span className={`inline-flex h-7 w-7 items-center justify-center rounded-full text-sm font-bold ${GRADE_STYLE[r.score.grade]}`}>
-                      {r.score.grade}
+                    <span
+                      title={`${r.tier.en}・${r.tier.range}`}
+                      className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ${TIER_STYLE[r.tier.key]}`}
+                    >
+                      {r.tier.label}
                     </span>
                   </td>
                   <td className="px-4 py-3 font-medium">
                     {r.data.basic.surname}
                     {r.data.basic.honorific}
                   </td>
-                  <td className="hidden px-4 py-3 sm:table-cell">{fmtWan(r.total)}</td>
-                  <td className="px-4 py-3 font-semibold">{r.score.total}</td>
+                  <td className="hidden px-4 py-3 sm:table-cell">{fmtWan(r.investable)}</td>
+                  <td className="px-4 py-3 font-semibold">{fmtWan(r.total)}</td>
                   <td className="px-4 py-3 text-right">
                     <Link href={`/advisor/clients/${r.id}`} className="text-sky-600 hover:underline dark:text-sky-400">
                       檢視 →

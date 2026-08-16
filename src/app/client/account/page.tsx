@@ -24,7 +24,7 @@ export default function ClientAccount() {
         const { data, error } = await supabase.auth.signUp({ email, password });
         if (error) throw error;
         if (!data.session) {
-          setMsg("註冊成功!請至 Email 收信完成驗證後再登入。");
+          setMsg("註冊成功!請至 Email 收信完成驗證,回來後『登入』即可綁定你的健檢資料。");
           setMode("login");
           return;
         }
@@ -34,6 +34,9 @@ export default function ClientAccount() {
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
+        // 登入時也補做綁定(涵蓋開啟 Email 驗證、註冊當下未取得 session 的情況)
+        const clientId = loadClientId();
+        if (clientId) await linkClientAccount(clientId);
         router.push("/client/dashboard");
       }
     } catch (e) {

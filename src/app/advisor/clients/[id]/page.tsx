@@ -5,9 +5,18 @@ import { notFound } from "next/navigation";
 import { getAdvisorWorkbench } from "@/lib/actions/advisor";
 import { loadClientData, isRealClientId } from "@/lib/clientData";
 import { scoreLead } from "@/lib/domain/leads";
-import { assetBreakdown, liquidAssets, protectionVsInvestment, sumAssets } from "@/lib/domain/calc";
+import { assetBreakdown, investableAssets, liquidAssets, protectionVsInvestment, sumAssets } from "@/lib/domain/calc";
+import { wealthTier, type WealthTierKey } from "@/lib/domain/wealthTier";
 import { ALLOCATION_DIMENSIONS, dimensionHints } from "@/lib/domain/allocation";
 import { AdvisorWorkbench } from "@/components/AdvisorWorkbench";
+
+const TIER_BADGE: Record<WealthTierKey, string> = {
+  uhnw: "bg-violet-100 text-violet-700 dark:bg-violet-900/40 dark:text-violet-300",
+  hnw: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300",
+  affluent: "bg-sky-100 text-sky-700 dark:bg-sky-900/40 dark:text-sky-300",
+  mass_affluent: "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300",
+  mass: "bg-neutral-200 text-neutral-600 dark:bg-neutral-700 dark:text-neutral-300",
+};
 
 export default async function ClientDetail({ params }: PageProps<"/advisor/clients/[id]">) {
   const { id } = await params;
@@ -18,6 +27,7 @@ export default async function ClientDetail({ params }: PageProps<"/advisor/clien
   const score = scoreLead(data);
   const total = sumAssets(data.core.assets);
   const liquid = liquidAssets(data.core.assets);
+  const tier = wealthTier(investableAssets(data.core.assets));
   const pvi = protectionVsInvestment(data.core.assets);
   const hints = dimensionHints(data);
 
@@ -34,10 +44,18 @@ export default async function ClientDetail({ params }: PageProps<"/advisor/clien
 
       <header className="mt-4 flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold">
-            {data.basic.surname}
-            {data.basic.honorific}
-          </h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-2xl font-bold">
+              {data.basic.surname}
+              {data.basic.honorific}
+            </h1>
+            <span
+              title={`${tier.en}・可投資資產 ${tier.range}`}
+              className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ${TIER_BADGE[tier.key]}`}
+            >
+              {tier.label}
+            </span>
+          </div>
           <p className="mt-1 text-sm text-neutral-500 dark:text-neutral-400">
             {data.core.age} 歲 · 預計 {data.core.retire_age} 歲退休 · {data.core.income_type} ·
             子女 {data.core.dependents.children.length} 位

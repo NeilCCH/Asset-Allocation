@@ -92,7 +92,7 @@ export function AdvisorWorkbench({
           <h2 className="text-base font-semibold">有效客戶評分</h2>
           <span className="flex items-center gap-2">
             <span className="text-2xl font-bold">{score.total}</span>
-            <span className="rounded-full bg-neutral-100 px-2 py-0.5 text-sm font-bold dark:bg-neutral-800">{score.grade} 級</span>
+            <span className="text-sm text-neutral-400">/ 100</span>
           </span>
         </div>
         <div className="mt-4 space-y-2">
