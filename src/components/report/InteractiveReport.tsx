@@ -59,7 +59,7 @@ export function InteractiveReport({
             <P label="年報酬率" suffix="%" value={params.returnRate * 100} step={0.5} onChange={(v) => setParam("returnRate", v / 100)} />
             <P label="通膨率" suffix="%" value={params.inflationRate * 100} step={0.5} onChange={(v) => setParam("inflationRate", v / 100)} />
             <P label="預估餘命" suffix="歲" value={params.lifeExpectancy} step={1} onChange={(v) => setParam("lifeExpectancy", v)} />
-            <P label="退休生活水準" suffix="%" value={params.defaultRetireLifestylePct} step={5} onChange={(v) => setParam("defaultRetireLifestylePct", v)} />
+            <P label="所得替代率" suffix="%" value={params.defaultRetireLifestylePct} step={5} onChange={(v) => setParam("defaultRetireLifestylePct", v)} />
           </div>
           <button onClick={() => setShowAdvanced((s) => !s)} className="mt-2 text-xs text-sky-600 hover:underline dark:text-sky-400">
             {showAdvanced ? "收合進階參數 ▴" : "進階參數(教育金 / 扶養)▾"}

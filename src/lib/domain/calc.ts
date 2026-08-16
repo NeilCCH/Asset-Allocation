@@ -256,3 +256,49 @@ export function computeGaps(
 function round(n: number): number {
   return Math.round(n * 10) / 10;
 }
+
+// ── 退休金回推試算(解決建議)──────────────────────────
+// 輸入:退休後每月想固定領取金額(萬)。回推現在需準備多少。
+
+export interface ReserveResult {
+  targetMonthly: number; // 目標每月領取(萬)
+  annualNeed: number; // 每年領取(萬)
+  capitalAtRetirement: number; // 退休時所需準備金(萬)
+  lumpSumToday: number; // 今日一次準備(現值,萬)
+  currentAssetsGrown: number; // 現有可投資資產成長至退休(萬)
+  requiredMonthlySaving: number; // 從現在起每月需儲蓄(萬)
+  sufficient: boolean; // 現有資產是否已足夠
+}
+
+export function retirementReserve(
+  data: QuestionnaireData,
+  params: CalcParams,
+  targetMonthly: number,
+): ReserveResult {
+  const { core } = data;
+  const yearsToRetire = Math.max(0, core.retire_age - core.age);
+  const retireYears = Math.max(1, params.lifeExpectancy - core.retire_age);
+  const r = params.returnRate;
+  const annualNeed = targetMonthly * 12;
+
+  // 退休時所需準備金 = 年領取 × 年金現值因子(退休期間本金以 r 成長)
+  const annuityPV = r === 0 ? retireYears : (1 - Math.pow(1 + r, -retireYears)) / r;
+  const capitalAtRetirement = annualNeed * annuityPV;
+
+  const lumpSumToday = capitalAtRetirement / Math.pow(1 + r, yearsToRetire);
+  const currentAssetsGrown = grow(investableAssets(core.assets), r, yearsToRetire);
+  const shortfall = Math.max(0, capitalAtRetirement - currentAssetsGrown);
+
+  const fvFactor = yearsToRetire <= 0 ? 0 : r === 0 ? yearsToRetire : (Math.pow(1 + r, yearsToRetire) - 1) / r;
+  const requiredAnnualSaving = fvFactor > 0 ? shortfall / fvFactor : shortfall;
+
+  return {
+    targetMonthly,
+    annualNeed: round(annualNeed),
+    capitalAtRetirement: round(capitalAtRetirement),
+    lumpSumToday: round(lumpSumToday),
+    currentAssetsGrown: round(currentAssetsGrown),
+    requiredMonthlySaving: round(requiredAnnualSaving / 12),
+    sufficient: shortfall <= 0,
+  };
+}

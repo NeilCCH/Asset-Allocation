@@ -201,7 +201,7 @@ export function HealthCheckReport({ model, variant = "full" }: { model: ReportMo
         <h2>試算計算明細(供驗證)</h2>
         <p className="hcr-note">
           試算參數:年報酬 {pctNum(model.params.returnRate)} · 通膨 {pctNum(model.params.inflationRate)} ·
-          預估餘命 {model.params.lifeExpectancy} 歲 · 退休生活水準 {model.params.defaultRetireLifestylePct}% ·
+          預估餘命 {model.params.lifeExpectancy} 歲 · 所得替代率 {model.params.defaultRetireLifestylePct}% ·
           子女獨立年齡 {model.params.childIndependentAge} 歲
         </p>
         {model.gaps

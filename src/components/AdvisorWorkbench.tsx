@@ -7,7 +7,7 @@ import Link from "next/link";
 import type { LeadScore } from "@/lib/domain/leads";
 import type { QuestionnaireData } from "@/lib/domain/types";
 import { CalcParams, clientDefaultParams } from "@/lib/domain/params";
-import { computeGaps, type GapResult } from "@/lib/domain/calc";
+import { computeGaps, retirementReserve, type GapResult } from "@/lib/domain/calc";
 import { saveAdvisorWorkbench } from "@/lib/actions/advisor";
 
 interface Dimension {
@@ -48,8 +48,13 @@ export function AdvisorWorkbench({
   const [saving, setSaving] = useState(false);
   const [savedMsg, setSavedMsg] = useState<string | null>(null);
   const [showAdvanced, setShowAdvanced] = useState(false);
+  const [targetMonthly, setTargetMonthly] = useState("");
 
   const gaps = useMemo(() => computeGaps(data, params), [data, params]);
+  const reserve = useMemo(
+    () => (targetMonthly ? retirementReserve(data, params, Number(targetMonthly)) : null),
+    [data, params, targetMonthly],
+  );
   const isDefault = JSON.stringify(params) === JSON.stringify(clientDefaults);
 
   const toggle = (k: string) => setChecked((p) => ({ ...p, [k]: !p[k] }));
@@ -121,7 +126,7 @@ export function AdvisorWorkbench({
           <ParamInput label="年報酬率" suffix="%" value={params.returnRate * 100} onChange={(v) => setParam("returnRate", v / 100)} step={0.5} />
           <ParamInput label="通膨率" suffix="%" value={params.inflationRate * 100} onChange={(v) => setParam("inflationRate", v / 100)} step={0.5} />
           <ParamInput label="預估餘命" suffix="歲" value={params.lifeExpectancy} onChange={(v) => setParam("lifeExpectancy", v)} step={1} />
-          <ParamInput label="退休生活水準" suffix="%" value={params.defaultRetireLifestylePct} onChange={(v) => setParam("defaultRetireLifestylePct", v)} step={5} />
+          <ParamInput label="所得替代率" suffix="%" value={params.defaultRetireLifestylePct} onChange={(v) => setParam("defaultRetireLifestylePct", v)} step={5} />
         </div>
 
         {/* 進階參數(影響保障 / 教育缺口) */}
@@ -146,6 +151,38 @@ export function AdvisorWorkbench({
         <p className="mt-3 text-xs text-neutral-400">
           調整上方參數,缺口會即時重算。此為透明公式試算,非投資建議。
         </p>
+      </section>
+
+      {/* 退休金回推試算(解決建議) */}
+      <section className="rounded-2xl border border-emerald-200 bg-emerald-50 p-5 dark:border-emerald-900 dark:bg-emerald-950/30">
+        <h2 className="text-base font-semibold text-emerald-900 dark:text-emerald-100">退休金回推試算</h2>
+        <p className="mt-1 text-xs text-emerald-700/80 dark:text-emerald-300/80">
+          輸入退休後每月想固定領取的金額,回推現在需準備多少(採上方試算參數)。
+        </p>
+        <div className="mt-3 flex items-center gap-2">
+          <span className="text-sm">退休後每月想領</span>
+          <input
+            type="number"
+            value={targetMonthly}
+            onChange={(e) => setTargetMonthly(e.target.value)}
+            placeholder="例如 5"
+            className="w-24 rounded-lg border border-emerald-300 bg-white px-2 py-1.5 text-right text-sm outline-none focus:border-emerald-500 dark:border-emerald-800 dark:bg-neutral-900"
+          />
+          <span className="text-sm">萬 / 月</span>
+        </div>
+        {reserve && (
+          <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <ReserveCard label="退休時所需準備金" value={reserve.capitalAtRetirement} />
+            <ReserveCard label="今日一次準備(現值)" value={reserve.lumpSumToday} />
+            <ReserveCard label="現有資產成長至退休" value={reserve.currentAssetsGrown} />
+            <ReserveCard
+              label="從現在起每月需存"
+              value={reserve.requiredMonthlySaving}
+              highlight={!reserve.sufficient}
+              note={reserve.sufficient ? "現有資產已足夠" : undefined}
+            />
+          </div>
+        )}
       </section>
 
       {/* 配置面向參考框架 */}
@@ -247,6 +284,17 @@ function ParamInput({ label, suffix, value, onChange, step }: { label: string; s
         <span className="text-xs text-neutral-400">{suffix}</span>
       </div>
     </label>
+  );
+}
+
+function ReserveCard({ label, value, highlight, note }: { label: string; value: number; highlight?: boolean; note?: string }) {
+  return (
+    <div className={`rounded-lg border p-3 text-center ${highlight ? "border-emerald-400 bg-white dark:border-emerald-600 dark:bg-neutral-900" : "border-emerald-200 bg-white/70 dark:border-emerald-900 dark:bg-neutral-900/60"}`}>
+      <div className="text-[11px] text-neutral-500 dark:text-neutral-400">{label}</div>
+      <div className={`mt-1 text-sm font-bold ${highlight ? "text-emerald-700 dark:text-emerald-300" : ""}`}>
+        {note ?? `${Math.round(value).toLocaleString("zh-TW")} 萬`}
+      </div>
+    </div>
   );
 }
 

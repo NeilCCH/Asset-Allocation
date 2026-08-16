@@ -650,7 +650,7 @@ export default function Assessment() {
             <div className="rounded-lg bg-neutral-50 p-3 dark:bg-neutral-900">
               <span className="text-sm font-medium">退休後需求</span>
               <div className="mt-1.5 grid grid-cols-3 gap-3">
-                <Field label="生活水準(%)">
+                <Field label="所得替代率(%)">
                   <Input value={f.retireLifestylePct} onChange={(v) => set("retireLifestylePct", v)} type="number" placeholder="70" />
                 </Field>
                 <Field label="退休後每月支出(萬)">
