@@ -139,19 +139,26 @@ export function HealthCheckReport({ model, variant = "full" }: { model: ReportMo
         </section>
       )}
 
-      {/* 現有保障總覽(保單健檢) */}
-      {full && model.insurance.length > 0 && (
+      {/* 家戶保障總覽(保單健檢:本人 + 配偶 + 子女) */}
+      {full && model.householdInsurance.some((m) => m.rows.length > 0) && (
         <section className="hcr-card">
-          <h2>現有保障總覽</h2>
-          <div className="hcr-ins">
-            {model.insurance.map((r) => (
-              <div key={r.label} className={`hcr-ins-row ${r.has ? "on" : "off"}`}>
-                <span>{r.has ? "✓ " : "— "}{r.label}</span>
-                <span>{r.has ? r.text : "尚無"}</span>
+          <h2>家戶保障總覽</h2>
+          {model.householdInsurance
+            .filter((m) => m.rows.length > 0)
+            .map((m) => (
+              <div key={m.member} style={{ marginBottom: 10 }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: "#334155", margin: "4px 0" }}>{m.member}</div>
+                <div className="hcr-ins">
+                  {m.rows.map((r) => (
+                    <div key={r.label} className={`hcr-ins-row ${r.has ? "on" : "off"}`}>
+                      <span>{r.has ? "✓ " : "— "}{r.label}</span>
+                      <span>{r.has ? r.text : "尚無"}</span>
+                    </div>
+                  ))}
+                </div>
               </div>
             ))}
-          </div>
-          <p className="hcr-note">各險種單位不同:壽險/意外/重疾為保額(萬)、醫療為日額+實支實付、失能/長照為每月給付。</p>
+          <p className="hcr-note">各險種單位不同:壽險/意外/重疾為保額(萬)、醫療為日額+實支實付、失能/長照為每月給付。含配偶與子女以利家戶保障檢視。</p>
         </section>
       )}
 

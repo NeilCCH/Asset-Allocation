@@ -45,6 +45,16 @@ export const MOCK_CLIENTS: MockClient[] = [
           disability: { has: false, monthly: 0 },
           long_term_care: { has: false, monthly: 0 },
         },
+        spouse_insurance: {
+          life: { has: true, coverage: 300 }, critical_illness: { has: false, coverage: 0 },
+          cancer_lump: { has: true, coverage: 50 }, accident: { has: true, coverage: 200 },
+          medical: { has: true, daily: 2000, reimburse_limit: 15 }, cancer_hospital: { has: false, daily: 0 },
+          disability: { has: false, monthly: 0 }, long_term_care: { has: false, monthly: 0 },
+        },
+        children_insurance: [
+          { life: { has: false, coverage: 0 }, critical_illness: { has: false, coverage: 0 }, cancer_lump: { has: true, coverage: 30 }, accident: { has: true, coverage: 100 }, medical: { has: true, daily: 2000, reimburse_limit: 10 }, cancer_hospital: { has: false, daily: 0 }, disability: { has: false, monthly: 0 }, long_term_care: { has: false, monthly: 0 } },
+          { life: { has: false, coverage: 0 }, critical_illness: { has: false, coverage: 0 }, cancer_lump: { has: false, coverage: 0 }, accident: { has: true, coverage: 100 }, medical: { has: true, daily: 1500, reimburse_limit: 10 }, cancer_hospital: { has: false, daily: 0 }, disability: { has: false, monthly: 0 }, long_term_care: { has: false, monthly: 0 } },
+        ],
       },
       kyc: { exp_years: 12, familiar_products: ["股票", "基金", "ETF"], loss_reaction: "續抱", investable_ratio: 40 },
     },

@@ -10,6 +10,7 @@ import type {
   Horizon,
   IncomeBand,
   IncomeType,
+  InsuranceDetail,
   PlanningScope,
   QuestionnaireData,
   SurplusBand,
@@ -67,6 +68,19 @@ const EDU_STAGE_OPTIONS: { value: EduStage; label: string }[] = [
 
 const num = (s: string) => Number(s) || 0;
 
+function insFormToDetail(ins: InsForm): InsuranceDetail {
+  return {
+    life: { has: ins.life.has, coverage: num(ins.life.values.coverage ?? "") },
+    critical_illness: { has: ins.critical_illness.has, coverage: num(ins.critical_illness.values.coverage ?? "") },
+    cancer_lump: { has: ins.cancer_lump.has, coverage: num(ins.cancer_lump.values.coverage ?? "") },
+    accident: { has: ins.accident.has, coverage: num(ins.accident.values.coverage ?? "") },
+    medical: { has: ins.medical.has, daily: num(ins.medical.values.daily ?? ""), reimburse_limit: num(ins.medical.values.reimburse_limit ?? "") },
+    cancer_hospital: { has: ins.cancer_hospital.has, daily: num(ins.cancer_hospital.values.daily ?? "") },
+    disability: { has: ins.disability.has, monthly: num(ins.disability.values.monthly ?? "") },
+    long_term_care: { has: ins.long_term_care.has, monthly: num(ins.long_term_care.values.monthly ?? "") },
+  };
+}
+
 interface Form {
   surname: string;
   honorific: Honorific;
@@ -98,8 +112,10 @@ interface Form {
   emergencyMonths: string;
   majorExpenseAmount: string;
   majorExpenseYears: string;
-  // 深化:現有保障明細
-  insurance: InsForm;
+  // 深化:收入來源拆解(含被動收入,年/萬)
+  incomeSources: { salary: string; bonus: string; rental: string; dividend: string; business: string; other: string };
+  // 深化:現有保障明細(家戶:依成員 self / spouse / child0...)
+  insByMember: Record<string, InsForm>;
   // 深化:子女高階教育規劃(每位子女一筆)
   eduGoals: { overseas: boolean; annual_edu_budget: string; annual_living_budget: string }[];
 }
@@ -133,7 +149,8 @@ const initialForm: Form = {
   emergencyMonths: "",
   majorExpenseAmount: "",
   majorExpenseYears: "",
-  insurance: emptyInsurance,
+  incomeSources: { salary: "", bonus: "", rental: "", dividend: "", business: "", other: "" },
+  insByMember: { self: emptyInsurance },
   eduGoals: [],
 };
 
@@ -167,6 +184,17 @@ export default function Assessment() {
   }, [f, step]);
 
   const set = <K extends keyof Form>(k: K, v: Form[K]) => setF((p) => ({ ...p, [k]: v }));
+
+  // 保險家戶成員(本人 / 配偶 / 各子女)
+  const [insMember, setInsMember] = useState("self");
+  const setIncome = (name: keyof Form["incomeSources"], v: string) =>
+    setF((p) => ({ ...p, incomeSources: { ...p.incomeSources, [name]: v } }));
+  const insMembers = [
+    { id: "self", label: "本人" },
+    ...(f.planning_scope === "含配偶" ? [{ id: "spouse", label: "配偶" }] : []),
+    ...f.children.map((_, i) => ({ id: `child${i}`, label: `子女${i + 1}` })),
+  ];
+  const activeMember = insMembers.some((m) => m.id === insMember) ? insMember : "self";
 
   const setChildrenCount = (n: number) => {
     const count = Math.max(0, Math.min(10, n));
@@ -206,10 +234,17 @@ export default function Assessment() {
   const setAsset = (key: keyof Assets, patch: Partial<{ has: boolean; amount: string }>) =>
     setF((p) => ({ ...p, assets: { ...p.assets, [key]: { ...p.assets[key], ...patch } } }));
 
+  const memberIns = (m: string): InsForm => f.insByMember[m] ?? emptyInsurance;
   const setInsHas = (key: InsKey, has: boolean) =>
-    setF((p) => ({ ...p, insurance: { ...p.insurance, [key]: { ...p.insurance[key], has } } }));
+    setF((p) => {
+      const cur = p.insByMember[activeMember] ?? emptyInsurance;
+      return { ...p, insByMember: { ...p.insByMember, [activeMember]: { ...cur, [key]: { ...cur[key], has } } } };
+    });
   const setInsValue = (key: InsKey, name: string, v: string) =>
-    setF((p) => ({ ...p, insurance: { ...p.insurance, [key]: { ...p.insurance[key], values: { ...p.insurance[key].values, [name]: v } } } }));
+    setF((p) => {
+      const cur = p.insByMember[activeMember] ?? emptyInsurance;
+      return { ...p, insByMember: { ...p.insByMember, [activeMember]: { ...cur, [key]: { ...cur[key], values: { ...cur[key].values, [name]: v } } } } };
+    });
 
   const setEduGoal = (i: number, patch: Partial<{ overseas: boolean; annual_edu_budget: string; annual_living_budget: string }>) =>
     setF((p) => {
@@ -276,20 +311,16 @@ export default function Assessment() {
         major_expense: f.majorExpenseAmount
           ? { amount: Number(f.majorExpenseAmount) || 0, years_until: 0 }
           : undefined,
-        insurance_detail: {
-          life: { has: f.insurance.life.has, coverage: num(f.insurance.life.values.coverage ?? "") },
-          critical_illness: { has: f.insurance.critical_illness.has, coverage: num(f.insurance.critical_illness.values.coverage ?? "") },
-          cancer_lump: { has: f.insurance.cancer_lump.has, coverage: num(f.insurance.cancer_lump.values.coverage ?? "") },
-          accident: { has: f.insurance.accident.has, coverage: num(f.insurance.accident.values.coverage ?? "") },
-          medical: {
-            has: f.insurance.medical.has,
-            daily: num(f.insurance.medical.values.daily ?? ""),
-            reimburse_limit: num(f.insurance.medical.values.reimburse_limit ?? ""),
-          },
-          cancer_hospital: { has: f.insurance.cancer_hospital.has, daily: num(f.insurance.cancer_hospital.values.daily ?? "") },
-          disability: { has: f.insurance.disability.has, monthly: num(f.insurance.disability.values.monthly ?? "") },
-          long_term_care: { has: f.insurance.long_term_care.has, monthly: num(f.insurance.long_term_care.values.monthly ?? "") },
-        },
+        income_sources: (() => {
+          const s = f.incomeSources;
+          const vals = [s.salary, s.bonus, s.rental, s.dividend, s.business, s.other].map(num);
+          return vals.some((v) => v > 0)
+            ? { salary: vals[0], bonus: vals[1], rental: vals[2], dividend: vals[3], business: vals[4], other: vals[5] }
+            : undefined;
+        })(),
+        insurance_detail: insFormToDetail(f.insByMember.self ?? emptyInsurance),
+        spouse_insurance: f.planning_scope === "含配偶" && f.insByMember.spouse ? insFormToDetail(f.insByMember.spouse) : undefined,
+        children_insurance: f.children.length > 0 ? f.children.map((_, i) => insFormToDetail(f.insByMember[`child${i}`] ?? emptyInsurance)) : undefined,
         edu_goals: f.children.map((_, i) => {
           const g = f.eduGoals[i] ?? { overseas: false, annual_edu_budget: "", annual_living_budget: "" };
           return {
@@ -459,6 +490,20 @@ export default function Assessment() {
             <Field label="規劃急迫性">
               <Select value={f.urgency} onChange={(v) => set("urgency", v as Urgency)} options={URGENCY_OPTIONS} placeholder="請選擇" />
             </Field>
+
+            {/* 收入來源拆解(含被動收入)— 選填深化 */}
+            <div>
+              <span className="text-sm font-medium">收入來源拆解(選填,年/萬)</span>
+              <p className="text-xs text-neutral-400">拆出主動與被動收入,利於現金流與退休試算。</p>
+              <div className="mt-1.5 grid grid-cols-2 gap-3 sm:grid-cols-3">
+                <Field label="薪資"><Input value={f.incomeSources.salary} onChange={(v) => setIncome("salary", v)} type="number" placeholder="0" /></Field>
+                <Field label="獎金/佣金"><Input value={f.incomeSources.bonus} onChange={(v) => setIncome("bonus", v)} type="number" placeholder="0" /></Field>
+                <Field label="租金(被動)"><Input value={f.incomeSources.rental} onChange={(v) => setIncome("rental", v)} type="number" placeholder="0" /></Field>
+                <Field label="股利/利息(被動)"><Input value={f.incomeSources.dividend} onChange={(v) => setIncome("dividend", v)} type="number" placeholder="0" /></Field>
+                <Field label="事業盈餘"><Input value={f.incomeSources.business} onChange={(v) => setIncome("business", v)} type="number" placeholder="0" /></Field>
+                <Field label="其他"><Input value={f.incomeSources.other} onChange={(v) => setIncome("other", v)} type="number" placeholder="0" /></Field>
+              </div>
+            </div>
           </Section>
         )}
 
@@ -540,11 +585,25 @@ export default function Assessment() {
         {step === 5 && (
           <Section title="現有保障 · 教育金">
             <p className="-mt-2 mb-1 text-sm text-neutral-500 dark:text-neutral-400">
-              勾選已有的保障並填入金額(各險種單位不同),用於試算保障缺口。
+              勾選<strong>各家庭成員</strong>已有的保障並填入金額(家戶保障計算)。各險種單位不同。
             </p>
+            {/* 家戶成員分頁 */}
+            {insMembers.length > 1 && (
+              <div className="flex flex-wrap gap-1.5">
+                {insMembers.map((m) => (
+                  <button
+                    key={m.id}
+                    onClick={() => setInsMember(m.id)}
+                    className={`rounded-full px-3 py-1 text-sm ${activeMember === m.id ? "bg-emerald-600 text-white" : "bg-neutral-100 text-neutral-600 dark:bg-neutral-800 dark:text-neutral-300"}`}
+                  >
+                    {m.label}
+                  </button>
+                ))}
+              </div>
+            )}
             <div className="space-y-2">
               {INS_CONFIG.map((c) => {
-                const v = f.insurance[c.key];
+                const v = memberIns(activeMember)[c.key];
                 return (
                   <div key={c.key} className="rounded-lg border border-neutral-200 p-3 dark:border-neutral-800">
                     <label className="flex items-center gap-3">

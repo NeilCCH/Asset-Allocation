@@ -124,13 +124,26 @@ export interface InsuranceDetail {
   long_term_care: { has: boolean; monthly: number }; // 長照:每月給付(萬)
 }
 
+/** 收入來源明細(年,萬元)。含被動收入(租金/股利/事業)。 */
+export interface IncomeSources {
+  salary: number; // 薪資
+  bonus: number; // 獎金 / 佣金
+  rental: number; // 租金收入(被動)
+  dividend: number; // 股利 / 利息(被動)
+  business: number; // 事業盈餘(被動 / 半被動)
+  other: number; // 其他
+}
+
 export interface DeepProfile {
+  income_sources?: IncomeSources; // 收入來源拆解(含被動收入)
   retire_lifestyle_pct?: number; // 退休後想維持目前開銷的幾成 (0-100+)
   edu_goals?: EduGoal[]; // 每位子女
   major_expense?: { amount: number; years_until: number }; // 近期大額支出
   liabilities?: Liabilities;
   emergency_months?: number; // 緊急預備金(幾個月生活費)
-  insurance_detail?: InsuranceDetail;
+  insurance_detail?: InsuranceDetail; // 本人保障
+  spouse_insurance?: InsuranceDetail; // 配偶保障(家戶計算)
+  children_insurance?: InsuranceDetail[]; // 各子女保障(家戶計算)
 }
 
 // ── KYC 風險(§6.4,行為題不用自評) ────────────────

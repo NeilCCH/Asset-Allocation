@@ -1,6 +1,6 @@
 // 健檢報告資料模型 — §8 單一來源。由問卷資料 + 可調參數組出報告所需的一切數字。
 // 客戶版與顧問版共用此模型;顧問版可額外帶入建議與勾選的配置面向。
-import type { QuestionnaireData } from "./types";
+import type { QuestionnaireData, InsuranceDetail } from "./types";
 import { CalcParams, DEFAULT_PARAMS } from "./params";
 import {
   assetBreakdown,
@@ -38,8 +38,10 @@ export interface ReportModel {
   };
   assets: { label: string; category: string; amount: number; pct: number }[];
   gaps: { name: string; result: GapResult }[];
-  /** 現有保障總覽(保單健檢) */
+  /** 現有保障總覽(保單健檢,本人) */
   insurance: { label: string; has: boolean; text: string }[];
+  /** 家戶保障總覽(本人 + 配偶 + 子女) */
+  householdInsurance: { member: string; rows: { label: string; has: boolean; text: string }[] }[];
   /** 遺產稅預估(僅達課稅標準時有值) */
   estateTax?: EstateTaxResult;
   /** 家系關係圖資料 */
@@ -101,7 +103,12 @@ export function buildReport(
       { name: "保障缺口", result: gaps.protection },
       { name: "教育金缺口", result: gaps.education },
     ],
-    insurance: insuranceRows(data),
+    insurance: insRowsOf(data.deep?.insurance_detail),
+    householdInsurance: [
+      { member: "本人", rows: insRowsOf(data.deep?.insurance_detail) },
+      ...(data.deep?.spouse_insurance ? [{ member: "配偶", rows: insRowsOf(data.deep.spouse_insurance) }] : []),
+      ...(data.deep?.children_insurance ?? []).map((c, i) => ({ member: `子女${i + 1}`, rows: insRowsOf(c) })),
+    ],
     estateTax: (() => {
       const e = estimateEstateTax(data);
       return e.taxable ? e : undefined;
@@ -127,9 +134,8 @@ export function buildReport(
   };
 }
 
-/** 現有保障總覽(各險種單位不同) */
-function insuranceRows(data: QuestionnaireData): { label: string; has: boolean; text: string }[] {
-  const ins = data.deep?.insurance_detail;
+/** 單一成員保障列(各險種單位不同) */
+function insRowsOf(ins: InsuranceDetail | undefined): { label: string; has: boolean; text: string }[] {
   if (!ins) return [];
   return [
     { label: "壽險", has: ins.life.has, text: `保額 ${ins.life.coverage} 萬` },
