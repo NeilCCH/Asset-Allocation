@@ -6,6 +6,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { BackLink } from "@/components/ui/BackLink";
+import { SignOutButton } from "@/components/ui/SignOutButton";
 import {
   Cell,
   Legend,
@@ -164,9 +165,12 @@ export default function Dashboard() {
     <main className="mx-auto w-full max-w-3xl flex-1 px-5 py-8 sm:py-12">
       <div className="flex items-center justify-between">
         <BackLink href="/client" label="返回" accent="emerald" />
-        <Link href="/client/assessment" className="text-sm text-emerald-700 hover:underline dark:text-emerald-400">
-          重新填寫
-        </Link>
+        <div className="flex items-center gap-4">
+          <Link href="/client/assessment" className="text-sm text-emerald-700 hover:underline dark:text-emerald-400">
+            重新填寫
+          </Link>
+          {loggedIn && <SignOutButton redirectTo="/client" />}
+        </div>
       </div>
 
       {!loggedIn && (

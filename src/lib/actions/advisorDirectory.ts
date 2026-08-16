@@ -21,10 +21,10 @@ const DEMO_EMAIL_DOMAIN = "@aa-demo.internal";
 export async function listRecommendedAdvisors(): Promise<RecommendedAdvisor[]> {
   const svc = createServiceSupabase();
 
-  // 嘗試含 featured;若欄位尚未 migrate(0003)則退回不含 featured 版本
+  // 嘗試含 featured 期限;欄位尚未 migrate(0003/0005)則退回不含版本
   const withFeatured = await svc
     .from("advisors")
-    .select("id, email, display_name, full_name, referral_code, licenses, verified, featured, created_at");
+    .select("id, email, display_name, full_name, referral_code, licenses, verified, featured, featured_until, created_at");
   const res = withFeatured.error
     ? await svc.from("advisors").select("id, email, display_name, full_name, referral_code, licenses, verified, created_at")
     : withFeatured;
@@ -38,9 +38,11 @@ export async function listRecommendedAdvisors(): Promise<RecommendedAdvisor[]> {
     licenses: AdvisorLicense[] | null;
     verified: boolean | null;
     featured?: boolean | null;
+    featured_until?: string | null;
     created_at: string;
   };
 
+  const now = Date.now();
   return ((res.data as Row[] | null) ?? [])
     .filter((a) => !(a.email ?? "").endsWith(DEMO_EMAIL_DOMAIN))
     .map((a) => ({
@@ -49,7 +51,8 @@ export async function listRecommendedAdvisors(): Promise<RecommendedAdvisor[]> {
       referralCode: a.referral_code,
       licenses: a.licenses ?? [],
       verified: !!a.verified,
-      featured: !!a.featured,
+      // 有效付費 = featured 且未過期(年費到期後不再優先曝光)
+      featured: !!a.featured && !!a.featured_until && new Date(a.featured_until).getTime() > now,
     }))
     .sort(
       (a, b) =>

@@ -1,13 +1,14 @@
 // 顧問後台 — 名下客戶清單 + 資產分層(HNW)。⚠️ 顧問專屬。
 // 讀取真實登入顧問的檔案與名下客戶;未登入導回 /advisor。
 import { ForwardLink } from "@/components/ui/ForwardLink";
+import { isAdminEmail } from "@/lib/admin";
 import { redirect } from "next/navigation";
 import { createServerSupabase } from "@/lib/supabase/server";
 import { getMyAdvisor } from "@/lib/actions/advisor";
 import { investableAssets, sumAssets } from "@/lib/domain/calc";
 import { wealthTier, type WealthTierKey } from "@/lib/domain/wealthTier";
 import type { QuestionnaireData } from "@/lib/domain/types";
-import { SignOutButton } from "./SignOutButton";
+import { SignOutButton } from "@/components/ui/SignOutButton";
 import { InviteLink } from "./InviteLink";
 import { PlanCard } from "./PlanCard";
 import { BackLink } from "@/components/ui/BackLink";
@@ -62,7 +63,7 @@ export default async function AdvisorDashboard() {
     <main className="mx-auto w-full max-w-4xl flex-1 px-5 py-8 sm:py-10">
       <div className="flex items-center justify-between">
         <BackLink href="/" label="首頁" accent="sky" />
-        <SignOutButton />
+        <SignOutButton redirectTo="/advisor" />
       </div>
 
       {/* 顧問檔案 */}
@@ -86,13 +87,14 @@ export default async function AdvisorDashboard() {
             <div className="font-mono text-lg font-bold text-sky-700 dark:text-sky-300">{advisor.referral_code}</div>
           </div>
         </div>
-        <div className="mt-3 border-t border-neutral-100 pt-3 dark:border-neutral-800">
+        <div className="mt-3 flex flex-wrap gap-2 border-t border-neutral-100 pt-3 dark:border-neutral-800">
           <ForwardLink href="/advisor/profile" label="編輯個人資料" accent="sky" />
+          {isAdminEmail(advisor.email) && <ForwardLink href="/admin/advisors" label="管理後台" accent="sky" />}
         </div>
       </section>
 
       {/* 付費方案(未來向顧問收費入口) */}
-      <PlanCard featured={advisor.featured} featuredRequested={advisor.featured_requested} />
+      <PlanCard featured={advisor.featured} featuredUntil={advisor.featured_until} featuredRequested={advisor.featured_requested} />
 
       {/* 主要客戶取得方式:邀請連結 */}
       <InviteLink code={advisor.referral_code} />

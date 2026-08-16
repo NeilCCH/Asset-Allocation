@@ -25,6 +25,7 @@ export interface AdvisorProfile {
   card_back_path: string | null;
   verified: boolean;
   featured: boolean; // 已開通付費推薦
+  featured_until: string | null; // 付費到期日(年費)
   featured_requested: boolean; // 已提出升級申請
 }
 
@@ -159,9 +160,9 @@ export async function getMyAdvisor(): Promise<AdvisorProfile | null> {
   // 逐段嘗試,任一 migration 未執行也能讀到另一段(避免整段 fallback 掉、後台不掛)。
   const base = "id, email, display_name, full_name, mobile, referral_code, licenses, card_front_path, card_back_path, verified";
   const selects = [
-    `${base}, featured, featured_requested, company_name, job_title`, // 0003 + 0004 皆有
+    `${base}, featured, featured_requested, featured_until, company_name, job_title`, // 0003 + 0004 + 0005 皆有
     `${base}, company_name, job_title`, // 只有 0004
-    `${base}, featured, featured_requested`, // 只有 0003
+    `${base}, featured, featured_requested, featured_until`, // 只有 0003(+0005)
     base, // 皆無
   ];
   let data: Record<string, unknown> | null = null;
@@ -176,6 +177,7 @@ export async function getMyAdvisor(): Promise<AdvisorProfile | null> {
   return {
     featured: false,
     featured_requested: false,
+    featured_until: null,
     company_name: null,
     job_title: null,
     ...data,
