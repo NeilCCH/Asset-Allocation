@@ -205,27 +205,35 @@ function loadProgress(): { f: Form; step: number; maxStep?: number } | null {
 
 export default function Assessment() {
   const router = useRouter();
-  const [step, setStep] = useState(() => loadProgress()?.step ?? 0);
-  const [f, setF] = useState<Form>(() => {
+  // 初始一律用預設(SSR 與首次 client render 一致,避免 hydration mismatch);
+  // 掛載後再從 localStorage 還原。
+  const [step, setStep] = useState(0);
+  const [f, setF] = useState<Form>(initialForm);
+  const [maxStep, setMaxStep] = useState(0); // 已到達的最遠步驟(進度條可點跳)
+  const [hydrated, setHydrated] = useState(false);
+
+  useEffect(() => {
     const p = loadProgress();
-    return p ? { ...initialForm, ...p.f } : initialForm;
-  });
-  // 已到達的最遠步驟(用於進度條可點跳)。填完一次後全解鎖。
-  const [maxStep, setMaxStep] = useState(() => {
-    const p = loadProgress();
-    const done = typeof window !== "undefined" && !!loadDraft();
-    return done ? STEPS.length - 1 : p?.maxStep ?? p?.step ?? 0;
-  });
+    const done = !!loadDraft();
+    if (p) {
+      setF({ ...initialForm, ...p.f });
+      setStep(p.step ?? 0);
+      setMaxStep(done ? STEPS.length - 1 : p.maxStep ?? p.step ?? 0);
+    } else if (done) {
+      setMaxStep(STEPS.length - 1);
+    }
+    setHydrated(true);
+  }, []);
 
   // 前進時更新最遠步驟
   useEffect(() => setMaxStep((m) => Math.max(m, step)), [step]);
 
-  // 自動存檔進度
+  // 自動存檔進度(還原完成後才寫,避免以預設覆蓋)
   useEffect(() => {
-    if (typeof window !== "undefined") {
+    if (hydrated && typeof window !== "undefined") {
       window.localStorage.setItem(PROGRESS_KEY, JSON.stringify({ f, step, maxStep }));
     }
-  }, [f, step, maxStep]);
+  }, [f, step, maxStep, hydrated]);
 
   const set = <K extends keyof Form>(k: K, v: Form[K]) => setF((p) => ({ ...p, [k]: v }));
 
