@@ -1,5 +1,11 @@
 @import "tailwindcss";
 
+/* 全站文字放大 1.5 倍:Tailwind 文字/間距皆用 rem,調整根字級即等比放大整體 UI。
+   報告元件 .hcr 使用 px(列印一致),其字級另於元件內 ×1.5,不受此影響。 */
+html {
+  font-size: 150%;
+}
+
 :root {
   --background: #ffffff;
   --foreground: #171717;

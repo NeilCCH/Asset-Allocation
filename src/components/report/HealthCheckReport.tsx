@@ -136,7 +136,7 @@ export function HealthCheckReport({ model, variant = "full" }: { model: ReportMo
       {/* 簡易版:提示完整報告洽顧問 */}
       {!full && (
         <section className="hcr-card hcr-advisor">
-          <p style={{ margin: 0, fontSize: 13, lineHeight: 1.8 }}>
+          <p style={{ margin: 0, fontSize: 20, lineHeight: 1.8 }}>
             本頁為<strong>簡易資產健檢摘要</strong>。完整報告(含現有保障總覽、遺產稅預估、各項計算明細與規劃建議),
             請洽您的<strong>財富管理顧問</strong>。
           </p>
@@ -151,7 +151,7 @@ export function HealthCheckReport({ model, variant = "full" }: { model: ReportMo
             .filter((m) => m.rows.length > 0)
             .map((m) => (
               <div key={m.member} style={{ marginBottom: 10 }}>
-                <div style={{ fontSize: 13, fontWeight: 700, color: "#334155", margin: "4px 0" }}>{m.member}</div>
+                <div style={{ fontSize: 20, fontWeight: 700, color: "#334155", margin: "4px 0" }}>{m.member}</div>
                 <div className="hcr-ins">
                   {m.rows.map((r) => (
                     <div key={r.label} className={`hcr-ins-row ${r.has ? "on" : "off"}`}>
@@ -251,7 +251,7 @@ export function HealthCheckReport({ model, variant = "full" }: { model: ReportMo
             <div key={s.name} className="hcr-gap short">
               <span className="hcr-gap-name">
                 {s.name}
-                <span style={{ fontWeight: 400, color: "#888", marginLeft: 8, fontSize: 12 }}>缺 {Math.round(s.gap).toLocaleString("zh-TW")} 萬 · {s.action}</span>
+                <span style={{ fontWeight: 400, color: "#888", marginLeft: 8, fontSize: 18 }}>缺 {Math.round(s.gap).toLocaleString("zh-TW")} 萬 · {s.action}</span>
               </span>
               <span className="hcr-gap-val">
                 {s.monthly != null ? `每月 ${s.monthly.toLocaleString("zh-TW")} 萬` : s.lump != null ? `補足 ${Math.round(s.lump).toLocaleString("zh-TW")} 萬` : ""}
@@ -304,7 +304,7 @@ function StackBar({ segments }: { segments: { label: string; value: number; colo
       <div style={{ display: "flex", height: 20, borderRadius: 10, overflow: "hidden", background: "#f1f5f9" }}>
         {segments.map((s) => s.value > 0 && <div key={s.label} style={{ width: `${(s.value / total) * 100}%`, background: s.color }} />)}
       </div>
-      <div style={{ display: "flex", flexWrap: "wrap", gap: 12, marginTop: 6, fontSize: 11, color: "#555" }}>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 12, marginTop: 6, fontSize: 17, color: "#555" }}>
         {segments.map((s) => (
           <span key={s.label} style={{ display: "flex", alignItems: "center", gap: 4 }}>
             <span style={{ width: 9, height: 9, borderRadius: 2, background: s.color, display: "inline-block" }} />
@@ -442,64 +442,64 @@ function gapText(g: ReportModel["gaps"][number]["result"]): string {
 const css = `
 .hcr { max-width: 720px; margin: 0 auto; padding: 32px 28px; color: #171717;
   font-family: -apple-system, "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", sans-serif; background:#fff; }
-.hcr h2 { font-size: 15px; font-weight: 700; margin: 0 0 12px; }
+.hcr h2 { font-size: 23px; font-weight: 700; margin: 0 0 12px; }
 .hcr-head { display:flex; justify-content:space-between; align-items:flex-start; gap:16px;
   padding-bottom:16px; border-bottom:2px solid #10b981; margin-bottom:20px; }
-.hcr-kicker { font-size:12px; letter-spacing:2px; color:#059669; font-weight:600; }
-.hcr-title { font-size:26px; font-weight:800; margin:4px 0 6px; }
-.hcr-sub { font-size:13px; color:#666; }
-.hcr-date { font-size:12px; color:#888; text-align:right; line-height:1.6; }
+.hcr-kicker { font-size:18px; letter-spacing:2px; color:#059669; font-weight:600; }
+.hcr-title { font-size:39px; font-weight:800; margin:4px 0 6px; }
+.hcr-sub { font-size:20px; color:#666; }
+.hcr-date { font-size:18px; color:#888; text-align:right; line-height:1.6; }
 .hcr-stats { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-bottom:16px; }
 .hcr-stat { border:1px solid #eee; border-radius:12px; padding:14px; text-align:center; }
-.hcr-stat-val { font-size:22px; font-weight:800; }
-.hcr-stat-label { font-size:12px; color:#666; margin-top:2px; }
-.hcr-stat-sub { font-size:11px; color:#aaa; }
+.hcr-stat-val { font-size:33px; font-weight:800; }
+.hcr-stat-label { font-size:18px; color:#666; margin-top:2px; }
+.hcr-stat-sub { font-size:17px; color:#aaa; }
 .hcr-card { border:1px solid #eee; border-radius:14px; padding:18px; margin-bottom:16px; break-inside:avoid; }
 .hcr-dist { display:flex; align-items:center; gap:24px; flex-wrap:wrap; }
 .hcr-legend { list-style:none; margin:0; padding:0; flex:1; min-width:220px; }
-.hcr-legend li { display:flex; align-items:center; gap:8px; font-size:13px; padding:3px 0; }
+.hcr-legend li { display:flex; align-items:center; gap:8px; font-size:20px; padding:3px 0; }
 .hcr-dot { width:10px; height:10px; border-radius:50%; flex:none; }
 .hcr-legend-label { flex:1; color:#444; }
-.hcr-legend-val { font-weight:600; } .hcr-legend-val em { color:#999; font-style:normal; margin-left:6px; font-size:11px; }
+.hcr-legend-val { font-weight:600; } .hcr-legend-val em { color:#999; font-style:normal; margin-left:6px; font-size:17px; }
 .hcr-bar { display:flex; height:22px; border-radius:11px; overflow:hidden; background:#f1f5f9; }
-.hcr-bar-legend { display:flex; justify-content:space-between; font-size:12px; color:#555; margin-top:8px; }
+.hcr-bar-legend { display:flex; justify-content:space-between; font-size:18px; color:#555; margin-top:8px; }
 .hcr-gap { display:flex; justify-content:space-between; align-items:center; padding:10px 14px;
-  border-radius:10px; margin-bottom:8px; font-size:14px; }
+  border-radius:10px; margin-bottom:8px; font-size:21px; }
 .hcr-gap.short { background:#fffbeb; border:1px solid #fde68a; }
 .hcr-gap.ok { background:#ecfdf5; border:1px solid #a7f3d0; }
 .hcr-gap.pending { background:#fafafa; border:1px dashed #ddd; }
 .hcr-gap-name { font-weight:600; }
 .hcr-gap.short .hcr-gap-val { color:#b45309; font-weight:700; }
 .hcr-gap.ok .hcr-gap-val { color:#059669; font-weight:700; }
-.hcr-gap.pending .hcr-gap-val { color:#999; font-size:12px; }
-.hcr-note { font-size:11px; color:#888; line-height:1.6; margin:10px 0 0; background:#fafafa; padding:10px; border-radius:8px; }
+.hcr-gap.pending .hcr-gap-val { color:#999; font-size:18px; }
+.hcr-note { font-size:17px; color:#888; line-height:1.6; margin:10px 0 0; background:#fafafa; padding:10px; border-radius:8px; }
 .hcr-ins { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
-.hcr-ins-row { display:flex; justify-content:space-between; font-size:13px; padding:8px 12px; border-radius:8px; border:1px solid #eee; }
+.hcr-ins-row { display:flex; justify-content:space-between; font-size:20px; padding:8px 12px; border-radius:8px; border:1px solid #eee; }
 .hcr-ins-row.on { background:#ecfdf5; border-color:#a7f3d0; }
 .hcr-ins-row.on span:last-child { color:#059669; font-weight:600; }
 .hcr-ins-row.off span:last-child { color:#bbb; }
 .hcr-calc { border:1px solid #eee; border-radius:10px; padding:12px; margin-bottom:10px; break-inside:avoid; }
-.hcr-calc-title { font-size:13px; font-weight:700; }
-.hcr-calc-formula { font-size:11px; color:#0369a1; background:#f0f9ff; padding:6px 8px; border-radius:6px; margin:6px 0; }
+.hcr-calc-title { font-size:20px; font-weight:700; }
+.hcr-calc-formula { font-size:17px; color:#0369a1; background:#f0f9ff; padding:6px 8px; border-radius:6px; margin:6px 0; }
 .hcr-calc-list { list-style:none; margin:0; padding:0; }
-.hcr-calc-list li { display:flex; justify-content:space-between; font-size:12px; padding:2px 0; color:#555; border-bottom:1px dashed #f0f0f0; }
-.hcr-calc-result { text-align:right; font-size:13px; font-weight:700; margin-top:6px; }
+.hcr-calc-list li { display:flex; justify-content:space-between; font-size:18px; padding:2px 0; color:#555; border-bottom:1px dashed #f0f0f0; }
+.hcr-calc-result { text-align:right; font-size:20px; font-weight:700; margin-top:6px; }
 .hcr-stmt { border:1px solid #eee; border-radius:10px; padding:12px; margin-bottom:10px; break-inside:avoid; }
-.hcr-stmt-title { font-size:13px; font-weight:700; color:#334155; margin-bottom:6px; }
+.hcr-stmt-title { font-size:20px; font-weight:700; color:#334155; margin-bottom:6px; }
 .hcr-stmt-grid { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
-.hcr-stmt-sub { font-size:11px; color:#94a3b8; border-bottom:1px solid #eee; padding-bottom:2px; margin-bottom:2px; }
-.hcr-stmt-row { display:flex; justify-content:space-between; font-size:12px; padding:2px 0; color:#555; }
+.hcr-stmt-sub { font-size:17px; color:#94a3b8; border-bottom:1px solid #eee; padding-bottom:2px; margin-bottom:2px; }
+.hcr-stmt-row { display:flex; justify-content:space-between; font-size:18px; padding:2px 0; color:#555; }
 .hcr-stmt-row.total { font-weight:700; color:#334155; border-top:1px solid #eee; margin-top:2px; padding-top:3px; }
-.hcr-stmt-note { font-size:11px; color:#0369a1; margin-top:4px; }
+.hcr-stmt-note { font-size:17px; color:#0369a1; margin-top:4px; }
 .hcr-advisor { background:#f0f9ff; border-color:#bae6fd; }
 .hcr-dims { display:grid; gap:8px; margin-bottom:12px; }
-.hcr-dim { font-size:13px; padding:8px 12px; background:#fff; border:1px solid #e0f2fe; border-radius:8px; }
+.hcr-dim { font-size:20px; padding:8px 12px; background:#fff; border:1px solid #e0f2fe; border-radius:8px; }
 .hcr-dim strong { margin-right:8px; }
 .hcr-dim span { color:#666; }
-.hcr-reco { font-size:14px; line-height:1.8; white-space:pre-wrap; margin:0; }
-.hcr-sign { margin-top:14px; padding-top:12px; border-top:1px solid #bae6fd; font-size:13px; color:#333; }
-.hcr-lic { color:#0369a1; margin-left:6px; font-size:12px; }
-.hcr-foot { font-size:11px; color:#999; text-align:center; margin-top:20px; line-height:1.7; }
+.hcr-reco { font-size:21px; line-height:1.8; white-space:pre-wrap; margin:0; }
+.hcr-sign { margin-top:14px; padding-top:12px; border-top:1px solid #bae6fd; font-size:20px; color:#333; }
+.hcr-lic { color:#0369a1; margin-left:6px; font-size:18px; }
+.hcr-foot { font-size:17px; color:#999; text-align:center; margin-top:20px; line-height:1.7; }
 @media print {
   .hcr { max-width:none; padding:0; }
   /* 自然分頁:每個卡片/區塊盡量不跨頁截斷,內容合理流到下一頁 */
