@@ -114,7 +114,8 @@ export function FamilyTree({ family, selfIsFemale = false }: { family: FamilyMod
   const minX = Math.min(...allX) - 48;
   const maxX = Math.max(...allX) + 48;
   const width = Math.max(360, maxX - minX);
-  const height = nGrand > 0 && kids.length > 0 ? 490 : kids.length > 0 ? 372 : 250;
+  // 高度需容納最底列人偶下方的關係文字,避免裁切
+  const height = nGrand > 0 && kids.length > 0 ? 504 : kids.length > 0 ? 392 : 262;
 
   return (
     <svg viewBox={`${minX} 0 ${width} ${height}`} width="100%" style={{ maxWidth: Math.min(720, width) }} role="img" aria-label="家族關係圖">

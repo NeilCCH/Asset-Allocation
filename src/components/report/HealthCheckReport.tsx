@@ -355,7 +355,10 @@ const css = `
 .hcr-foot { font-size:11px; color:#999; text-align:center; margin-top:20px; line-height:1.7; }
 @media print {
   .hcr { max-width:none; padding:0; }
-  .hcr-card, .hcr-stats { break-inside:avoid; }
-  @page { margin: 16mm; }
+  /* 自然分頁:每個卡片/區塊盡量不跨頁截斷,內容合理流到下一頁 */
+  .hcr-card, .hcr-stats, .hcr-head, .hcr-calc, .hcr-ins-row { break-inside:avoid; page-break-inside:avoid; }
+  .hcr h2 { break-after:avoid; page-break-after:avoid; }
+  .hcr svg { break-inside:avoid; page-break-inside:avoid; }
+  @page { margin: 14mm; }
 }
 `;
