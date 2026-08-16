@@ -20,7 +20,7 @@ export const ALLOCATION_DIMENSIONS: AllocationDimension[] = [
   { key: "retirement", title: "退休準備", desc: "檢視長期退休資產累積是否足以支應退休後年支出" },
   { key: "protection", title: "保障缺口", desc: "檢視壽險 / 醫療 / 意外等保障是否足以覆蓋家庭責任" },
   { key: "education", title: "教育金專款", desc: "為子女教育設立專款,依時程與國內外規劃" },
-  { key: "diversification", title: "投資分散", desc: "檢視投資部位是否過度集中於單一類別" },
+  { key: "diversification", title: "投資偏好", desc: "檢視投資部位是否符合風險屬性與個人投資偏好" },
   { key: "real_estate", title: "不動產占比", desc: "檢視不動產占總資產比重是否偏高、影響流動性" },
   { key: "succession", title: "傳承與稅務", desc: "資產傳承、信託等規劃面向(依需求)" },
 ];
