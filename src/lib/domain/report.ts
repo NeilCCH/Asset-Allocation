@@ -19,6 +19,7 @@ import { personalStatements, type PersonalStatements } from "./statements";
 export interface FamilyModel {
   self: { label: string; age: number };
   selfIsFemale: boolean;
+  hasSpouse: boolean;
   spouseAge?: number;
   parents: { count: number; ages: number[] };
   siblings: { relation: string; isFemale: boolean }[];
@@ -123,6 +124,7 @@ export function buildReport(
     family: {
       self: { label: `本人(${data.basic.honorific}）`, age: data.core.age },
       selfIsFemale: data.basic.honorific === "女士",
+      hasSpouse: data.core.planning_scope === "含配偶",
       spouseAge: data.core.planning_scope === "含配偶" ? data.core.spouse_age : undefined,
       parents: data.core.dependents.parents,
       siblings: (data.core.dependents.siblings ?? []).map((s) => ({ relation: s.relation, isFemale: s.relation === "姊" || s.relation === "妹" })),

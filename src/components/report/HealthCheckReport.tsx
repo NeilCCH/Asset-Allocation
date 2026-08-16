@@ -4,6 +4,8 @@ import type { ReportModel } from "@/lib/domain/report";
 import { fmtWan } from "@/lib/domain/report";
 import type { PersonalStatements } from "@/lib/domain/statements";
 import { FamilyTree } from "./FamilyTree";
+import { InheritanceHint } from "./InheritanceHint";
+import { computeInheritance } from "@/lib/domain/inheritance";
 
 const GAP_FORMULA: Record<string, string> = {
   退休金缺口: "退休後總支出需求 − (現有資產成長估計 + 未來持續投入估計)",
@@ -169,8 +171,13 @@ export function HealthCheckReport({ model, variant = "full" }: { model: ReportMo
       {/* 家系關係圖(完整版) */}
       {full && (
         <section className="hcr-card">
-          <h2>家族關係圖</h2>
-          <FamilyTree family={model.family} selfIsFemale={model.family.selfIsFemale} />
+          <h2>家族關係圖與法定繼承順位</h2>
+          <div className="hcr-genogram">
+            <div className="hcr-genogram-tree">
+              <FamilyTree family={model.family} selfIsFemale={model.family.selfIsFemale} />
+            </div>
+            <InheritanceHint result={computeInheritance(model.family)} />
+          </div>
           <p className="hcr-note">
             本人 {family.self.age} 歲
             {family.spouseAge != null ? `、配偶 ${family.spouseAge} 歲` : ""}
@@ -500,6 +507,28 @@ const css = `
 .hcr-sign { margin-top:14px; padding-top:12px; border-top:1px solid #bae6fd; font-size:20px; color:#333; }
 .hcr-lic { color:#0369a1; margin-left:6px; font-size:18px; }
 .hcr-foot { font-size:17px; color:#999; text-align:center; margin-top:20px; line-height:1.7; }
+/* 家族關係圖 + 繼承順位(左圖右表,窄螢幕/列印自動堆疊) */
+.hcr-genogram { display:flex; gap:20px; align-items:flex-start; flex-wrap:wrap; }
+.hcr-genogram-tree { flex:1 1 300px; min-width:0; }
+.hcr-inh { flex:1 1 300px; min-width:260px; border:1px solid #eee; border-radius:10px; padding:14px; background:#fafafa; break-inside:avoid; }
+.hcr-inh-title { font-size:18px; font-weight:700; color:#334155; margin-bottom:10px; }
+.hcr-inh-orders { list-style:none; margin:0 0 12px; padding:0; }
+.hcr-inh-order { display:flex; align-items:baseline; gap:8px; font-size:16px; padding:6px 8px; border-radius:6px; margin-bottom:4px; border:1px solid transparent; }
+.hcr-inh-order.active { background:#ecfdf5; border-color:#a7f3d0; }
+.hcr-inh-order.present { background:#fff; border-color:#eee; }
+.hcr-inh-order.none { color:#bbb; }
+.hcr-inh-rank { font-weight:700; color:#059669; white-space:nowrap; }
+.hcr-inh-order.none .hcr-inh-rank { color:#ccc; }
+.hcr-inh-role { font-weight:600; }
+.hcr-inh-order.none .hcr-inh-role { font-weight:500; }
+.hcr-inh-note { margin-left:auto; font-size:14px; color:#777; text-align:right; }
+.hcr-inh-order.active .hcr-inh-note { color:#059669; font-weight:600; }
+.hcr-inh-headline { font-size:16px; font-weight:700; color:#0369a1; margin:6px 0 8px; line-height:1.5; }
+.hcr-inh-tbl { width:100%; border-collapse:collapse; font-size:15px; }
+.hcr-inh-tbl td { padding:4px 6px; border-bottom:1px dashed #eee; }
+.hcr-inh-tbl td:nth-child(2), .hcr-inh-tbl td:nth-child(3) { text-align:right; color:#555; white-space:nowrap; }
+.hcr-inh-caveat { font-size:14px; color:#b45309; margin:8px 0 0; line-height:1.6; }
+.hcr-inh-cite { font-size:13px; color:#999; margin:10px 0 0; line-height:1.6; }
 @media print {
   .hcr { max-width:none; padding:0; }
   /* 自然分頁:每個卡片/區塊盡量不跨頁截斷,內容合理流到下一頁 */
