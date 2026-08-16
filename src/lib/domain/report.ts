@@ -51,7 +51,7 @@ export interface ReportModel {
   family: FamilyModel;
   /** 缺口補足建議(解決方向) */
   solutions: GapSolution[];
-  /** 個人財務三表(資產負債 / 損益 / 現金流) */
+  /** 家庭財務報表(資產負債 / 損益 / 現金流) */
   statements: PersonalStatements;
   profile: {
     age: number;

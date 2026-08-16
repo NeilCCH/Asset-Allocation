@@ -85,7 +85,7 @@ export function HealthCheckReport({ model, variant = "full" }: { model: ReportMo
         <Stat label="保障型占比" value={`${model.summary.protectionPct}%`} sub="保障 vs 投資" />
       </section>
 
-      {/* 個人財務三表(參考公司三表結構) */}
+      {/* 家庭財務報表(參考公司三表結構) */}
       <PersonalStatementsBlock s={model.statements} />
 
       {/* 資產分布 */}
@@ -302,8 +302,8 @@ function PersonalStatementsBlock({ s }: { s: PersonalStatements }) {
   const cf = s.cashFlow;
   return (
     <section className="hcr-card">
-      <h2>個人財務三表</h2>
-      <p className="hcr-note" style={{ marginTop: 0, marginBottom: 10 }}>參考公司三表結構,依會計邏輯分列:資產負債表、損益表、現金流量表。</p>
+      <h2>家庭財務報表</h2>
+      <p className="hcr-note" style={{ marginTop: 0, marginBottom: 10 }}>參考公司三表結構,依會計邏輯分列:資產負債表、損益表、現金流量表(以家庭為單位)。</p>
 
       {/* ① 資產負債表 */}
       <div className="hcr-stmt">

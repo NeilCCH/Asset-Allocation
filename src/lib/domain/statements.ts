@@ -1,4 +1,4 @@
-// 個人財務三表 — 參考公司三表(資產負債表 / 損益表 / 現金流量表)之結構與會計邏輯。
+// 家庭財務報表 — 參考公司三表(資產負債表 / 損益表 / 現金流量表)之結構與會計邏輯。
 // 單位:資產負債表為萬元;損益/現金流為年或月(萬元)。
 import type { QuestionnaireData } from "./types";
 import { assetBreakdown } from "./calc";
