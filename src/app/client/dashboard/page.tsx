@@ -25,6 +25,10 @@ import {
 import { clientDefaultParams } from "@/lib/domain/params";
 import { estimateEstateTax } from "@/lib/domain/estateTax";
 import { loadDraft } from "@/lib/draft";
+import { loadReferral, saveReferral } from "@/lib/referral";
+import { saveClientId } from "@/lib/clientSession";
+import { submitClientQuestionnaire } from "@/lib/actions/client";
+import { listRecommendedAdvisors, type RecommendedAdvisor } from "@/lib/actions/advisorDirectory";
 import { createClient } from "@/lib/supabase/client";
 
 const CATEGORY_COLOR: Record<string, string> = {
@@ -44,6 +48,7 @@ function fmt(wan: number): string {
 export default function Dashboard() {
   const [data, setData] = useState<QuestionnaireData | null | undefined>(undefined);
   const [loggedIn, setLoggedIn] = useState(false);
+  const [bound, setBound] = useState(false); // 是否已綁定顧問(綁定後解鎖完整分析)
 
   useEffect(() => {
     (async () => {
@@ -62,13 +67,41 @@ export default function Dashboard() {
         const q = (rows as { questionnaire_responses?: QRRow | QRRow[] }[] | null)?.[0]?.questionnaire_responses;
         const qr = Array.isArray(q) ? q[0] : q;
         if (qr?.core) {
+          // 已登入且在資料庫有記錄 → 必已綁定顧問
+          setBound(true);
           setData({ basic: qr.basic, core: qr.core, deep: qr.deep ?? undefined, kyc: qr.kyc ?? undefined } as QuestionnaireData);
           return;
         }
       }
+      // 未登入 / 無 DB 記錄:憑本機推薦碼判斷是否已綁定顧問
+      if (loadReferral()) setBound(true);
       setData(loadDraft());
     })();
   }, []);
+
+  // 未綁定顧問 → 載入推薦顧問名錄
+  const [advisors, setAdvisors] = useState<RecommendedAdvisor[] | null>(null);
+  const [binding, setBinding] = useState<string | null>(null);
+  useEffect(() => {
+    if (!bound) listRecommendedAdvisors().then(setAdvisors).catch(() => setAdvisors([]));
+  }, [bound]);
+
+  const chooseAdvisor = async (a: RecommendedAdvisor) => {
+    if (!data || binding) return;
+    setBinding(a.id);
+    try {
+      saveReferral(a.referralCode);
+      const res = await submitClientQuestionnaire({ referralCode: a.referralCode, data });
+      if (res.ok) {
+        saveClientId(res.clientId);
+        setBound(true); // 解鎖完整分析
+      }
+    } catch {
+      /* 綁定失敗:靜默,使用者可再試 */
+    } finally {
+      setBinding(null);
+    }
+  };
 
   const view = useMemo(() => {
     if (!data) return null;
@@ -198,6 +231,14 @@ export default function Dashboard() {
         </p>
       </Card>
 
+      {/* 未綁定顧問:解鎖提示 + 顧問推薦 */}
+      {!bound && (
+        <UnlockCard advisors={advisors} binding={binding} onChoose={chooseAdvisor} loggedIn={loggedIn} />
+      )}
+
+      {/* 以下為深入分析(缺口 / 遺產稅 / 保障總覽 / 完整報告)— 綁定顧問後解鎖 */}
+      {bound && (
+        <>
       {/* 現有保障總覽 */}
       {insRows.length > 0 && (
         <Card title="現有保障總覽">
@@ -277,7 +318,86 @@ export default function Dashboard() {
       >
         產出健檢報告 →
       </Link>
+        </>
+      )}
     </main>
+  );
+}
+
+// 未綁定顧問:上鎖提示 + 系統顧問推薦(付費優先→已驗證→其他)
+function UnlockCard({
+  advisors,
+  binding,
+  onChoose,
+  loggedIn,
+}: {
+  advisors: RecommendedAdvisor[] | null;
+  binding: string | null;
+  onChoose: (a: RecommendedAdvisor) => void;
+  loggedIn: boolean;
+}) {
+  return (
+    <section className="mt-5 rounded-2xl border border-amber-300 bg-amber-50 p-5 dark:border-amber-800 dark:bg-amber-950/30">
+      <div className="flex items-start gap-3">
+        <span className="text-2xl">🔒</span>
+        <div>
+          <h2 className="text-base font-semibold text-amber-900 dark:text-amber-100">解鎖完整規劃分析</h2>
+          <p className="mt-1 text-sm text-amber-800 dark:text-amber-200">
+            退休 / 保障 / 教育金缺口、遺產稅試算與完整健檢報告,需由<strong>專業財富管理顧問</strong>依你的健檢結果協助規劃。
+            選擇一位顧問即可解鎖,並由其與你討論後續方向。
+          </p>
+        </div>
+      </div>
+
+      <div className="mt-4 space-y-2">
+        {advisors === null ? (
+          <p className="py-4 text-center text-sm text-amber-700 dark:text-amber-300">載入顧問名單…</p>
+        ) : advisors.length === 0 ? (
+          <p className="py-4 text-center text-sm text-amber-700 dark:text-amber-300">目前尚無可推薦的顧問,請稍後再試。</p>
+        ) : (
+          advisors.map((a) => (
+            <div
+              key={a.id}
+              className="flex items-center justify-between gap-3 rounded-xl border border-amber-200 bg-white p-3 dark:border-amber-900 dark:bg-neutral-950"
+            >
+              <div className="min-w-0">
+                <div className="flex items-center gap-2">
+                  <span className="truncate font-medium">{a.name}</span>
+                  {a.featured && (
+                    <span className="rounded-full bg-amber-200 px-1.5 py-0.5 text-[10px] font-semibold text-amber-800 dark:bg-amber-800 dark:text-amber-100">
+                      推薦
+                    </span>
+                  )}
+                  {a.verified && (
+                    <span className="rounded-full bg-emerald-100 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-300">
+                      ✓ 已驗證
+                    </span>
+                  )}
+                </div>
+                {a.licenses.length > 0 && (
+                  <p className="mt-0.5 truncate text-xs text-neutral-500 dark:text-neutral-400">
+                    {a.licenses.map((l) => l.type).join("、")}
+                  </p>
+                )}
+              </div>
+              <button
+                onClick={() => onChoose(a)}
+                disabled={binding !== null}
+                className="shrink-0 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {binding === a.id ? "綁定中…" : "選擇此顧問"}
+              </button>
+            </div>
+          ))
+        )}
+      </div>
+
+      {!loggedIn && (
+        <p className="mt-3 text-xs text-amber-700 dark:text-amber-300">
+          綁定後建議建立帳號,日後可隨時登入回看完整分析。
+        </p>
+      )}
+    </section>
   );
 }
 
