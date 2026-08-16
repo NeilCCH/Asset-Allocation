@@ -16,6 +16,8 @@ export interface AdvisorProfile {
   email: string;
   display_name: string | null;
   full_name: string | null;
+  company_name: string | null;
+  job_title: string | null;
   mobile: string | null;
   referral_code: string;
   licenses: AdvisorLicense[];
@@ -29,6 +31,8 @@ export interface AdvisorProfile {
 /** 建立顧問檔案(註冊後呼叫)。需已有登入 session。 */
 export async function createAdvisorProfile(input: {
   fullName: string;
+  companyName?: string;
+  jobTitle?: string;
   mobile: string;
   licenses: AdvisorLicense[];
   cardFrontPath?: string;
@@ -56,11 +60,45 @@ export async function createAdvisorProfile(input: {
       card_front_path: input.cardFrontPath ?? null,
       card_back_path: input.cardBackPath ?? null,
     });
-    if (!error) return { ok: true, referralCode: referral_code };
+    if (!error) {
+      // 公司名稱 / 職稱:另以 best-effort 更新(migration 0004 未執行時欄位不存在,忽略即可,不擋註冊)
+      if (input.companyName || input.jobTitle) {
+        await supabase
+          .from("advisors")
+          .update({ company_name: input.companyName?.trim() || null, job_title: input.jobTitle?.trim() || null })
+          .eq("id", auth.user.id);
+      }
+      return { ok: true, referralCode: referral_code };
+    }
     if (error.code !== "23505") return { ok: false, error: error.message }; // 非唯一鍵衝突則直接回報
     // 23505 唯一鍵衝突 → 可能撞 referral_code,重試
   }
   return { ok: false, error: "推薦碼產生失敗,請重試" };
+}
+
+/** 更新顧問檔案(登入後編輯註冊資料)。RLS 限本人。 */
+export async function updateAdvisorProfile(input: {
+  fullName: string;
+  companyName?: string;
+  jobTitle?: string;
+  mobile: string;
+  licenses: AdvisorLicense[];
+}): Promise<{ ok: true } | { ok: false; error: string }> {
+  const supabase = await createServerSupabase();
+  const { data: auth } = await supabase.auth.getUser();
+  if (!auth.user) return { ok: false, error: "尚未登入" };
+  // 先更新保證存在的欄位
+  const { error } = await supabase
+    .from("advisors")
+    .update({ full_name: input.fullName.trim(), display_name: input.fullName.trim(), mobile: input.mobile.trim(), licenses: input.licenses })
+    .eq("id", auth.user.id);
+  if (error) return { ok: false, error: error.message };
+  // 公司名稱 / 職稱:best-effort(migration 0004 未執行時忽略)
+  await supabase
+    .from("advisors")
+    .update({ company_name: input.companyName?.trim() || null, job_title: input.jobTitle?.trim() || null })
+    .eq("id", auth.user.id);
+  return { ok: true };
 }
 
 import type { CalcParams } from "@/lib/domain/params";
@@ -117,14 +155,22 @@ export async function getMyAdvisor(): Promise<AdvisorProfile | null> {
   const supabase = await createServerSupabase();
   const { data: auth } = await supabase.auth.getUser();
   if (!auth.user) return null;
+  // base = 保證存在的欄位(fallback 用);ext 另含 migration 0003/0004 新欄位
   const base = "id, email, display_name, full_name, mobile, referral_code, licenses, card_front_path, card_back_path, verified";
-  // 嘗試含付費方案欄位;migration 0003 尚未執行時退回不含 featured 版本(避免整個後台掛掉)
-  const withPlan = await supabase.from("advisors").select(`${base}, featured, featured_requested`).eq("id", auth.user.id).maybeSingle();
-  const { data } = withPlan.error
+  const ext = `${base}, featured, featured_requested, company_name, job_title`;
+  // migration 尚未執行時退回 base(避免整個後台掛掉),缺的欄位以預設補上
+  const tryExt = await supabase.from("advisors").select(ext).eq("id", auth.user.id).maybeSingle();
+  const { data } = tryExt.error
     ? await supabase.from("advisors").select(base).eq("id", auth.user.id).maybeSingle()
-    : withPlan;
+    : tryExt;
   if (!data) return null;
-  return { featured: false, featured_requested: false, ...(data as Record<string, unknown>) } as unknown as AdvisorProfile;
+  return {
+    featured: false,
+    featured_requested: false,
+    company_name: null,
+    job_title: null,
+    ...(data as Record<string, unknown>),
+  } as unknown as AdvisorProfile;
 }
 
 /** 顧問提出「付費推薦」升級申請(僅設 featured_requested;featured 由平台方核准) */

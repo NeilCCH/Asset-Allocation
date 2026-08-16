@@ -70,6 +70,11 @@ export default async function AdvisorDashboard() {
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h1 className="text-xl font-bold">{advisor.display_name ?? advisor.email}</h1>
+            {(advisor.company_name || advisor.job_title) && (
+              <p className="mt-0.5 text-sm text-neutral-600 dark:text-neutral-300">
+                {[advisor.company_name, advisor.job_title].filter(Boolean).join(" · ")}
+              </p>
+            )}
             {advisor.licenses.length > 0 && (
               <p className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">
                 {advisor.licenses.map((l) => (l.number ? `${l.type}(${l.number})` : l.type)).join("、")}
@@ -80,6 +85,9 @@ export default async function AdvisorDashboard() {
             <div className="text-[11px] text-sky-600 dark:text-sky-400">專屬推薦碼</div>
             <div className="font-mono text-lg font-bold text-sky-700 dark:text-sky-300">{advisor.referral_code}</div>
           </div>
+        </div>
+        <div className="mt-3 border-t border-neutral-100 pt-3 dark:border-neutral-800">
+          <ForwardLink href="/advisor/profile" label="編輯個人資料" accent="sky" />
         </div>
       </section>
 

@@ -13,6 +13,8 @@ export default function AdvisorAuth() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
+  const [companyName, setCompanyName] = useState("");
+  const [jobTitle, setJobTitle] = useState("");
   const [mobile, setMobile] = useState("");
   const [licenseNos, setLicenseNos] = useState<Partial<Record<LicenseType, string>>>({});
   const [cardFront, setCardFront] = useState<File | null>(null);
@@ -112,6 +114,8 @@ export default function AdvisorAuth() {
       const cardBackPath = await uploadCard(supabase, uid, cardBack!, "back");
       const res = await createAdvisorProfile({
         fullName: fullName.trim(),
+        companyName: companyName.trim() || undefined,
+        jobTitle: jobTitle.trim() || undefined,
         mobile: mobile.trim(),
         licenses: licenseEntries.map(([type, number]) => ({ type, number: number.trim() || undefined })),
         cardFrontPath,
@@ -156,6 +160,14 @@ export default function AdvisorAuth() {
             <Field label="姓名">
               <input value={fullName} onChange={(e) => setFullName(e.target.value)} className={inputCls} placeholder="王大明" />
             </Field>
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="公司名稱">
+                <input value={companyName} onChange={(e) => setCompanyName(e.target.value)} className={inputCls} placeholder="選填" />
+              </Field>
+              <Field label="職稱">
+                <input value={jobTitle} onChange={(e) => setJobTitle(e.target.value)} className={inputCls} placeholder="選填" />
+              </Field>
+            </div>
             <Field label="手機">
               <input value={mobile} onChange={(e) => setMobile(e.target.value)} className={inputCls} placeholder="0912-345-678" />
             </Field>
