@@ -57,8 +57,10 @@ export default function Dashboard() {
           .eq("auth_user_id", auth.user.id)
           .order("created_at", { ascending: false })
           .limit(1);
-        const qr = (rows as { questionnaire_responses?: { basic: unknown; core: unknown; deep: unknown; kyc: unknown }[] }[] | null)?.[0]
-          ?.questionnaire_responses?.[0];
+        type QRRow = { basic: unknown; core: unknown; deep: unknown; kyc: unknown };
+        // client_id 有 unique 約束 → 巢狀回傳「物件」而非陣列;兩種形狀都相容
+        const q = (rows as { questionnaire_responses?: QRRow | QRRow[] }[] | null)?.[0]?.questionnaire_responses;
+        const qr = Array.isArray(q) ? q[0] : q;
         if (qr?.core) {
           setData({ basic: qr.basic, core: qr.core, deep: qr.deep ?? undefined, kyc: qr.kyc ?? undefined } as QuestionnaireData);
           return;

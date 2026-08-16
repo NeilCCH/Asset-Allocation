@@ -15,8 +15,10 @@ export async function loadClientData(id: string): Promise<QuestionnaireData | nu
     .select("questionnaire_responses(basic, core, deep, kyc)")
     .eq("id", id)
     .maybeSingle();
-  const qr = (data as { questionnaire_responses?: { basic: unknown; core: unknown; deep: unknown; kyc: unknown }[] } | null)
-    ?.questionnaire_responses?.[0];
+  type QRRow = { basic: unknown; core: unknown; deep: unknown; kyc: unknown };
+  // client_id 有 unique 約束 → 巢狀回傳「物件」而非陣列;兩種形狀都相容
+  const q = (data as { questionnaire_responses?: QRRow | QRRow[] } | null)?.questionnaire_responses;
+  const qr = Array.isArray(q) ? q[0] : q;
   if (!qr?.core) return null;
   return { basic: qr.basic, core: qr.core, deep: qr.deep ?? undefined, kyc: qr.kyc ?? undefined } as QuestionnaireData;
 }

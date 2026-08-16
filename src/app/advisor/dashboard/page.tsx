@@ -24,12 +24,16 @@ function fmtWan(wan: number) {
   return `${Math.round(wan).toLocaleString("zh-TW")} 萬`;
 }
 
+type QRRow = { basic: unknown; core: unknown; deep: unknown; kyc: unknown };
 interface ClientRow {
   id: string;
   surname: string;
   honorific: string;
-  questionnaire_responses: { basic: unknown; core: unknown; deep: unknown; kyc: unknown }[] | null;
+  // client_id 有 unique 約束 → PostgREST 巢狀回傳「物件」而非陣列;兩種形狀都要相容
+  questionnaire_responses: QRRow | QRRow[] | null;
 }
+const firstQR = (q: ClientRow["questionnaire_responses"]): QRRow | undefined =>
+  Array.isArray(q) ? q[0] : q ?? undefined;
 
 export default async function AdvisorDashboard() {
   const advisor = await getMyAdvisor();
@@ -43,7 +47,7 @@ export default async function AdvisorDashboard() {
 
   const rows = ((clientsRaw as ClientRow[]) ?? [])
     .map((c) => {
-      const qr = c.questionnaire_responses?.[0];
+      const qr = firstQR(c.questionnaire_responses);
       if (!qr?.core) return null;
       const data = { basic: qr.basic, core: qr.core, deep: qr.deep ?? undefined, kyc: qr.kyc ?? undefined } as QuestionnaireData;
       const investable = investableAssets(data.core.assets);
