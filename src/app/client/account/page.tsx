@@ -58,6 +58,18 @@ export default function ClientAccount() {
     }
   };
 
+  const forgotPassword = async () => {
+    const em = (emailRef.current?.value ?? email).trim();
+    if (!em) return setMsg("請先輸入 Email,再點忘記密碼");
+    setBusy(true);
+    setMsg(null);
+    const { error } = await createClient().auth.resetPasswordForEmail(em, {
+      redirectTo: `${window.location.origin}/reset-password`,
+    });
+    setBusy(false);
+    setMsg(error ? error.message : "已寄出密碼重設連結,請至 Email 收信點擊連結重設。");
+  };
+
   return (
     <main className="mx-auto w-full max-w-md flex-1 px-6 py-12">
       <BackLink href="/client/dashboard" label="返回" accent="emerald" />
@@ -91,6 +103,12 @@ export default function ClientAccount() {
         >
           {busy ? "處理中…" : mode === "register" ? "建立帳號" : "登入"}
         </button>
+
+        {mode === "login" && (
+          <button onClick={forgotPassword} disabled={busy} className="w-full text-center text-xs text-neutral-500 hover:text-emerald-700 disabled:opacity-50 dark:hover:text-emerald-400">
+            忘記密碼?
+          </button>
+        )}
       </div>
     </main>
   );

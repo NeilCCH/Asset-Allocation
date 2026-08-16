@@ -2,6 +2,7 @@
 import { redirect } from "next/navigation";
 import { getMyAdvisor } from "@/lib/actions/advisor";
 import { BackLink } from "@/components/ui/BackLink";
+import { ChangePassword } from "@/components/ui/ChangePassword";
 import { ProfileForm } from "./ProfileForm";
 
 export default async function AdvisorProfilePage() {
@@ -16,6 +17,10 @@ export default async function AdvisorProfilePage() {
         更新你的顧問檔案。推薦碼 <span className="font-mono font-semibold">{advisor.referral_code}</span> 不變。
       </p>
       <ProfileForm advisor={advisor} />
+
+      <div className="mt-4">
+        <ChangePassword accent="sky" />
+      </div>
     </main>
   );
 }

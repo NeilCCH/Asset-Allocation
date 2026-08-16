@@ -7,6 +7,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { BackLink } from "@/components/ui/BackLink";
 import { SignOutButton } from "@/components/ui/SignOutButton";
+import { ChangePassword } from "@/components/ui/ChangePassword";
 import {
   Cell,
   Legend,
@@ -322,6 +323,12 @@ export default function Dashboard() {
         產出健檢報告 →
       </Link>
         </>
+      )}
+
+      {loggedIn && (
+        <div className="mt-6">
+          <ChangePassword accent="emerald" />
+        </div>
       )}
     </main>
   );
