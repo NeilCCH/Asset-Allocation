@@ -9,6 +9,7 @@ import { wealthTier, type WealthTierKey } from "@/lib/domain/wealthTier";
 import type { QuestionnaireData } from "@/lib/domain/types";
 import { SignOutButton } from "./SignOutButton";
 import { InviteLink } from "./InviteLink";
+import { PlanCard } from "./PlanCard";
 
 // 資產分層徽章配色(取代 A/B/C)
 const TIER_STYLE: Record<WealthTierKey, string> = {
@@ -82,6 +83,9 @@ export default async function AdvisorDashboard() {
           </div>
         </div>
       </section>
+
+      {/* 付費方案(未來向顧問收費入口) */}
+      <PlanCard featured={advisor.featured} featuredRequested={advisor.featured_requested} />
 
       {/* 主要客戶取得方式:邀請連結 */}
       <InviteLink code={advisor.referral_code} />

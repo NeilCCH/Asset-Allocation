@@ -1,7 +1,7 @@
 "use server";
 
 // 顧問端 server actions — 建立/讀取顧問檔案。受 RLS 約束(只能寫自己 id = auth.uid())。
-import { createServerSupabase } from "@/lib/supabase/server";
+import { createServerSupabase, createServiceSupabase } from "@/lib/supabase/server";
 import type { AdvisorLicense } from "@/lib/domain/licenses";
 
 function genReferralCode(): string {
@@ -22,6 +22,8 @@ export interface AdvisorProfile {
   card_front_path: string | null;
   card_back_path: string | null;
   verified: boolean;
+  featured: boolean; // 已開通付費推薦
+  featured_requested: boolean; // 已提出升級申請
 }
 
 /** 建立顧問檔案(註冊後呼叫)。需已有登入 session。 */
@@ -115,10 +117,24 @@ export async function getMyAdvisor(): Promise<AdvisorProfile | null> {
   const supabase = await createServerSupabase();
   const { data: auth } = await supabase.auth.getUser();
   if (!auth.user) return null;
-  const { data } = await supabase
-    .from("advisors")
-    .select("id, email, display_name, full_name, mobile, referral_code, licenses, card_front_path, card_back_path, verified")
-    .eq("id", auth.user.id)
-    .maybeSingle();
-  return (data as AdvisorProfile) ?? null;
+  const base = "id, email, display_name, full_name, mobile, referral_code, licenses, card_front_path, card_back_path, verified";
+  // 嘗試含付費方案欄位;migration 0003 尚未執行時退回不含 featured 版本(避免整個後台掛掉)
+  const withPlan = await supabase.from("advisors").select(`${base}, featured, featured_requested`).eq("id", auth.user.id).maybeSingle();
+  const { data } = withPlan.error
+    ? await supabase.from("advisors").select(base).eq("id", auth.user.id).maybeSingle()
+    : withPlan;
+  if (!data) return null;
+  return { featured: false, featured_requested: false, ...(data as Record<string, unknown>) } as unknown as AdvisorProfile;
+}
+
+/** 顧問提出「付費推薦」升級申請(僅設 featured_requested;featured 由平台方核准) */
+export async function requestFeatured(): Promise<{ ok: true } | { ok: false; error: string }> {
+  const supabase = await createServerSupabase();
+  const { data: auth } = await supabase.auth.getUser();
+  if (!auth.user) return { ok: false, error: "尚未登入" };
+  // 以 service_role 只更新 featured_requested;不允許顧問自行開通 featured
+  const svc = createServiceSupabase();
+  const { error } = await svc.from("advisors").update({ featured_requested: true }).eq("id", auth.user.id);
+  if (error) return { ok: false, error: error.message };
+  return { ok: true };
 }
