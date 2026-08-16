@@ -105,20 +105,24 @@ export function retirementGap(
   const yearsToRetire = Math.max(0, core.retire_age - core.age);
   const retireYears = Math.max(0, params.lifeExpectancy - core.retire_age);
 
+  // 退休當年的年支出需求:優先用「退休後每月支出」;否則以目前開銷 × 生活水準%
   const lifestylePct =
     (data.deep?.retire_lifestyle_pct ?? params.defaultRetireLifestylePct) / 100;
-  const annualExpenseNow = estimateAnnualExpense(data);
-
-  // 退休當年的年支出需求(以通膨推估至退休時點)
-  const annualNeedAtRetire =
-    annualExpenseNow * lifestylePct * Math.pow(1 + params.inflationRate, yearsToRetire);
+  const annualNeedNow =
+    data.deep?.retire_monthly_expense != null
+      ? data.deep.retire_monthly_expense * 12
+      : estimateAnnualExpense(data) * lifestylePct;
+  const annualNeedAtRetire = annualNeedNow * Math.pow(1 + params.inflationRate, yearsToRetire);
   const totalNeed = annualNeedAtRetire * retireYears;
+
+  // 退休後退休金收入(勞退/月退)可抵需求
+  const pensionTotal = (data.deep?.retire_pension_monthly ?? 0) * 12 * retireYears;
 
   // 退休時可累積資產 = 現有可投資資產成長 + 未來持續投入終值
   const grownCurrent = grow(investableAssets(core.assets), params.returnRate, yearsToRetire);
   const annualContribution = Math.max(0, (SURPLUS_BAND_VALUE[core.surplus_band] ?? 0) * 12);
   const contributions = fvAnnuity(annualContribution, params.returnRate, yearsToRetire);
-  const accumulable = grownCurrent + contributions;
+  const accumulable = grownCurrent + contributions + pensionTotal;
 
   const gap = round(totalNeed - accumulable);
   return {
@@ -128,6 +132,7 @@ export function retirementGap(
       { label: "退休後總支出需求", amount: round(totalNeed) },
       { label: "現有資產成長估計", amount: round(grownCurrent) },
       { label: "未來持續投入估計", amount: round(contributions) },
+      ...(pensionTotal > 0 ? [{ label: "退休金收入(勞退/月退)", amount: -round(pensionTotal) }] : []),
     ],
   };
 }

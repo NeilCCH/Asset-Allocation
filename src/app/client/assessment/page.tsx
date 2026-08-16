@@ -107,8 +107,12 @@ interface Form {
   mortgageBalance: string;
   loanBalance: string;
   liabMonthly: string;
+  liabRate: string;
+  liabYears: string;
   // 深化:退休後需求 / 緊急金 / 大額支出
   retireLifestylePct: string;
+  retireMonthlyExpense: string;
+  retirePensionMonthly: string;
   emergencyMonths: string;
   majorExpenseAmount: string;
   majorExpenseYears: string;
@@ -145,7 +149,11 @@ const initialForm: Form = {
   mortgageBalance: "",
   loanBalance: "",
   liabMonthly: "",
+  liabRate: "",
+  liabYears: "",
   retireLifestylePct: "70",
+  retireMonthlyExpense: "",
+  retirePensionMonthly: "",
   emergencyMonths: "",
   majorExpenseAmount: "",
   majorExpenseYears: "",
@@ -302,10 +310,14 @@ export default function Assessment() {
       },
       deep: {
         retire_lifestyle_pct: f.retireLifestylePct ? Number(f.retireLifestylePct) : undefined,
+        retire_monthly_expense: f.retireMonthlyExpense ? Number(f.retireMonthlyExpense) : undefined,
+        retire_pension_monthly: f.retirePensionMonthly ? Number(f.retirePensionMonthly) : undefined,
         liabilities: {
           mortgage_balance: Number(f.mortgageBalance) || 0,
           loan_balance: Number(f.loanBalance) || 0,
           monthly_payment: Number(f.liabMonthly) || 0,
+          interest_rate: f.liabRate ? Number(f.liabRate) : undefined,
+          remaining_years: f.liabYears ? Number(f.liabYears) : undefined,
         },
         emergency_months: f.emergencyMonths ? Number(f.emergencyMonths) : undefined,
         major_expense: f.majorExpenseAmount
@@ -561,12 +573,32 @@ export default function Assessment() {
                 <Input value={f.loanBalance} onChange={(v) => set("loanBalance", v)} type="number" placeholder="0" />
               </Field>
             </div>
-            <Field label="每月還款總額(萬)">
-              <Input value={f.liabMonthly} onChange={(v) => set("liabMonthly", v)} type="number" placeholder="0" />
-            </Field>
-            <Field label="退休後想維持目前開銷的幾成(%)">
-              <Input value={f.retireLifestylePct} onChange={(v) => set("retireLifestylePct", v)} type="number" placeholder="70" />
-            </Field>
+            <div className="grid grid-cols-3 gap-3">
+              <Field label="每月還款(萬)">
+                <Input value={f.liabMonthly} onChange={(v) => set("liabMonthly", v)} type="number" placeholder="0" />
+              </Field>
+              <Field label="平均利率(%)">
+                <Input value={f.liabRate} onChange={(v) => set("liabRate", v)} type="number" placeholder="選填" />
+              </Field>
+              <Field label="剩餘年限">
+                <Input value={f.liabYears} onChange={(v) => set("liabYears", v)} type="number" placeholder="選填" />
+              </Field>
+            </div>
+            <div className="rounded-lg bg-neutral-50 p-3 dark:bg-neutral-900">
+              <span className="text-sm font-medium">退休後需求</span>
+              <div className="mt-1.5 grid grid-cols-3 gap-3">
+                <Field label="生活水準(%)">
+                  <Input value={f.retireLifestylePct} onChange={(v) => set("retireLifestylePct", v)} type="number" placeholder="70" />
+                </Field>
+                <Field label="退休後每月支出(萬)">
+                  <Input value={f.retireMonthlyExpense} onChange={(v) => set("retireMonthlyExpense", v)} type="number" placeholder="選填,優先" />
+                </Field>
+                <Field label="退休金月領(萬)">
+                  <Input value={f.retirePensionMonthly} onChange={(v) => set("retirePensionMonthly", v)} type="number" placeholder="勞退/月退" />
+                </Field>
+              </div>
+              <p className="mt-1 text-xs text-neutral-400">有填「每月支出」則以此為準;「退休金月領」會抵減退休需求。</p>
+            </div>
             <Field label="緊急預備金(幾個月生活費)">
               <Input value={f.emergencyMonths} onChange={(v) => set("emergencyMonths", v)} type="number" placeholder="6" />
             </Field>

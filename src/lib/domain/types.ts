@@ -111,6 +111,8 @@ export interface Liabilities {
   mortgage_balance: number; // 房貸餘額(萬元)
   loan_balance: number; // 其他貸款餘額(萬元)
   monthly_payment: number; // 月付(萬元)
+  interest_rate?: number; // 平均利率(%)
+  remaining_years?: number; // 剩餘年限
 }
 
 export interface InsuranceDetail {
@@ -137,6 +139,8 @@ export interface IncomeSources {
 export interface DeepProfile {
   income_sources?: IncomeSources; // 收入來源拆解(含被動收入)
   retire_lifestyle_pct?: number; // 退休後想維持目前開銷的幾成 (0-100+)
+  retire_monthly_expense?: number; // 退休後每月預計支出(萬);有填則優先於生活水準%
+  retire_pension_monthly?: number; // 退休後每月退休金收入(勞退/月退,萬)
   edu_goals?: EduGoal[]; // 每位子女
   major_expense?: { amount: number; years_until: number }; // 近期大額支出
   liabilities?: Liabilities;
