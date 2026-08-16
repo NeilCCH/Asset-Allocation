@@ -3,7 +3,11 @@ const KEY = "aa_client_id";
 
 export function saveClientId(id: string) {
   if (typeof window === "undefined") return;
-  window.localStorage.setItem(KEY, id);
+  try {
+    window.localStorage.setItem(KEY, id);
+  } catch {
+    // 無痕模式 / 額滿:忽略。
+  }
 }
 
 export function loadClientId(): string | null {

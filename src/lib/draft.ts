@@ -6,7 +6,11 @@ const KEY = "aa_assessment_draft";
 
 export function saveDraft(data: QuestionnaireData) {
   if (typeof window === "undefined") return;
-  window.localStorage.setItem(KEY, JSON.stringify(data));
+  try {
+    window.localStorage.setItem(KEY, JSON.stringify(data));
+  } catch {
+    // iOS Safari 無痕模式 / 儲存額滿會丟例外;忽略即可,不可中斷送出流程。
+  }
 }
 
 export function loadDraft(): QuestionnaireData | null {

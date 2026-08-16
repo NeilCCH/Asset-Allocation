@@ -4,7 +4,11 @@ const KEY = "aa_referral";
 
 export function saveReferral(code: string) {
   if (typeof window === "undefined") return;
-  window.localStorage.setItem(KEY, code.trim().toUpperCase());
+  try {
+    window.localStorage.setItem(KEY, code.trim().toUpperCase());
+  } catch {
+    // 無痕模式 / 額滿:忽略。
+  }
 }
 
 export function loadReferral(): string | null {

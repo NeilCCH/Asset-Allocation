@@ -211,6 +211,7 @@ export default function Assessment() {
   const [f, setF] = useState<Form>(initialForm);
   const [maxStep, setMaxStep] = useState(0); // 已到達的最遠步驟(進度條可點跳)
   const [hydrated, setHydrated] = useState(false);
+  const [submitting, setSubmitting] = useState(false); // 送出中,防連點重複建檔
 
   useEffect(() => {
     const p = loadProgress();
@@ -231,7 +232,11 @@ export default function Assessment() {
   // 自動存檔進度(還原完成後才寫,避免以預設覆蓋)
   useEffect(() => {
     if (hydrated && typeof window !== "undefined") {
-      window.localStorage.setItem(PROGRESS_KEY, JSON.stringify({ f, step, maxStep }));
+      try {
+        window.localStorage.setItem(PROGRESS_KEY, JSON.stringify({ f, step, maxStep }));
+      } catch {
+        // iOS Safari 無痕模式 / 儲存額滿:忽略,不影響作答。
+      }
     }
   }, [f, step, maxStep, hydrated]);
 
@@ -327,6 +332,8 @@ export default function Assessment() {
   }, [step, f]);
 
   const submit = async () => {
+    if (submitting) return; // 防手機連點造成重複建檔
+    setSubmitting(true);
     const assets = ASSET_FIELDS.reduce((acc, field) => {
       const a = f.assets[field.key];
       acc[field.key] = { has: a.has, amount: a.has ? Number(a.amount) || 0 : 0 };
@@ -879,9 +886,10 @@ export default function Assessment() {
         ) : (
           <button
             onClick={submit}
-            className="rounded-lg bg-emerald-600 px-6 py-2.5 text-sm font-medium text-white hover:bg-emerald-700"
+            disabled={submitting}
+            className="rounded-lg bg-emerald-600 px-6 py-2.5 text-sm font-medium text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            看我的資產健檢 →
+            {submitting ? "處理中…" : "看我的資產健檢 →"}
           </button>
         )}
       </div>
