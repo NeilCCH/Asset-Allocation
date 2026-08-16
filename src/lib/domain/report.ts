@@ -5,11 +5,13 @@ import { CalcParams, DEFAULT_PARAMS } from "./params";
 import {
   assetBreakdown,
   computeGaps,
+  gapSolutions,
   investableAssets,
   liquidAssets,
   protectionVsInvestment,
   sumAssets,
   type GapResult,
+  type GapSolution,
 } from "./calc";
 import { estimateEstateTax, type EstateTaxResult } from "./estateTax";
 
@@ -46,6 +48,8 @@ export interface ReportModel {
   estateTax?: EstateTaxResult;
   /** 家系關係圖資料 */
   family: FamilyModel;
+  /** 缺口補足建議(解決方向) */
+  solutions: GapSolution[];
   profile: {
     age: number;
     retireAge: number;
@@ -122,6 +126,7 @@ export function buildReport(
       children: data.core.dependents.children.map((c) => ({ stage: c.stage, age: c.age })),
       grandchildren: data.core.dependents.grandchildren?.count ?? 0,
     },
+    solutions: gapSolutions(data, params),
     profile: {
       age: data.core.age,
       retireAge: data.core.retire_age,

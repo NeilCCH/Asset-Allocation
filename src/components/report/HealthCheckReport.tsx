@@ -239,6 +239,25 @@ export function HealthCheckReport({ model, variant = "full" }: { model: ReportMo
       </section>
       )}
 
+      {/* 缺口補足建議(完整版) */}
+      {full && model.solutions.length > 0 && (
+        <section className="hcr-card">
+          <h2>缺口補足建議</h2>
+          {model.solutions.map((s) => (
+            <div key={s.name} className="hcr-gap short">
+              <span className="hcr-gap-name">
+                {s.name}
+                <span style={{ fontWeight: 400, color: "#888", marginLeft: 8, fontSize: 12 }}>缺 {Math.round(s.gap).toLocaleString("zh-TW")} 萬 · {s.action}</span>
+              </span>
+              <span className="hcr-gap-val">
+                {s.monthly != null ? `每月 ${s.monthly.toLocaleString("zh-TW")} 萬` : s.lump != null ? `補足 ${Math.round(s.lump).toLocaleString("zh-TW")} 萬` : ""}
+              </span>
+            </div>
+          ))}
+          <p className="hcr-note">為客觀試算之補足方向估計,實際規劃與商品配置由顧問依專業判斷提供。</p>
+        </section>
+      )}
+
       {/* 顧問建議(顧問版才有) */}
       {(model.advisorRecommendation || model.selectedDimensions?.length) && (
         <section className="hcr-card hcr-advisor">
