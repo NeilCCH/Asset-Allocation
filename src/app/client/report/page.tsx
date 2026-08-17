@@ -8,12 +8,14 @@ import { buildReport, type ReportModel } from "@/lib/domain/report";
 import { clientDefaultParams } from "@/lib/domain/params";
 import { HealthCheckReport } from "@/components/report/HealthCheckReport";
 import { loadDraft } from "@/lib/draft";
+import { normalizeData } from "@/lib/domain/normalize";
 
 export default function ClientReport() {
   const [model, setModel] = useState<ReportModel | null | undefined>(undefined);
 
   useEffect(() => {
-    const data = loadDraft() as QuestionnaireData | null;
+    const raw = loadDraft() as QuestionnaireData | null;
+    const data = raw ? normalizeData(raw) : null;
     setModel(data ? buildReport(data, { params: clientDefaultParams(data.basic.honorific) }) : null);
   }, []);
 

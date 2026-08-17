@@ -2,12 +2,13 @@
 import { getMockClient } from "@/lib/mock/clients";
 import { createServerSupabase } from "@/lib/supabase/server";
 import type { QuestionnaireData } from "@/lib/domain/types";
+import { normalizeData } from "@/lib/domain/normalize";
 
 export const isRealClientId = (id: string) => /^[0-9a-f-]{36}$/i.test(id);
 
 export async function loadClientData(id: string): Promise<QuestionnaireData | null> {
   const mock = getMockClient(id);
-  if (mock) return mock.data;
+  if (mock) return normalizeData(mock.data);
   if (!isRealClientId(id)) return null;
   const supabase = await createServerSupabase();
   const { data } = await supabase
@@ -20,5 +21,5 @@ export async function loadClientData(id: string): Promise<QuestionnaireData | nu
   const q = (data as { questionnaire_responses?: QRRow | QRRow[] } | null)?.questionnaire_responses;
   const qr = Array.isArray(q) ? q[0] : q;
   if (!qr?.core) return null;
-  return { basic: qr.basic, core: qr.core, deep: qr.deep ?? undefined, kyc: qr.kyc ?? undefined } as QuestionnaireData;
+  return normalizeData({ basic: qr.basic, core: qr.core, deep: qr.deep ?? undefined, kyc: qr.kyc ?? undefined } as QuestionnaireData);
 }
