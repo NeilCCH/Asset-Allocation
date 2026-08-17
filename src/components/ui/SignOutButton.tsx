@@ -2,7 +2,6 @@
 
 // 登出按鈕 — 點擊後跳出確認對話框,確認才登出。兩端共用。
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
 export function SignOutButton({
@@ -14,15 +13,18 @@ export function SignOutButton({
   label?: string;
   className?: string;
 }) {
-  const router = useRouter();
   const [confirming, setConfirming] = useState(false);
   const [busy, setBusy] = useState(false);
 
   const signOut = async () => {
     setBusy(true);
-    await createClient().auth.signOut();
-    router.push(redirectTo);
-    router.refresh();
+    try {
+      await createClient().auth.signOut();
+    } catch {
+      /* 即使清 session 失敗也硬導向 */
+    }
+    // 硬導向(整頁重載),確保伺服器以「已清除的 cookie」重新渲染 → 確實登出,不會殘留登入狀態
+    window.location.href = redirectTo;
   };
 
   return (
