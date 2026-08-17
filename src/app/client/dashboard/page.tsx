@@ -8,6 +8,7 @@ import Link from "next/link";
 import { BackLink } from "@/components/ui/BackLink";
 import { SignOutButton } from "@/components/ui/SignOutButton";
 import { ChangePassword } from "@/components/ui/ChangePassword";
+import { ContactAdvisorCard } from "@/components/client/ContactAdvisorCard";
 import {
   Cell,
   Legend,
@@ -28,6 +29,7 @@ import {
 import { clientDefaultParams } from "@/lib/domain/params";
 import { estimateEstateTax } from "@/lib/domain/estateTax";
 import { loadDraft } from "@/lib/draft";
+import { normalizeData } from "@/lib/domain/normalize";
 import { loadReferral, saveReferral } from "@/lib/referral";
 import { saveClientId } from "@/lib/clientSession";
 import { submitClientQuestionnaire } from "@/lib/actions/client";
@@ -72,13 +74,14 @@ export default function Dashboard() {
         if (qr?.core) {
           // 已登入且在資料庫有記錄 → 必已綁定顧問
           setBound(true);
-          setData({ basic: qr.basic, core: qr.core, deep: qr.deep ?? undefined, kyc: qr.kyc ?? undefined } as QuestionnaireData);
+          setData(normalizeData({ basic: qr.basic, core: qr.core, deep: qr.deep ?? undefined, kyc: qr.kyc ?? undefined } as QuestionnaireData));
           return;
         }
       }
       // 未登入 / 無 DB 記錄:憑本機推薦碼判斷是否已綁定顧問
       if (loadReferral()) setBound(true);
-      setData(loadDraft());
+      const draft = loadDraft();
+      setData(draft ? normalizeData(draft) : null);
     })();
   }, []);
 
@@ -312,9 +315,7 @@ export default function Dashboard() {
         </Card>
       )}
 
-      <div className="mt-6 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-200">
-        想更完整的規劃?你的財富管理顧問可依此健檢,與你討論後續配置方向。
-      </div>
+      <ContactAdvisorCard />
 
       <Link
         href="/client/report"

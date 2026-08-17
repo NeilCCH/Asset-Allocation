@@ -3,6 +3,7 @@
 import { ForwardLink } from "@/components/ui/ForwardLink";
 import { isAdminEmail } from "@/lib/admin";
 import { groupLicensesByCategory } from "@/lib/domain/licenses";
+import { leadStatusStyle } from "@/lib/domain/crm";
 import { redirect } from "next/navigation";
 import { createServerSupabase } from "@/lib/supabase/server";
 import { getMyAdvisor } from "@/lib/actions/advisor";
@@ -29,36 +30,59 @@ function fmtWan(wan: number) {
 }
 
 type QRRow = { basic: unknown; core: unknown; deep: unknown; kyc: unknown };
+type PrivRow = { lead_status: string | null };
 interface ClientRow {
   id: string;
   surname: string;
   honorific: string;
+  created_at: string;
   // client_id 有 unique 約束 → PostgREST 巢狀回傳「物件」而非陣列;兩種形狀都要相容
   questionnaire_responses: QRRow | QRRow[] | null;
+  advisor_private: PrivRow | PrivRow[] | null;
+  contact_requests: { status: string }[] | null;
 }
 const firstQR = (q: ClientRow["questionnaire_responses"]): QRRow | undefined =>
   Array.isArray(q) ? q[0] : q ?? undefined;
+const firstPriv = (p: ClientRow["advisor_private"]): PrivRow | undefined => (Array.isArray(p) ? p[0] : p ?? undefined);
 
 export default async function AdvisorDashboard() {
   const advisor = await getMyAdvisor();
   if (!advisor) redirect("/advisor");
 
   const supabase = await createServerSupabase();
-  const { data: clientsRaw } = await supabase
+  // 含 CRM 巢狀(migration 0006);未執行時 fallback 到基本查詢,避免後台空白
+  const basicSel = "id, surname, honorific, created_at, questionnaire_responses(basic, core, deep, kyc)";
+  const tryFull = await supabase
     .from("clients")
-    .select("id, surname, honorific, questionnaire_responses(basic, core, deep, kyc)")
+    .select(`${basicSel}, advisor_private(lead_status), contact_requests(status)`)
     .order("created_at", { ascending: false });
+  const clientsRaw = tryFull.error
+    ? (await supabase.from("clients").select(basicSel).order("created_at", { ascending: false })).data
+    : tryFull.data;
 
+  const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1).getTime();
   const rows = ((clientsRaw as ClientRow[]) ?? [])
     .map((c) => {
       const qr = firstQR(c.questionnaire_responses);
       if (!qr?.core) return null;
       const data = { basic: qr.basic, core: qr.core, deep: qr.deep ?? undefined, kyc: qr.kyc ?? undefined } as QuestionnaireData;
       const investable = investableAssets(data.core.assets);
-      return { id: c.id, data, tier: wealthTier(investable), total: sumAssets(data.core.assets), investable };
+      const leadStatus = firstPriv(c.advisor_private)?.lead_status ?? null;
+      const pendingContacts = (c.contact_requests ?? []).filter((x) => x.status === "new").length;
+      const isNew = new Date(c.created_at).getTime() >= monthStart;
+      return { id: c.id, data, tier: wealthTier(investable), total: sumAssets(data.core.assets), investable, leadStatus, pendingContacts, isNew };
     })
     .filter((r): r is NonNullable<typeof r> => r !== null)
-    .sort((a, b) => b.investable - a.investable);
+    .sort((a, b) => b.pendingContacts - a.pendingContacts || b.investable - a.investable);
+
+  // 總覽數字
+  const summary = {
+    total: rows.length,
+    pending: rows.filter((r) => r.leadStatus === "洽談中" || r.leadStatus === "待聯繫" || !r.leadStatus).length,
+    won: rows.filter((r) => r.leadStatus === "已成交").length,
+    contacts: rows.reduce((s, r) => s + r.pendingContacts, 0),
+    newThisMonth: rows.filter((r) => r.isNew).length,
+  };
 
   return (
     <main className="mx-auto w-full max-w-4xl flex-1 px-5 py-8 sm:py-10">
@@ -113,6 +137,16 @@ export default async function AdvisorDashboard() {
       {/* 主要客戶取得方式:邀請連結 */}
       <InviteLink code={advisor.referral_code} />
 
+      {rows.length > 0 && (
+        <div className="mt-6 grid grid-cols-2 gap-2 sm:grid-cols-5">
+          <SummaryStat label="客戶總數" value={summary.total} />
+          <SummaryStat label="待跟進" value={summary.pending} accent="sky" />
+          <SummaryStat label="已成交" value={summary.won} accent="emerald" />
+          <SummaryStat label="待處理預約" value={summary.contacts} accent={summary.contacts > 0 ? "red" : undefined} />
+          <SummaryStat label="本月新增" value={summary.newThisMonth} />
+        </div>
+      )}
+
       <h2 className="mt-6 text-lg font-bold">名下客戶</h2>
 
       {rows.length === 0 ? (
@@ -146,9 +180,21 @@ export default async function AdvisorDashboard() {
                       {r.tier.label}
                     </span>
                   </td>
-                  <td className="px-4 py-3 font-medium">
-                    {r.data.basic.surname}
-                    {r.data.basic.honorific}
+                  <td className="px-4 py-3">
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <span className="font-medium">
+                        {r.data.basic.surname}
+                        {r.data.basic.honorific}
+                      </span>
+                      {r.leadStatus && (
+                        <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${leadStatusStyle(r.leadStatus)}`}>{r.leadStatus}</span>
+                      )}
+                      {r.pendingContacts > 0 && (
+                        <span className="rounded-full bg-red-100 px-1.5 py-0.5 text-[10px] font-semibold text-red-700 dark:bg-red-900/40 dark:text-red-300">
+                          🔔 {r.pendingContacts}
+                        </span>
+                      )}
+                    </div>
                   </td>
                   <td className="hidden px-4 py-3 sm:table-cell">{fmtWan(r.investable)}</td>
                   <td className="px-4 py-3 font-semibold">{fmtWan(r.total)}</td>
@@ -162,5 +208,22 @@ export default async function AdvisorDashboard() {
         </div>
       )}
     </main>
+  );
+}
+
+function SummaryStat({ label, value, accent }: { label: string; value: number; accent?: "sky" | "emerald" | "red" }) {
+  const color =
+    accent === "sky"
+      ? "text-sky-700 dark:text-sky-300"
+      : accent === "emerald"
+        ? "text-emerald-700 dark:text-emerald-300"
+        : accent === "red"
+          ? "text-red-600 dark:text-red-400"
+          : "text-neutral-800 dark:text-neutral-100";
+  return (
+    <div className="rounded-xl border border-neutral-200 bg-white p-3 text-center dark:border-neutral-800 dark:bg-neutral-950">
+      <div className={`text-2xl font-bold ${color}`}>{value}</div>
+      <div className="mt-0.5 text-xs text-neutral-500 dark:text-neutral-400">{label}</div>
+    </div>
   );
 }

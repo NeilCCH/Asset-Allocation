@@ -9,6 +9,8 @@ import { assetBreakdown, investableAssets, liquidAssets, protectionVsInvestment,
 import { wealthTier, type WealthTierKey } from "@/lib/domain/wealthTier";
 import { ALLOCATION_DIMENSIONS, dimensionHints } from "@/lib/domain/allocation";
 import { AdvisorWorkbench } from "@/components/AdvisorWorkbench";
+import { CrmPanel } from "@/components/CrmPanel";
+import { getClientCrm } from "@/lib/actions/crm";
 
 const TIER_BADGE: Record<WealthTierKey, string> = {
   uhnw: "bg-violet-100 text-violet-700 dark:bg-violet-900/40 dark:text-violet-300",
@@ -24,6 +26,7 @@ export default async function ClientDetail({ params }: PageProps<"/advisor/clien
   if (!data) notFound();
   const isReal = isRealClientId(id);
   const saved = isReal ? await getAdvisorWorkbench(id) : null;
+  const crm = isReal ? await getClientCrm(id) : null;
   const score = scoreLead(data);
   const total = sumAssets(data.core.assets);
   const liquid = liquidAssets(data.core.assets);
@@ -86,6 +89,8 @@ export default async function ClientDetail({ params }: PageProps<"/advisor/clien
           </ul>
         </div>
       </details>
+
+      {crm && <CrmPanel clientId={id} initial={crm} />}
 
       <AdvisorWorkbench
         clientId={id}
