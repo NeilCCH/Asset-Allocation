@@ -62,6 +62,7 @@
 - `0004_advisor_company_title.sql` — 顧問 `company_name` / `job_title`
 - `0005_featured_until.sql` — 付費年費到期日
 - `0006_crm_contact.sql` — CRM(`advisor_private.lead_status/advisor_notes/next_follow_up`)+ `contact_requests` 表(客戶預約)
+- `0007_advisor_links.sql` — 顧問 `website` / `facebook_url`(客戶端推薦卡顯示連結)
 
 ### 必要環境變數(Vercel 專案 + 本機 `.env.local`)
 `NEXT_PUBLIC_SUPABASE_URL`、`NEXT_PUBLIC_SUPABASE_ANON_KEY`、`SUPABASE_SERVICE_ROLE_KEY`(機密,勿放雲端備份)、`ADMIN_EMAILS`(管理員白名單,含 `neo0935@gmail.com`)。
