@@ -19,6 +19,8 @@ export interface AdvisorProfile {
   company_name: string | null;
   job_title: string | null;
   mobile: string | null;
+  website: string | null; // 個人網頁
+  facebook_url: string | null; // Facebook
   referral_code: string;
   licenses: AdvisorLicense[];
   card_front_path: string | null;
@@ -83,6 +85,8 @@ export async function updateAdvisorProfile(input: {
   companyName?: string;
   jobTitle?: string;
   mobile: string;
+  website?: string;
+  facebook?: string;
   licenses: AdvisorLicense[];
 }): Promise<{ ok: true } | { ok: false; error: string }> {
   const supabase = await createServerSupabase();
@@ -98,6 +102,11 @@ export async function updateAdvisorProfile(input: {
   await supabase
     .from("advisors")
     .update({ company_name: input.companyName?.trim() || null, job_title: input.jobTitle?.trim() || null })
+    .eq("id", auth.user.id);
+  // 個人網頁 / Facebook:best-effort(migration 0007 未執行時忽略)
+  await supabase
+    .from("advisors")
+    .update({ website: input.website?.trim() || null, facebook_url: input.facebook?.trim() || null })
     .eq("id", auth.user.id);
   return { ok: true };
 }
@@ -160,7 +169,8 @@ export async function getMyAdvisor(): Promise<AdvisorProfile | null> {
   // 逐段嘗試,任一 migration 未執行也能讀到另一段(避免整段 fallback 掉、後台不掛)。
   const base = "id, email, display_name, full_name, mobile, referral_code, licenses, card_front_path, card_back_path, verified";
   const selects = [
-    `${base}, featured, featured_requested, featured_until, company_name, job_title`, // 0003 + 0004 + 0005 皆有
+    `${base}, featured, featured_requested, featured_until, company_name, job_title, website, facebook_url`, // + 0007
+    `${base}, featured, featured_requested, featured_until, company_name, job_title`, // 0003 + 0004 + 0005
     `${base}, company_name, job_title`, // 只有 0004
     `${base}, featured, featured_requested, featured_until`, // 只有 0003(+0005)
     base, // 皆無
@@ -180,6 +190,8 @@ export async function getMyAdvisor(): Promise<AdvisorProfile | null> {
     featured_until: null,
     company_name: null,
     job_title: null,
+    website: null,
+    facebook_url: null,
     ...data,
   } as unknown as AdvisorProfile;
 }

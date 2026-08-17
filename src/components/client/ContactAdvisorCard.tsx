@@ -5,6 +5,12 @@ import { useState } from "react";
 import { loadClientId } from "@/lib/clientSession";
 import { requestContact } from "@/lib/actions/crm";
 
+// 可預約時段(顧問工作時間,固定選項,不自由輸入)
+const TIME_SLOTS: { period: string; slots: string[] }[] = [
+  { period: "上午", slots: ["10:00", "11:00"] },
+  { period: "下午", slots: ["14:00", "15:00", "16:00"] },
+];
+
 export function ContactAdvisorCard() {
   const [message, setMessage] = useState("");
   const [time, setTime] = useState("");
@@ -15,6 +21,7 @@ export function ContactAdvisorCard() {
   const submit = async () => {
     const clientId = loadClientId();
     if (!clientId) return setErr("尚未綁定顧問,請先於上方選擇一位顧問");
+    if (!time) return setErr("請選擇一個方便的時段");
     setBusy(true);
     setErr(null);
     const res = await requestContact({ clientId, message, preferredTime: time });
@@ -43,13 +50,35 @@ export function ContactAdvisorCard() {
       <p className="mt-1 text-sm text-emerald-800 dark:text-emerald-200">
         想更完整的規劃?留下方便的時間與想討論的事,顧問會主動與你聯繫。
       </p>
-      <div className="mt-3 space-y-2">
-        <input
-          value={time}
-          onChange={(e) => setTime(e.target.value)}
-          placeholder="方便聯繫的時間(例:平日晚上、週末下午)"
-          className="w-full rounded-lg border border-emerald-200 bg-white px-3 py-2 text-sm outline-none focus:border-emerald-500 dark:border-emerald-900 dark:bg-neutral-900"
-        />
+      <div className="mt-3 space-y-3">
+        <div>
+          <p className="mb-1.5 text-sm font-medium text-emerald-900 dark:text-emerald-100">方便的時段</p>
+          <div className="space-y-2">
+            {TIME_SLOTS.map(({ period, slots }) => (
+              <div key={period} className="flex flex-wrap items-center gap-2">
+                <span className="w-8 shrink-0 text-sm text-emerald-800 dark:text-emerald-200">{period}</span>
+                {slots.map((s) => {
+                  const value = `${period} ${s}`;
+                  const active = time === value;
+                  return (
+                    <button
+                      key={s}
+                      type="button"
+                      onClick={() => setTime(active ? "" : value)}
+                      className={`rounded-full border px-3.5 py-1.5 text-sm transition-colors ${
+                        active
+                          ? "border-emerald-600 bg-emerald-600 text-white"
+                          : "border-emerald-300 bg-white text-emerald-800 hover:bg-emerald-100 dark:border-emerald-800 dark:bg-neutral-900 dark:text-emerald-200 dark:hover:bg-emerald-950"
+                      }`}
+                    >
+                      {s}
+                    </button>
+                  );
+                })}
+              </div>
+            ))}
+          </div>
+        </div>
         <textarea
           value={message}
           onChange={(e) => setMessage(e.target.value)}

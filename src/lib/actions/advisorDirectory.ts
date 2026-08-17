@@ -13,6 +13,8 @@ export interface RecommendedAdvisor {
   licenses: AdvisorLicense[];
   verified: boolean;
   featured: boolean;
+  website: string | null;
+  facebook: string | null;
 }
 
 // 內部示範帳號不對外推薦
@@ -20,14 +22,6 @@ const DEMO_EMAIL_DOMAIN = "@aa-demo.internal";
 
 export async function listRecommendedAdvisors(): Promise<RecommendedAdvisor[]> {
   const svc = createServiceSupabase();
-
-  // 嘗試含 featured 期限;欄位尚未 migrate(0003/0005)則退回不含版本
-  const withFeatured = await svc
-    .from("advisors")
-    .select("id, email, display_name, full_name, referral_code, licenses, verified, featured, featured_until, created_at");
-  const res = withFeatured.error
-    ? await svc.from("advisors").select("id, email, display_name, full_name, referral_code, licenses, verified, created_at")
-    : withFeatured;
 
   type Row = {
     id: string;
@@ -39,11 +33,29 @@ export async function listRecommendedAdvisors(): Promise<RecommendedAdvisor[]> {
     verified: boolean | null;
     featured?: boolean | null;
     featured_until?: string | null;
+    website?: string | null;
+    facebook_url?: string | null;
     created_at: string;
   };
 
+  // 逐段嘗試(欄位分屬不同 migration):含連結(0007)→ 含 featured(0003/0005)→ 基本。
+  const base = "id, email, display_name, full_name, referral_code, licenses, verified, created_at";
+  const selects = [
+    `${base}, featured, featured_until, website, facebook_url`, // + 0007
+    `${base}, featured, featured_until`, // 0003 + 0005
+    base, // 皆無
+  ];
+  let rows: Row[] = [];
+  for (const sel of selects) {
+    const r = await svc.from("advisors").select(sel);
+    if (!r.error) {
+      rows = (r.data as unknown as Row[] | null) ?? [];
+      break;
+    }
+  }
+
   const now = Date.now();
-  return ((res.data as Row[] | null) ?? [])
+  return rows
     .filter((a) => !(a.email ?? "").endsWith(DEMO_EMAIL_DOMAIN))
     .map((a) => ({
       id: a.id,
@@ -53,6 +65,8 @@ export async function listRecommendedAdvisors(): Promise<RecommendedAdvisor[]> {
       verified: !!a.verified,
       // 有效付費 = featured 且未過期(年費到期後不再優先曝光)
       featured: !!a.featured && !!a.featured_until && new Date(a.featured_until).getTime() > now,
+      website: a.website ?? null,
+      facebook: a.facebook_url ?? null,
     }))
     .sort(
       (a, b) =>

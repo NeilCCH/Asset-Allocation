@@ -116,8 +116,8 @@ export function HealthCheckReport({ model, variant = "full" }: { model: ReportMo
           <div style={{ flex: 1, background: "#0ea5e9" }} />
         </div>
         <div className="hcr-bar-legend">
-          <span>● 保障型 {fmtWan(model.summary.protection)}</span>
-          <span>投資型 {fmtWan(model.summary.investment)} ●</span>
+          <span><i className="hcr-ldot" style={{ background: "#8b5cf6" }} />保障型 {fmtWan(model.summary.protection)}</span>
+          <span>投資型 {fmtWan(model.summary.investment)}<i className="hcr-ldot" style={{ background: "#0ea5e9" }} /></span>
         </div>
       </section>
 
@@ -278,8 +278,8 @@ export function HealthCheckReport({ model, variant = "full" }: { model: ReportMo
             <div className="hcr-dims">
               {model.selectedDimensions.map((d) => (
                 <div key={d.title} className="hcr-dim">
-                  <strong>{d.title}</strong>
-                  <span>{d.desc}</span>
+                  <div className="hcr-dim-title">{d.title}</div>
+                  <div className="hcr-dim-desc">{d.desc}</div>
                 </div>
               ))}
             </div>
@@ -479,7 +479,7 @@ const css = `
 .hcr-stat-val { font-size:33px; font-weight:800; }
 .hcr-stat-label { font-size:18px; color:#666; margin-top:2px; }
 .hcr-stat-sub { font-size:17px; color:#aaa; }
-.hcr-card { border:1px solid #eee; border-radius:14px; padding:18px; margin-bottom:16px; break-inside:avoid; }
+.hcr-card { background:#fcfdfe; border:1px solid #e9edf2; border-radius:14px; padding:18px; margin-bottom:16px; break-inside:avoid; }
 .hcr-dist { display:flex; align-items:center; gap:24px; flex-wrap:wrap; }
 .hcr-legend { list-style:none; margin:0; padding:0; flex:1; min-width:220px; }
 .hcr-legend li { display:flex; align-items:center; gap:8px; font-size:20px; padding:3px 0; }
@@ -487,7 +487,8 @@ const css = `
 .hcr-legend-label { flex:1; color:#444; }
 .hcr-legend-val { font-weight:600; } .hcr-legend-val em { color:#999; font-style:normal; margin-left:6px; font-size:17px; }
 .hcr-bar { display:flex; height:22px; border-radius:11px; overflow:hidden; background:#f1f5f9; }
-.hcr-bar-legend { display:flex; justify-content:space-between; font-size:18px; color:#555; margin-top:8px; }
+.hcr-bar-legend { display:flex; justify-content:space-between; align-items:center; font-size:18px; color:#555; margin-top:8px; }
+.hcr-ldot { display:inline-block; width:10px; height:10px; border-radius:50%; vertical-align:middle; margin:0 6px; }
 .hcr-gap { display:flex; justify-content:space-between; align-items:center; padding:10px 14px;
   border-radius:10px; margin-bottom:8px; font-size:21px; }
 .hcr-gap.short { background:#fffbeb; border:1px solid #fde68a; }
@@ -503,26 +504,26 @@ const css = `
 .hcr-ins-row.on { background:#ecfdf5; border-color:#a7f3d0; }
 .hcr-ins-row.on span:last-child { color:#059669; font-weight:600; }
 .hcr-ins-row.off span:last-child { color:#bbb; }
-.hcr-calc { border:1px solid #eee; border-radius:10px; padding:12px; margin-bottom:10px; break-inside:avoid; }
+.hcr-calc { background:#f8fafc; border:1px solid #eaeef3; border-radius:10px; padding:12px; margin-bottom:10px; break-inside:avoid; }
 .hcr-calc-title { font-size:20px; font-weight:700; }
-.hcr-calc-formula { font-size:17px; color:#0369a1; background:#f0f9ff; padding:6px 8px; border-radius:6px; margin:6px 0; }
+.hcr-calc-formula { font-size:17px; color:#475569; background:#eef2f6; padding:6px 8px; border-radius:6px; margin:6px 0; }
 .hcr-calc-list { list-style:none; margin:0; padding:0; }
 .hcr-calc-list li { display:flex; justify-content:space-between; font-size:18px; padding:2px 0; color:#555; border-bottom:1px dashed #f0f0f0; }
 .hcr-calc-result { text-align:right; font-size:20px; font-weight:700; margin-top:6px; }
-.hcr-stmt { border:1px solid #eee; border-radius:10px; padding:12px; margin-bottom:10px; break-inside:avoid; }
+.hcr-stmt { background:#f8fafc; border:1px solid #eaeef3; border-radius:10px; padding:12px; margin-bottom:10px; break-inside:avoid; }
 .hcr-stmt-title { font-size:20px; font-weight:700; color:#334155; margin-bottom:6px; }
 .hcr-stmt-grid { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
 .hcr-stmt-sub { font-size:17px; color:#94a3b8; border-bottom:1px solid #eee; padding-bottom:2px; margin-bottom:2px; }
 .hcr-stmt-row { display:flex; justify-content:space-between; font-size:18px; padding:2px 0; color:#555; }
 .hcr-stmt-row.total { font-weight:700; color:#334155; border-top:1px solid #eee; margin-top:2px; padding-top:3px; }
 .hcr-stmt-note { font-size:17px; color:#0369a1; margin-top:4px; }
-.hcr-advisor { background:#f0f9ff; border-color:#bae6fd; }
-.hcr-dims { display:grid; gap:8px; margin-bottom:12px; }
-.hcr-dim { font-size:20px; padding:8px 12px; background:#fff; border:1px solid #e0f2fe; border-radius:8px; }
-.hcr-dim strong { margin-right:8px; }
-.hcr-dim span { color:#666; }
+.hcr-advisor { background:#f4faf6; border-color:#cfe9dd; }
+.hcr-dims { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:14px; }
+.hcr-dim { padding:12px 14px; background:#fff; border:1px solid #dcece3; border-left:3px solid #10b981; border-radius:10px; break-inside:avoid; }
+.hcr-dim-title { font-size:19px; font-weight:700; color:#0f5132; }
+.hcr-dim-desc { font-size:16px; color:#5b6b63; line-height:1.55; margin-top:3px; }
 .hcr-reco { font-size:21px; line-height:1.8; white-space:pre-wrap; margin:0; }
-.hcr-sign { margin-top:14px; padding-top:12px; border-top:1px solid #bae6fd; font-size:20px; color:#333; }
+.hcr-sign { margin-top:14px; padding-top:12px; border-top:1px solid #cfe9dd; font-size:20px; color:#333; }
 .hcr-sign-name { font-weight:700; }
 .hcr-sign-org { font-size:16px; color:#666; margin-top:3px; }
 .hcr-sign-lics { margin-top:8px; display:flex; flex-direction:column; gap:5px; }
@@ -555,7 +556,8 @@ const css = `
 .hcr-inh-caveat { font-size:14px; color:#b45309; margin:8px 0 0; line-height:1.6; }
 .hcr-inh-cite { font-size:13px; color:#999; margin:10px 0 0; line-height:1.6; }
 @media print {
-  .hcr { max-width:none; padding:0; }
+  /* 列印時整體縮為 65%(螢幕顯示不受影響),讓每頁容納更多、字級更合宜 */
+  .hcr { max-width:none; padding:0; zoom:0.65; }
   /* 自然分頁:每個卡片/區塊盡量不跨頁截斷,內容合理流到下一頁 */
   .hcr-card, .hcr-stats, .hcr-head, .hcr-calc, .hcr-ins-row { break-inside:avoid; page-break-inside:avoid; }
   .hcr h2 { break-after:avoid; page-break-after:avoid; }

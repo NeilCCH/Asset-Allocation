@@ -7,7 +7,6 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { BackLink } from "@/components/ui/BackLink";
 import { SignOutButton } from "@/components/ui/SignOutButton";
-import { ChangePassword } from "@/components/ui/ChangePassword";
 import { ContactAdvisorCard } from "@/components/client/ContactAdvisorCard";
 import {
   Cell,
@@ -173,6 +172,11 @@ export default function Dashboard() {
           <Link href="/client/assessment" className="text-sm text-emerald-700 hover:underline dark:text-emerald-400">
             重新填寫
           </Link>
+          {loggedIn && (
+            <Link href="/client/account" className="text-sm text-emerald-700 hover:underline dark:text-emerald-400">
+              個人資料
+            </Link>
+          )}
           {loggedIn && <SignOutButton redirectTo="/client" />}
         </div>
       </div>
@@ -326,11 +330,6 @@ export default function Dashboard() {
         </>
       )}
 
-      {loggedIn && (
-        <div className="mt-6">
-          <ChangePassword accent="emerald" />
-        </div>
-      )}
     </main>
   );
 }
@@ -388,6 +387,20 @@ function UnlockCard({
                 {a.licenses.length > 0 && (
                   <p className="mt-0.5 truncate text-xs text-neutral-500 dark:text-neutral-400">
                     {a.licenses.map((l) => l.type).join("、")}
+                  </p>
+                )}
+                {(a.website || a.facebook) && (
+                  <p className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs">
+                    {a.website && (
+                      <a href={a.website} target="_blank" rel="noopener noreferrer nofollow" onClick={(e) => e.stopPropagation()} className="font-medium text-sky-600 hover:underline dark:text-sky-400">
+                        個人網頁
+                      </a>
+                    )}
+                    {a.facebook && (
+                      <a href={a.facebook} target="_blank" rel="noopener noreferrer nofollow" onClick={(e) => e.stopPropagation()} className="font-medium text-sky-600 hover:underline dark:text-sky-400">
+                        Facebook
+                      </a>
+                    )}
                   </p>
                 )}
               </div>

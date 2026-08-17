@@ -1,13 +1,164 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { BackLink } from "@/components/ui/BackLink";
+import { SignOutButton } from "@/components/ui/SignOutButton";
+import { ChangePassword } from "@/components/ui/ChangePassword";
 import { createClient } from "@/lib/supabase/client";
 import { linkClientAccount } from "@/lib/actions/clientAccount";
 import { loadClientId } from "@/lib/clientSession";
 
 export default function ClientAccount() {
+  // 先確認登入狀態:已登入 → 個人資料頁(改聯絡資料 + 改密碼);未登入 → 註冊/登入。
+  const [authed, setAuthed] = useState<boolean | null>(null);
+  useEffect(() => {
+    createClient()
+      .auth.getUser()
+      .then(({ data }) => setAuthed(!!data.user));
+  }, []);
+
+  if (authed === null)
+    return <main className="mx-auto w-full max-w-md flex-1 px-6 py-20 text-center text-neutral-400">載入中…</main>;
+  return authed ? <ProfilePanel /> : <AuthPanel />;
+}
+
+// ── 已登入:個人資料(聯絡資料 + 修改密碼) ─────────────────────
+interface ClientContact {
+  surname: string;
+  honorific: string;
+  mobile: string;
+  line_id: string;
+  email: string;
+}
+
+function ProfilePanel() {
+  const [form, setForm] = useState<ClientContact | null>(null);
+  const [loginEmail, setLoginEmail] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState<string | null>(null);
+  const [ok, setOk] = useState<string | null>(null);
+
+  useEffect(() => {
+    (async () => {
+      const supabase = createClient();
+      const { data: auth } = await supabase.auth.getUser();
+      if (!auth.user) return;
+      setLoginEmail(auth.user.email ?? "");
+      const { data } = await supabase
+        .from("clients")
+        .select("surname, honorific, mobile, line_id, email")
+        .eq("auth_user_id", auth.user.id)
+        .order("created_at", { ascending: false })
+        .limit(1);
+      const row = (data as Partial<ClientContact>[] | null)?.[0];
+      setForm({
+        surname: row?.surname ?? "",
+        honorific: row?.honorific ?? "先生",
+        mobile: row?.mobile ?? "",
+        line_id: row?.line_id ?? "",
+        email: row?.email ?? "",
+      });
+    })();
+  }, []);
+
+  const set = (k: keyof ClientContact, v: string) => setForm((f) => (f ? { ...f, [k]: v } : f));
+
+  const save = async () => {
+    if (!form) return;
+    setBusy(true);
+    setMsg(null);
+    setOk(null);
+    const supabase = createClient();
+    const { data: auth } = await supabase.auth.getUser();
+    if (!auth.user) {
+      setBusy(false);
+      return setMsg("登入已逾時,請重新登入");
+    }
+    // RLS:clients_self_update 允許本人更新自己的 row
+    const { error } = await supabase
+      .from("clients")
+      .update({
+        surname: form.surname.trim(),
+        honorific: form.honorific,
+        mobile: form.mobile.trim() || null,
+        line_id: form.line_id.trim() || null,
+        email: form.email.trim() || null,
+      })
+      .eq("auth_user_id", auth.user.id);
+    setBusy(false);
+    if (error) return setMsg(error.message);
+    setOk("✓ 聯絡資料已更新");
+  };
+
+  return (
+    <main className="mx-auto w-full max-w-md flex-1 px-6 py-12">
+      <div className="flex items-center justify-between">
+        <BackLink href="/client/dashboard" label="返回" accent="emerald" />
+        <SignOutButton redirectTo="/client" />
+      </div>
+      <h1 className="mt-6 text-2xl font-bold">個人資料</h1>
+      <p className="mt-2 text-sm text-neutral-600 dark:text-neutral-300">更新你的聯絡方式,方便顧問與你聯繫;也可於此修改登入密碼。</p>
+
+      {form === null ? (
+        <p className="mt-8 text-center text-sm text-neutral-400">載入中…</p>
+      ) : (
+        <>
+          <div className="mt-6 space-y-4">
+            <label className="block">
+              <span className="text-sm font-medium">登入 Email(不可修改)</span>
+              <input value={loginEmail} readOnly className={`${inputCls} cursor-not-allowed bg-neutral-100 text-neutral-500 dark:bg-neutral-800`} />
+            </label>
+
+            <div className="grid grid-cols-[1fr_auto] gap-3">
+              <label className="block">
+                <span className="text-sm font-medium">姓氏</span>
+                <input value={form.surname} onChange={(e) => set("surname", e.target.value)} className={inputCls} placeholder="王" />
+              </label>
+              <label className="block">
+                <span className="text-sm font-medium">稱謂</span>
+                <select value={form.honorific} onChange={(e) => set("honorific", e.target.value)} className={`${inputCls} pr-8`}>
+                  <option value="先生">先生</option>
+                  <option value="女士">女士</option>
+                </select>
+              </label>
+            </div>
+
+            <label className="block">
+              <span className="text-sm font-medium">手機</span>
+              <input value={form.mobile} onChange={(e) => set("mobile", e.target.value)} className={inputCls} placeholder="0912-345-678" inputMode="tel" />
+            </label>
+            <label className="block">
+              <span className="text-sm font-medium">LINE ID</span>
+              <input value={form.line_id} onChange={(e) => set("line_id", e.target.value)} className={inputCls} placeholder="選填" />
+            </label>
+            <label className="block">
+              <span className="text-sm font-medium">聯絡 Email</span>
+              <input value={form.email} onChange={(e) => set("email", e.target.value)} className={inputCls} placeholder="可與登入 Email 不同(選填)" inputMode="email" />
+            </label>
+
+            {msg && <p className="text-sm text-red-600 dark:text-red-400">{msg}</p>}
+            {ok && <p className="text-sm text-emerald-600 dark:text-emerald-400">{ok}</p>}
+            <button
+              onClick={save}
+              disabled={busy}
+              className="w-full rounded-lg bg-emerald-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              {busy ? "儲存中…" : "儲存聯絡資料"}
+            </button>
+          </div>
+
+          <div className="mt-6">
+            <ChangePassword accent="emerald" />
+          </div>
+        </>
+      )}
+    </main>
+  );
+}
+
+// ── 未登入:註冊 / 登入 ─────────────────────────────────
+function AuthPanel() {
   const router = useRouter();
   const [mode, setMode] = useState<"register" | "login">("register");
   const [email, setEmail] = useState("");
