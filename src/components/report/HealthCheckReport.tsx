@@ -517,7 +517,7 @@ function gapText(g: ReportModel["gaps"][number]["result"]): string {
 const css = `
 .hcr { max-width: 720px; margin: 0 auto; padding: 32px 28px; color: #171717;
   font-family: -apple-system, "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", sans-serif; background:#fff; }
-.hcr h2 { font-size: 23px; font-weight: 700; margin: 0 0 12px; }
+.hcr h2 { font-size: 23px; font-weight: 700; margin: 0 0 13px; padding-left: 11px; border-left: 4px solid #10b981; line-height: 1.15; }
 .hcr-head { display:flex; justify-content:space-between; align-items:flex-start; gap:16px;
   padding-bottom:16px; border-bottom:2px solid #10b981; margin-bottom:20px; }
 .hcr-kicker { font-size:18px; letter-spacing:2px; color:#059669; font-weight:600; }
@@ -525,10 +525,10 @@ const css = `
 .hcr-sub { font-size:20px; color:#666; }
 .hcr-date { font-size:18px; color:#888; text-align:right; line-height:1.6; }
 .hcr-stats { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-bottom:16px; }
-.hcr-stat { border:1px solid #eee; border-radius:12px; padding:14px; text-align:center; }
-.hcr-stat-val { font-size:33px; font-weight:800; }
-.hcr-stat-label { font-size:18px; color:#666; margin-top:2px; }
-.hcr-stat-sub { font-size:17px; color:#aaa; }
+.hcr-stat { background:#f8fafc; border:1px solid #eef1f4; border-radius:12px; padding:16px 14px; text-align:center; }
+.hcr-stat-val { font-size:33px; font-weight:800; letter-spacing:-0.5px; color:#0f172a; }
+.hcr-stat-label { font-size:18px; color:#64748b; margin-top:3px; }
+.hcr-stat-sub { font-size:16px; color:#94a3b8; margin-top:1px; }
 .hcr-card { background:#fcfdfe; border:1px solid #e9edf2; border-radius:14px; padding:18px; margin-bottom:16px; break-inside:avoid; }
 .hcr-dist { display:flex; align-items:center; gap:24px; flex-wrap:wrap; }
 .hcr-legend { list-style:none; margin:0; padding:0; flex:1; min-width:220px; }
