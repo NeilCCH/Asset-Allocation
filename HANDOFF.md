@@ -1,7 +1,7 @@
 # 專案交接文件(HANDOFF)— 資產配置管理 APP
 
 > 目的:讓任何助手/開發者(含 claude.ai 新對話)能無縫接續本專案。
-> 最後更新:2026-08-17
+> 最後更新:2026-08-18
 
 ---
 
@@ -36,7 +36,10 @@
 
 ### 已修過、會再踩的坑
 - **PostgREST 巢狀 embed 形狀**:`questionnaire_responses.client_id`、`advisor_private.client_id` 有 `unique` → 巢狀回傳**物件**而非陣列。取值一律相容物件/陣列(`firstQR`/`firstPriv` helper)。
-- **舊 schema 客戶資料**:早期 `dependents` 形狀不同(`children` 存成 `{count,ages}`、無 `parents`)。**一律經 `lib/domain/normalize.ts` 正規化**再進 domain 計算,否則 `estateTax`/`buildReport` 會 TypeError 整頁崩潰。
+- **舊 schema 客戶資料**:早期 `dependents` 形狀不同(`children` 存成 `{count,ages}`)。**一律經 `lib/domain/normalize.ts` 正規化**再進 domain 計算,否則 `estateTax`/`buildReport` 會 TypeError 整頁崩潰。
+- **`parents` 模型已改為陣列** `[{relation:"父"|"母", age}]`(對齊 `siblings`);`normalize` 會把舊格式 `{count,ages}` 自動轉為父/母。所有消費端用 `parents.length`(非 `.count`)。
+- **報告列印縮放**:`HealthCheckReport` 的 `@media print` 用 `.hcr { zoom:0.65 }`(僅列印,螢幕不變)。
+- **投資型保單只計帳戶價值**:`insurance_savings.amount` = 帳戶/現金價值(非保額);保額在 `insurance_detail` 僅供保障缺口,不進資產統計。
 - **getMyAdvisor 逐段 select**:0003/0004/0005 欄位分段嘗試查詢,任一 migration 未跑也能讀到其他段。
 - **localStorage 全包 try/catch**(iOS 無痕會丟例外)。
 - **送出防連點用 `useRef`**(state 有閉包時間差,快速雙擊會重複建檔)。
@@ -72,6 +75,7 @@ Supabase Auth → URL Configuration:Site URL 設正式站;Redirect URLs 加 `...
 
 ## 6. 已完成功能(重點)
 
+**核心**
 - 客戶問卷(7 步,含 PDPA)、事實層儀表板、簡易 vs 完整報告
 - 缺口試算(退休/保障/教育)、遺產稅、綜所稅、風險屬性(KYC 系統計算)、資產分層(HNW)
 - 家庭財務三表、家族關係圖(genogram)、**民法法定繼承順位**提示
@@ -81,10 +85,24 @@ Supabase Auth → URL Configuration:Site URL 設正式站;Redirect URLs 加 `...
 - **客戶預約諮詢 + 顧問 CRM**(跟進狀態/備註/追蹤日)+ 後台總覽數字
 - 忘記/修改密碼、登入持久化、確認式登出
 
+**2026-08-18 這批(以下皆已上線,部分待實機驗證)**
+- 顧問資料:**個人網頁 / Facebook** 欄位(客戶推薦卡顯示可點連結,migration 0007)
+- 顧問證照:抽出共用 **`LicenseSelector`**(依保險/理財認證/信託投顧三分類),註冊與編輯共用
+- 顧問徽章 **`advisorBadges` + `Badges.tsx`**:專業徽章(依證照分類,集滿三類→「全方位顧問」金徽章)+ 檔案完成度卡(進度條+尚缺提示)。**「積極度」刻意未做**(需行為數據,另議)
+- 客戶 **`/client/account` 登入後為個人資料頁**(改手機/LINE/Email 聯絡資料 + 改密碼)
+- **無推薦碼客戶延後註冊**:首次填問卷/看儀表板免 email;只有「連結顧問 / 產出報告」才要求註冊(登入頁支援 `?next=` 導回)
+- **首頁選項頁登入提醒**:已登入者回首頁彈出「確認登出」對話框
+- 客戶預約**時段改選擇制**(上午 10:00/11:00,下午 14:00/15:00/16:00)
+- **客戶投資組合分析**(儀表板+報告):投資類分項占比;**投資型保單只計帳戶價值**、保額不列入
+- **父母資料逐位選父/母 + 年齡**(`parents` 改陣列;家族圖依 relation 顯示)
+- **每月固定收支明細**(收支步驟,選填,萬/月;建議項含租金支出等)→ 報告現金流量表呈現明細與合計
+- 報告視覺:淡色區塊填充、色系收斂、顧問面向改淡綠卡(去文字符號感)、**列印縮 65%**(螢幕不變)
+
 ---
 
 ## 7. 待辦 / Backlog
 
+- **2026-08-18 這批功能待正式站實機驗證**(顧問徽章/證照分類版面、報告顧問面向、列印 65%、父母父/母、延後註冊整條、首頁登出提醒、每月固定收支)
 - **登入登出手機端最終驗證**(cookie maxAge + 硬導向登出;iOS Safari cookie 政策若仍掉登入,需改持久化策略)
 - 報告 PDF 後端自動產出 + 寄客戶(思源字型內嵌)
 - 自動金流(綠界/藍新)取代管理員手動開通
