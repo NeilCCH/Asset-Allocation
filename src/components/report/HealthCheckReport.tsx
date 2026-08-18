@@ -26,13 +26,15 @@ function Donut({ segments }: { segments: { label: string; value: number; color: 
   const total = segments.reduce((s, x) => s + x.value, 0) || 1;
   const R = 60;
   const C = 2 * Math.PI * R;
+  const GAP = 2; // 區段間細縫
   let offset = 0;
   return (
     <svg viewBox="0 0 160 160" width="160" height="160" role="img" aria-label="資產類別分布">
+      <circle cx="80" cy="80" r={R} fill="none" stroke="#eef2f6" strokeWidth="26" />
       <g transform="rotate(-90 80 80)">
         {segments.map((s) => {
           const len = (s.value / total) * C;
-          const dash = `${len} ${C - len}`;
+          const dash = `${Math.max(0, len - GAP)} ${C - len + GAP}`;
           const el = (
             <circle
               key={s.label}
@@ -50,6 +52,8 @@ function Donut({ segments }: { segments: { label: string; value: number; color: 
           return el;
         })}
       </g>
+      <text x="80" y="75" textAnchor="middle" fontSize="12" fill="#94a3b8">總資產</text>
+      <text x="80" y="94" textAnchor="middle" fontSize="17" fontWeight="700" fill="#334155">{fmtWan(total)}</text>
     </svg>
   );
 }
@@ -64,6 +68,19 @@ export function HealthCheckReport({ model, variant = "full" }: { model: ReportMo
     value,
     color: CAT_COLOR[label] ?? "#94a3b8",
   }));
+
+  // 健檢重點 — 客觀事實摘要(非建議)
+  const topCat = [...catTotals.entries()].sort((a, b) => b[1] - a[1])[0];
+  const topCatPct = topCat && model.summary.total > 0 ? Math.round((topCat[1] / model.summary.total) * 100) : 0;
+  const computedGaps = model.gaps.filter((g) => g.result.status === "computed");
+  const shortfalls = computedGaps.filter((g) => g.result.gap > 0).map((g) => g.name.replace(/缺口$/, ""));
+  const pendingGaps = model.gaps.filter((g) => g.result.status === "needs_deep_data").length;
+  const highlights: string[] = [];
+  if (topCat) highlights.push(`資產以「${topCat[0]}」為主,約占 ${topCatPct}%;流動資產占 ${model.summary.liquidPct}%。`);
+  highlights.push(`保障型與投資型比重為 ${model.summary.protectionPct}% : ${100 - model.summary.protectionPct}%。`);
+  if (shortfalls.length) highlights.push(`試算顯示 ${shortfalls.join("、")} 有缺口(詳見下方明細)。`);
+  else if (computedGaps.length) highlights.push(`已試算之缺口項目均達標。`);
+  if (pendingGaps > 0) highlights.push(`另有 ${pendingGaps} 項缺口待補充深化資料後試算。`);
 
   return (
     <div className="hcr">
@@ -87,6 +104,18 @@ export function HealthCheckReport({ model, variant = "full" }: { model: ReportMo
         <Stat label="流動資產" value={`${model.summary.liquidPct}%`} sub={fmtWan(model.summary.liquid)} />
         <Stat label="保障型占比" value={`${model.summary.protectionPct}%`} sub="保障 vs 投資" />
       </section>
+
+      {/* 健檢重點(客觀摘要) */}
+      {highlights.length > 0 && (
+        <section className="hcr-highlights">
+          <div className="hcr-hl-title">健檢重點</div>
+          <ul>
+            {highlights.map((h, i) => (
+              <li key={i}>{h}</li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       {/* 家庭財務報表(參考公司三表結構) */}
       <PersonalStatementsBlock s={model.statements} />
@@ -303,16 +332,24 @@ export function HealthCheckReport({ model, variant = "full" }: { model: ReportMo
         <section className="hcr-card hcr-advisor">
           <h2>顧問規劃建議</h2>
           {model.selectedDimensions && model.selectedDimensions.length > 0 && (
-            <div className="hcr-dims">
-              {model.selectedDimensions.map((d) => (
-                <div key={d.title} className="hcr-dim">
-                  <div className="hcr-dim-title">{d.title}</div>
-                  <div className="hcr-dim-desc">{d.desc}</div>
-                </div>
-              ))}
-            </div>
+            <>
+              <div className="hcr-sub-label">規劃面向</div>
+              <div className="hcr-dims">
+                {model.selectedDimensions.map((d) => (
+                  <div key={d.title} className="hcr-dim">
+                    <div className="hcr-dim-title">{d.title}</div>
+                    <div className="hcr-dim-desc">{d.desc}</div>
+                  </div>
+                ))}
+              </div>
+            </>
           )}
-          {model.advisorRecommendation && <p className="hcr-reco">{model.advisorRecommendation}</p>}
+          {model.advisorRecommendation && (
+            <>
+              <div className="hcr-sub-label">顧問建議</div>
+              <p className="hcr-reco">{model.advisorRecommendation}</p>
+            </>
+          )}
           {model.advisorSignature && (
             <div className="hcr-sign">
               <div className="hcr-sign-name">規劃顧問:{model.advisorSignature.name}</div>
@@ -516,7 +553,8 @@ function gapText(g: ReportModel["gaps"][number]["result"]): string {
 
 const css = `
 .hcr { max-width: 720px; margin: 0 auto; padding: 32px 28px; color: #171717;
-  font-family: -apple-system, "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", sans-serif; background:#fff; }
+  font-family: -apple-system, "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", sans-serif; background:#fff;
+  -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 .hcr h2 { font-size: 23px; font-weight: 700; margin: 0 0 13px; padding-left: 11px; border-left: 4px solid #10b981; line-height: 1.15; }
 .hcr-head { display:flex; justify-content:space-between; align-items:flex-start; gap:16px;
   padding-bottom:16px; border-bottom:2px solid #10b981; margin-bottom:20px; }
@@ -529,6 +567,11 @@ const css = `
 .hcr-stat-val { font-size:33px; font-weight:800; letter-spacing:-0.5px; color:#0f172a; }
 .hcr-stat-label { font-size:18px; color:#64748b; margin-top:3px; }
 .hcr-stat-sub { font-size:16px; color:#94a3b8; margin-top:1px; }
+.hcr-highlights { background:#f1f9f5; border:1px solid #cfe9dd; border-radius:14px; padding:14px 18px 15px; margin-bottom:16px; break-inside:avoid; }
+.hcr-hl-title { font-size:18px; font-weight:700; color:#0f5132; margin-bottom:6px; letter-spacing:1px; }
+.hcr-highlights ul { list-style:none; margin:0; padding:0; }
+.hcr-highlights li { font-size:19px; color:#334155; line-height:1.55; padding:3px 0 3px 20px; position:relative; }
+.hcr-highlights li::before { content:""; position:absolute; left:3px; top:12px; width:7px; height:7px; border-radius:50%; background:#10b981; }
 .hcr-card { background:#fcfdfe; border:1px solid #e9edf2; border-radius:14px; padding:18px; margin-bottom:16px; break-inside:avoid; }
 .hcr-dist { display:flex; align-items:center; gap:24px; flex-wrap:wrap; }
 .hcr-legend { list-style:none; margin:0; padding:0; flex:1; min-width:220px; }
@@ -579,7 +622,8 @@ const css = `
 .hcr-dim { padding:12px 14px; background:#fff; border:1px solid #dcece3; border-left:3px solid #10b981; border-radius:10px; break-inside:avoid; }
 .hcr-dim-title { font-size:19px; font-weight:700; color:#0f5132; }
 .hcr-dim-desc { font-size:16px; color:#5b6b63; line-height:1.55; margin-top:3px; }
-.hcr-reco { font-size:21px; line-height:1.8; white-space:pre-wrap; margin:0; }
+.hcr-sub-label { font-size:16px; font-weight:700; color:#0f5132; letter-spacing:1px; margin:2px 0 8px; }
+.hcr-reco { font-size:21px; line-height:1.8; white-space:pre-wrap; margin:0; background:#fff; border:1px solid #d9ede4; border-left:3px solid #10b981; border-radius:10px; padding:12px 15px; color:#1e293b; }
 .hcr-sign { margin-top:14px; padding-top:12px; border-top:1px solid #cfe9dd; font-size:20px; color:#333; }
 .hcr-sign-name { font-weight:700; }
 .hcr-sign-org { font-size:16px; color:#666; margin-top:3px; }
@@ -616,9 +660,11 @@ const css = `
   /* 列印時整體縮為 65%(螢幕顯示不受影響),讓每頁容納更多、字級更合宜 */
   .hcr { max-width:none; padding:0; zoom:0.65; }
   /* 自然分頁:每個卡片/區塊盡量不跨頁截斷,內容合理流到下一頁 */
-  .hcr-card, .hcr-stats, .hcr-head, .hcr-calc, .hcr-ins-row { break-inside:avoid; page-break-inside:avoid; }
-  .hcr h2 { break-after:avoid; page-break-after:avoid; }
+  .hcr-card, .hcr-stats, .hcr-head, .hcr-highlights, .hcr-calc, .hcr-ins-row,
+  .hcr-stmt, .hcr-dim, .hcr-gap, .hcr-reco, .hcr-sign, .hcr-invest li { break-inside:avoid; page-break-inside:avoid; }
+  .hcr h2, .hcr-sub-label, .hcr-stmt-title { break-after:avoid; page-break-after:avoid; }
   .hcr svg { break-inside:avoid; page-break-inside:avoid; }
+  .hcr-foot { break-inside:avoid; page-break-inside:avoid; }
   @page { margin: 14mm; }
 }
 `;
