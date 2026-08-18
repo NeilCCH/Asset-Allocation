@@ -66,9 +66,22 @@ export function personalStatements(data: QuestionnaireData): PersonalStatements 
   const netWorth = totalAssets - totalLiabilities;
 
   // ── 損益表(年) ──
+  // 收入拆解優先用「每月固定收入明細」(×12);其次相容舊的 income_sources;最後用年收入級距估計。
+  // 級距估計作為下限:明細合計不足時補「其他收入」,避免總收入被低估、下游試算跑掉。
+  const bandIncome = INCOME_BAND_VALUE[core.income_band] ?? 0;
+  const PASSIVE_LABELS = new Set(["租金收入", "股利 / 利息"]);
+  const fixedInc = deep?.monthly_fixed_income ?? [];
   const src = deep?.income_sources;
   let income: Line[];
-  if (src && [src.salary, src.bonus, src.rental, src.dividend, src.business, src.other].some((v) => v > 0)) {
+  if (fixedInc.length > 0) {
+    income = fixedInc.map((i) => ({
+      label: i.label,
+      amount: r1(i.amount * 12),
+      tag: PASSIVE_LABELS.has(i.label) ? "被動" : undefined,
+    }));
+    const detailTotal = income.reduce((s, l) => s + l.amount, 0);
+    if (detailTotal < bandIncome) income.push({ label: "其他收入", amount: r1(bandIncome - detailTotal) });
+  } else if (src && [src.salary, src.bonus, src.rental, src.dividend, src.business, src.other].some((v) => v > 0)) {
     income = [
       { label: "薪資", amount: src.salary, tag: "主動" },
       { label: "獎金 / 佣金", amount: src.bonus, tag: "主動" },
@@ -78,7 +91,7 @@ export function personalStatements(data: QuestionnaireData): PersonalStatements 
       { label: "其他", amount: src.other },
     ].filter((l) => l.amount > 0);
   } else {
-    income = [{ label: "年收入(級距估計)", amount: INCOME_BAND_VALUE[core.income_band] ?? 0 }];
+    income = [{ label: "年收入(級距估計)", amount: bandIncome }];
   }
   const totalIncome = income.reduce((s, l) => s + l.amount, 0);
   const annualSurplus = (SURPLUS_BAND_VALUE[core.surplus_band] ?? 0) * 12;

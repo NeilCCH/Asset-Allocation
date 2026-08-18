@@ -118,8 +118,6 @@ interface Form {
   emergencyMonths: string;
   majorExpenseAmount: string;
   majorExpenseYears: string;
-  // 深化:收入來源拆解(含被動收入,年/萬)
-  incomeSources: { salary: string; bonus: string; rental: string; dividend: string; business: string; other: string };
   taxableIncome: string; // 綜合所得淨額(報稅用)
   // 深化:每月固定收支明細(選填,label -> 萬/月)
   monthlyIncome: Record<string, string>;
@@ -170,7 +168,6 @@ const initialForm: Form = {
   emergencyMonths: "",
   majorExpenseAmount: "",
   majorExpenseYears: "",
-  incomeSources: { salary: "", bonus: "", rental: "", dividend: "", business: "", other: "" },
   taxableIncome: "",
   monthlyIncome: {},
   monthlyExpense: {},
@@ -252,8 +249,6 @@ export default function Assessment() {
 
   // 保險家戶成員(本人 / 配偶 / 各子女)
   const [insMember, setInsMember] = useState("self");
-  const setIncome = (name: keyof Form["incomeSources"], v: string) =>
-    setF((p) => ({ ...p, incomeSources: { ...p.incomeSources, [name]: v } }));
   const setMonthly = (kind: "monthlyIncome" | "monthlyExpense", label: string, v: string) =>
     setF((p) => ({ ...p, [kind]: { ...p[kind], [label]: v } }));
   const insMembers = [
@@ -402,13 +397,6 @@ export default function Assessment() {
         major_expense: f.majorExpenseAmount
           ? { amount: Number(f.majorExpenseAmount) || 0, years_until: 0 }
           : undefined,
-        income_sources: (() => {
-          const s = f.incomeSources;
-          const vals = [s.salary, s.bonus, s.rental, s.dividend, s.business, s.other].map(num);
-          return vals.some((v) => v > 0)
-            ? { salary: vals[0], bonus: vals[1], rental: vals[2], dividend: vals[3], business: vals[4], other: vals[5] }
-            : undefined;
-        })(),
         taxable_income: f.taxableIncome ? Number(f.taxableIncome) : undefined,
         monthly_fixed_income: (() => {
           const a = FIXED_INCOME_ITEMS.map((label) => ({ label, amount: num(f.monthlyIncome[label]) })).filter((i) => i.amount > 0);
@@ -638,25 +626,13 @@ export default function Assessment() {
               <Select value={f.urgency} onChange={(v) => set("urgency", v as Urgency)} options={URGENCY_OPTIONS} placeholder="請選擇" />
             </Field>
 
-            {/* 收入來源拆解(含被動收入)— 選填深化 */}
+            {/* 綜合所得淨額 / 稅單 OCR(選填深化) */}
             <div>
-              <span className="text-sm font-medium">收入來源拆解(選填,年/萬)</span>
-              <p className="text-xs text-neutral-400">拆出主動與被動收入,利於現金流與退休試算。</p>
-              <div className="mt-1.5 grid grid-cols-2 gap-3 sm:grid-cols-3">
-                <Field label="薪資"><Input value={f.incomeSources.salary} onChange={(v) => setIncome("salary", v)} type="number" placeholder="0" /></Field>
-                <Field label="獎金/佣金"><Input value={f.incomeSources.bonus} onChange={(v) => setIncome("bonus", v)} type="number" placeholder="0" /></Field>
-                <Field label="租金(被動)"><Input value={f.incomeSources.rental} onChange={(v) => setIncome("rental", v)} type="number" placeholder="0" /></Field>
-                <Field label="股利/利息(被動)"><Input value={f.incomeSources.dividend} onChange={(v) => setIncome("dividend", v)} type="number" placeholder="0" /></Field>
-                <Field label="事業盈餘"><Input value={f.incomeSources.business} onChange={(v) => setIncome("business", v)} type="number" placeholder="0" /></Field>
-                <Field label="其他"><Input value={f.incomeSources.other} onChange={(v) => setIncome("other", v)} type="number" placeholder="0" /></Field>
-              </div>
-              <div className="mt-2">
-                <Field label="綜合所得淨額(報稅用,選填)">
-                  <Input value={f.taxableIncome} onChange={(v) => set("taxableIncome", v)} type="number" placeholder="報稅單上的綜合所得淨額" />
-                </Field>
-                <p className="mt-0.5 text-xs text-neutral-400">填入後可估算所得稅、稅後所得與邊際稅率(供稅務規劃參考)。</p>
-                <TaxOcr onExtract={(wan) => set("taxableIncome", String(wan))} />
-              </div>
+              <Field label="綜合所得淨額(報稅用,選填)">
+                <Input value={f.taxableIncome} onChange={(v) => set("taxableIncome", v)} type="number" placeholder="報稅單上的綜合所得淨額(萬)" />
+              </Field>
+              <p className="mt-0.5 text-xs text-neutral-400">直接填入,或用下方「上傳稅單自動辨識」帶入。填入後可估算所得稅、稅後所得與邊際稅率(供稅務規劃參考)。</p>
+              <TaxOcr onExtract={(wan) => set("taxableIncome", String(wan))} />
             </div>
 
             {/* 每月固定收支明細(選填,萬/月) */}
