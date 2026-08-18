@@ -5,6 +5,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { BackLink } from "@/components/ui/BackLink";
 import { SignOutButton } from "@/components/ui/SignOutButton";
 import { ContactAdvisorCard } from "@/components/client/ContactAdvisorCard";
@@ -31,9 +32,10 @@ import { clientDefaultParams } from "@/lib/domain/params";
 import { estimateEstateTax } from "@/lib/domain/estateTax";
 import { loadDraft } from "@/lib/draft";
 import { normalizeData } from "@/lib/domain/normalize";
-import { loadReferral, saveReferral } from "@/lib/referral";
+import { loadReferral, saveReferral, savePendingAdvisor, loadPendingAdvisor, clearPendingAdvisor } from "@/lib/referral";
 import { saveClientId } from "@/lib/clientSession";
 import { submitClientQuestionnaire } from "@/lib/actions/client";
+import { linkClientAccount } from "@/lib/actions/clientAccount";
 import { listRecommendedAdvisors, type RecommendedAdvisor } from "@/lib/actions/advisorDirectory";
 import { createClient } from "@/lib/supabase/client";
 
@@ -52,6 +54,7 @@ function fmt(wan: number): string {
 }
 
 export default function Dashboard() {
+  const router = useRouter();
   const [data, setData] = useState<QuestionnaireData | null | undefined>(undefined);
   const [loggedIn, setLoggedIn] = useState(false);
   const [bound, setBound] = useState(false); // 是否已綁定顧問(綁定後解鎖完整分析)
@@ -93,15 +96,18 @@ export default function Dashboard() {
     if (!bound) listRecommendedAdvisors().then(setAdvisors).catch(() => setAdvisors([]));
   }, [bound]);
 
-  const chooseAdvisor = async (a: RecommendedAdvisor) => {
-    if (!data || binding) return;
-    setBinding(a.id);
+  // 實際綁定(已登入才執行):建立客戶記錄 + 綁定帳號 → 解鎖完整分析與報告
+  const bindAdvisor = async (code: string, busyKey: string) => {
+    if (!data) return;
+    setBinding(busyKey);
     try {
-      saveReferral(a.referralCode);
-      const res = await submitClientQuestionnaire({ referralCode: a.referralCode, data });
+      saveReferral(code);
+      const res = await submitClientQuestionnaire({ referralCode: code, data });
       if (res.ok) {
         saveClientId(res.clientId);
-        setBound(true); // 解鎖完整分析
+        await linkClientAccount(res.clientId);
+        clearPendingAdvisor();
+        setBound(true);
       }
     } catch {
       /* 綁定失敗:靜默,使用者可再試 */
@@ -109,6 +115,25 @@ export default function Dashboard() {
       setBinding(null);
     }
   };
+
+  const chooseAdvisor = async (a: RecommendedAdvisor) => {
+    if (!data || binding) return;
+    // 無推薦碼客戶:連結顧問(並解鎖產出報告)前,先要求註冊/登入;登入後自動完成綁定
+    if (!loggedIn) {
+      savePendingAdvisor(a.referralCode);
+      router.push("/client/account?next=/client/dashboard");
+      return;
+    }
+    await bindAdvisor(a.referralCode, a.id);
+  };
+
+  // 註冊/登入回來後,若有待綁定顧問則自動完成綁定
+  useEffect(() => {
+    if (!loggedIn || bound || !data || binding) return;
+    const pending = loadPendingAdvisor();
+    if (pending) bindAdvisor(pending, "pending");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loggedIn, bound, data]);
 
   const view = useMemo(() => {
     if (!data) return null;
@@ -453,7 +478,7 @@ function UnlockCard({
 
       {!loggedIn && (
         <p className="mt-3 text-xs text-amber-700 dark:text-amber-300">
-          綁定後建議建立帳號,日後可隨時登入回看完整分析。
+          連結顧問並解鎖完整分析 / 產出報告前,需先建立帳號或登入,顧問才能收到你的資料並與你聯繫。
         </p>
       )}
     </section>

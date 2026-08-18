@@ -1,8 +1,10 @@
 import Link from "next/link";
+import { SessionLogoutNotice } from "@/components/ui/SessionLogoutNotice";
 
 export default function Home() {
   return (
     <main className="mx-auto w-full max-w-5xl flex-1 px-6 py-12 sm:py-16">
+      <SessionLogoutNotice />
       {/* Hero */}
       <section className="text-center">
         <p className="text-sm font-medium tracking-widest text-emerald-700 dark:text-emerald-400">

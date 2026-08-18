@@ -182,6 +182,8 @@ function AuthPanel() {
     setBusy(true);
     setMsg(null);
     const supabase = createClient();
+    // 註冊/登入後導向:支援 ?next=(如連結顧問後回儀表板自動綁定)
+    const next = new URLSearchParams(window.location.search).get("next") || "/client/dashboard";
     try {
       if (mode === "register") {
         const { data, error } = await supabase.auth.signUp({ email: em, password: pw });
@@ -193,14 +195,14 @@ function AuthPanel() {
         }
         const clientId = loadClientId();
         if (clientId) await linkClientAccount(clientId);
-        router.push("/client/dashboard");
+        router.push(next);
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email: em, password: pw });
         if (error) throw error;
         // 登入時也補做綁定(涵蓋開啟 Email 驗證、註冊當下未取得 session 的情況)
         const clientId = loadClientId();
         if (clientId) await linkClientAccount(clientId);
-        router.push("/client/dashboard");
+        router.push(next);
       }
     } catch (e) {
       setMsg(e instanceof Error ? e.message : "發生錯誤,請重試");
