@@ -3,6 +3,7 @@
 import { ForwardLink } from "@/components/ui/ForwardLink";
 import { isAdminEmail } from "@/lib/admin";
 import { groupLicensesByCategory } from "@/lib/domain/licenses";
+import { ProBadges, CompletenessCard } from "@/components/advisor/Badges";
 import { leadStatusStyle } from "@/lib/domain/crm";
 import { redirect } from "next/navigation";
 import { createServerSupabase } from "@/lib/supabase/server";
@@ -102,6 +103,11 @@ export default async function AdvisorDashboard() {
               </p>
             )}
             {advisor.licenses.length > 0 && (
+              <div className="mt-2">
+                <ProBadges licenses={advisor.licenses} />
+              </div>
+            )}
+            {advisor.licenses.length > 0 && (
               <div className="mt-2 space-y-1.5">
                 {groupLicensesByCategory(advisor.licenses).map((g) => (
                   <div key={g.category} className="flex flex-wrap items-center gap-x-2 gap-y-1">
@@ -130,6 +136,9 @@ export default async function AdvisorDashboard() {
           {isAdminEmail(advisor.email) && <ForwardLink href="/admin/advisors" label="管理後台" accent="sky" />}
         </div>
       </section>
+
+      {/* 檔案完成度(鼓勵補齊專業資料) */}
+      <CompletenessCard advisor={advisor} />
 
       {/* 付費方案(未來向顧問收費入口) */}
       <PlanCard featured={advisor.featured} featuredUntil={advisor.featured_until} featuredRequested={advisor.featured_requested} />

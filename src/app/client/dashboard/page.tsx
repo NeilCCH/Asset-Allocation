@@ -8,6 +8,7 @@ import Link from "next/link";
 import { BackLink } from "@/components/ui/BackLink";
 import { SignOutButton } from "@/components/ui/SignOutButton";
 import { ContactAdvisorCard } from "@/components/client/ContactAdvisorCard";
+import { ProBadges } from "@/components/advisor/Badges";
 import {
   Cell,
   Legend,
@@ -20,6 +21,7 @@ import type { QuestionnaireData } from "@/lib/domain/types";
 import {
   assetBreakdown,
   computeGaps,
+  investmentBreakdown,
   liquidAssets,
   protectionVsInvestment,
   sumAssets,
@@ -117,6 +119,7 @@ export default function Dashboard() {
       total: sumAssets(data.core.assets),
       liquid: liquidAssets(data.core.assets),
       pvi: protectionVsInvestment(data.core.assets),
+      investments: investmentBreakdown(data.core.assets),
       pie: [...byCategory.entries()].map(([category, amount]) => ({ name: category, value: amount })),
       gaps: computeGaps(data, clientDefaultParams(data.basic.honorific)),
     };
@@ -241,6 +244,35 @@ export default function Dashboard() {
           保單刻意區分「保障型」與「儲蓄/投資型」,幫助你看清保障與資產累積各占多少。
         </p>
       </Card>
+
+      {/* 投資組合分析(投資型保單以帳戶價值計,保額不列入) */}
+      {view.investments.total > 0 && (
+        <Card title="投資組合分析">
+          <div className="space-y-2.5">
+            {view.investments.items.map((it) => (
+              <div key={it.key}>
+                <div className="flex items-baseline justify-between text-sm">
+                  <span className="font-medium">{it.label}</span>
+                  <span className="text-neutral-600 dark:text-neutral-300">
+                    {fmt(it.amount)}
+                    <span className="ml-1.5 text-xs text-neutral-400">{it.pct}%</span>
+                  </span>
+                </div>
+                <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-neutral-100 dark:bg-neutral-800">
+                  <div className="h-full rounded-full bg-sky-500" style={{ width: `${it.pct}%` }} />
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="mt-3 flex items-baseline justify-between border-t border-neutral-100 pt-2 text-sm dark:border-neutral-800">
+            <span className="font-semibold">投資資產合計</span>
+            <span className="font-semibold text-sky-700 dark:text-sky-300">{fmt(view.investments.total)}</span>
+          </div>
+          <p className="mt-3 text-xs leading-relaxed text-neutral-500 dark:text-neutral-400">
+            投資型/儲蓄保單以「帳戶價值(現金價值)」計入,身故保額不列入投資統計,以反映實際可運用的投資部位。
+          </p>
+        </Card>
+      )}
 
       {/* 未綁定顧問:解鎖提示 + 顧問推薦 */}
       {!bound && (
@@ -385,9 +417,12 @@ function UnlockCard({
                   )}
                 </div>
                 {a.licenses.length > 0 && (
-                  <p className="mt-0.5 truncate text-xs text-neutral-500 dark:text-neutral-400">
-                    {a.licenses.map((l) => l.type).join("、")}
-                  </p>
+                  <div className="mt-1">
+                    <ProBadges licenses={a.licenses} size="xs" />
+                    <p className="mt-1 truncate text-xs text-neutral-500 dark:text-neutral-400">
+                      {a.licenses.map((l) => l.type).join("、")}
+                    </p>
+                  </div>
                 )}
                 {(a.website || a.facebook) && (
                   <p className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs">

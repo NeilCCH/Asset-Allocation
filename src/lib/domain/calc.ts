@@ -27,7 +27,7 @@ const ASSET_META: Record<
   stock_overseas: { label: "海外股票", category: "投資", liquid: true, investable: true },
   fund_etf: { label: "基金/ETF", category: "投資", liquid: true, investable: true },
   insurance_protection: { label: "保單(保障型)", category: "保障", liquid: false, investable: false },
-  insurance_savings: { label: "保單(儲蓄/投資型)", category: "投資", liquid: false, investable: true },
+  insurance_savings: { label: "投資型/儲蓄保單", category: "投資", liquid: false, investable: true },
   real_estate_own: { label: "不動產(自住)", category: "不動產", liquid: false, investable: false },
   real_estate_invest: { label: "不動產(投資)", category: "不動產", liquid: false, investable: false },
   other: { label: "其他(外幣/黃金/加密等)", category: "其他", liquid: true, investable: true },
@@ -61,6 +61,25 @@ export function protectionVsInvestment(assets: Assets) {
   const protection = sumBy(assets, (m) => m.category === "保障");
   const investment = sumBy(assets, (m) => m.category === "投資");
   return { protection, investment };
+}
+
+/** 投資組合明細 — 只納入「投資」類資產。投資型保單以帳戶價值計入,身故保額不列入投資統計。 */
+export interface InvestmentBreakdown {
+  items: { key: keyof Assets; label: string; amount: number; pct: number }[];
+  total: number;
+}
+export function investmentBreakdown(assets: Assets): InvestmentBreakdown {
+  const raw = (Object.keys(ASSET_META) as (keyof Assets)[])
+    .filter((key) => ASSET_META[key].category === "投資")
+    .map((key) => ({ key, label: ASSET_META[key].label, amount: assets[key].has ? Math.max(0, assets[key].amount) : 0 }))
+    .filter((i) => i.amount > 0);
+  const total = raw.reduce((s, i) => s + i.amount, 0);
+  return {
+    total,
+    items: raw
+      .map((i) => ({ ...i, pct: total > 0 ? Math.round((i.amount / total) * 100) : 0 }))
+      .sort((a, b) => b.amount - a.amount),
+  };
 }
 
 // ── 通用金融函式 ─────────────────────────────────────

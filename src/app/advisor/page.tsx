@@ -5,7 +5,8 @@ import { useRouter } from "next/navigation";
 import { BackLink } from "@/components/ui/BackLink";
 import { createClient } from "@/lib/supabase/client";
 import { createAdvisorProfile, getMyAdvisor } from "@/lib/actions/advisor";
-import { LICENSE_OPTIONS, LICENSE_REQUIRES_NUMBER, type LicenseType } from "@/lib/domain/licenses";
+import { LICENSE_REQUIRES_NUMBER, type LicenseType } from "@/lib/domain/licenses";
+import { LicenseSelector } from "@/components/advisor/LicenseSelector";
 
 export default function AdvisorAuth() {
   const router = useRouter();
@@ -197,30 +198,9 @@ export default function AdvisorAuth() {
             {/* 證照 */}
             <div>
               <span className="text-sm font-medium">專業證照(佐證專家資格)</span>
-              <p className="mt-0.5 text-xs text-neutral-400">勾選後請填入合格證號以茲確認,至少一張。</p>
-              <div className="mt-2 space-y-1.5">
-                {LICENSE_OPTIONS.map((o) => {
-                  const checked = o.value in licenseNos;
-                  return (
-                    <div key={o.value} className="rounded-lg border border-neutral-200 p-2.5 dark:border-neutral-800">
-                      <label className="flex items-start gap-2.5 text-sm">
-                        <input type="checkbox" checked={checked} onChange={() => toggleLicense(o.value)} className="mt-0.5 h-4 w-4 accent-sky-600" />
-                        <span>
-                          {o.label}
-                          {o.note && <span className="ml-1 text-xs text-neutral-400">{o.note}</span>}
-                        </span>
-                      </label>
-                      {checked && o.requiresNumber && (
-                        <input
-                          value={licenseNos[o.value] ?? ""}
-                          onChange={(e) => setLicenseNo(o.value, e.target.value)}
-                          placeholder="合格證號"
-                          className="mt-2 w-full rounded-md border border-neutral-300 bg-white px-2.5 py-1.5 text-sm outline-none focus:border-sky-500 dark:border-neutral-700 dark:bg-neutral-900"
-                        />
-                      )}
-                    </div>
-                  );
-                })}
+              <p className="mt-0.5 text-xs text-neutral-400">依類別勾選並填入合格證號以茲確認,至少一張。</p>
+              <div className="mt-2">
+                <LicenseSelector value={licenseNos} onToggle={toggleLicense} onSetNo={setLicenseNo} accent="sky" />
               </div>
             </div>
           </>

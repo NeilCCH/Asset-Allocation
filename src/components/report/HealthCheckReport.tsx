@@ -121,6 +121,34 @@ export function HealthCheckReport({ model, variant = "full" }: { model: ReportMo
         </div>
       </section>
 
+      {/* 投資組合分析(投資型保單以帳戶價值計,保額不列入) */}
+      {(() => {
+        const inv = model.assets.filter((a) => a.category === "投資" && a.amount > 0);
+        const invTotal = inv.reduce((s, a) => s + a.amount, 0);
+        if (invTotal === 0) return null;
+        return (
+          <section className="hcr-card">
+            <h2>投資組合分析</h2>
+            <ul className="hcr-invest">
+              {inv.map((a) => {
+                const p = Math.round((a.amount / invTotal) * 100);
+                return (
+                  <li key={a.label}>
+                    <div className="hcr-invest-row">
+                      <span>{a.label}</span>
+                      <span>{fmtWan(a.amount)}<em>{p}%</em></span>
+                    </div>
+                    <div className="hcr-invest-bar"><div style={{ width: `${p}%` }} /></div>
+                  </li>
+                );
+              })}
+            </ul>
+            <div className="hcr-invest-total"><span>投資資產合計</span><span>{fmtWan(invTotal)}</span></div>
+            <p className="hcr-note">投資型/儲蓄保單以「帳戶價值(現金價值)」計入,身故保額不列入投資統計,以反映實際可運用的投資部位。</p>
+          </section>
+        );
+      })()}
+
       {/* 缺口概況 */}
       <section className="hcr-card">
         <h2>缺口概況(客觀試算)</h2>
@@ -499,6 +527,13 @@ const css = `
 .hcr-gap.ok .hcr-gap-val { color:#059669; font-weight:700; }
 .hcr-gap.pending .hcr-gap-val { color:#999; font-size:18px; }
 .hcr-note { font-size:17px; color:#888; line-height:1.6; margin:10px 0 0; background:#fafafa; padding:10px; border-radius:8px; }
+.hcr-invest { list-style:none; margin:0; padding:0; }
+.hcr-invest li { margin-bottom:9px; }
+.hcr-invest-row { display:flex; justify-content:space-between; font-size:19px; }
+.hcr-invest-row em { color:#94a3b8; font-style:normal; margin-left:8px; font-size:16px; }
+.hcr-invest-bar { margin-top:4px; height:7px; border-radius:4px; background:#eef2f6; overflow:hidden; }
+.hcr-invest-bar > div { height:100%; border-radius:4px; background:#0ea5e9; }
+.hcr-invest-total { display:flex; justify-content:space-between; font-size:19px; font-weight:700; color:#0369a1; border-top:1px solid #e5eef5; margin-top:4px; padding-top:8px; }
 .hcr-ins { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
 .hcr-ins-row { display:flex; justify-content:space-between; font-size:20px; padding:8px 12px; border-radius:8px; border:1px solid #eee; }
 .hcr-ins-row.on { background:#ecfdf5; border-color:#a7f3d0; }
