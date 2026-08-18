@@ -96,8 +96,7 @@ interface Form {
   planning_scope: PlanningScope;
   spouse_age: string;
   children: { stage: EduStage; age: string; years_until_school: string }[];
-  parentsCount: string;
-  parentsAges: string[];
+  parents: { relation: "父" | "母"; age: string }[];
   siblings: { relation: string }[];
   grandchildrenCount: string;
   income_type: IncomeType;
@@ -148,10 +147,9 @@ const initialForm: Form = {
   planning_scope: "個人",
   spouse_age: "",
   children: [],
-  parentsCount: "0",
+  parents: [],
   siblings: [],
   grandchildrenCount: "0",
-  parentsAges: [],
   income_type: "固定薪",
   income_band: "",
   surplus_band: "",
@@ -274,19 +272,25 @@ export default function Assessment() {
     });
 
   const setParentsCount = (n: number) => {
-    const count = Math.max(0, Math.min(4, n));
+    const count = Math.max(0, Math.min(2, n || 0));
     setF((p) => {
-      const ages = [...p.parentsAges];
-      ages.length = count;
-      for (let i = 0; i < count; i++) if (ages[i] == null) ages[i] = "";
-      return { ...p, parentsCount: String(count), parentsAges: ages };
+      const parents = [...p.parents];
+      parents.length = count;
+      for (let i = 0; i < count; i++) if (parents[i] == null) parents[i] = { relation: i === 0 ? "父" : "母", age: "" };
+      return { ...p, parents };
     });
   };
+  const setParentRelation = (i: number, relation: "父" | "母") =>
+    setF((p) => {
+      const parents = [...p.parents];
+      parents[i] = { ...parents[i], relation };
+      return { ...p, parents };
+    });
   const setParentAge = (i: number, v: string) =>
     setF((p) => {
-      const ages = [...p.parentsAges];
-      ages[i] = v;
-      return { ...p, parentsAges: ages };
+      const parents = [...p.parents];
+      parents[i] = { ...parents[i], age: v };
+      return { ...p, parents };
     });
   const setSiblingsCount = (n: number) =>
     setF((p) => {
@@ -361,10 +365,7 @@ export default function Assessment() {
             age: c.age ? Number(c.age) : undefined,
             years_until_school: c.stage === "學前" && c.years_until_school ? Number(c.years_until_school) : undefined,
           })),
-          parents: {
-            count: Number(f.parentsCount) || 0,
-            ages: f.parentsAges.filter((a) => a !== "").map((a) => Number(a) || 0),
-          },
+          parents: f.parents.map((p) => ({ relation: p.relation, age: Number(p.age) || 0 })),
           siblings: f.siblings.map((s) => ({ relation: (s.relation || "弟") as SiblingRelation })),
           grandchildren: { count: Number(f.grandchildrenCount) || 0 },
         },
@@ -527,16 +528,28 @@ export default function Assessment() {
               </div>
             )}
 
-            {/* 扶養父母 */}
+            {/* 扶養父母(逐位選父 / 母 + 年齡) */}
             <Field label="扶養父母人數">
-              <Input value={f.parentsCount} onChange={(v) => setParentsCount(Number(v))} type="number" placeholder="0" />
+              <Input value={String(f.parents.length)} onChange={(v) => setParentsCount(Number(v))} type="number" placeholder="0" />
             </Field>
-            {f.parentsAges.length > 0 && (
-              <div className="grid grid-cols-3 gap-2">
-                {f.parentsAges.map((age, i) => (
-                  <Field key={i} label={`父母 ${i + 1} 年齡`}>
-                    <Input value={age} onChange={(v) => setParentAge(i, v)} type="number" placeholder="70" />
-                  </Field>
+            {f.parents.length > 0 && (
+              <div className="mt-1.5 space-y-2">
+                {f.parents.map((p, i) => (
+                  <div key={i} className="grid grid-cols-2 gap-2">
+                    <Field label={`第 ${i + 1} 位`}>
+                      <Select
+                        value={p.relation}
+                        onChange={(v) => setParentRelation(i, v as "父" | "母")}
+                        options={[
+                          { value: "父", label: "父(父親)" },
+                          { value: "母", label: "母(母親)" },
+                        ]}
+                      />
+                    </Field>
+                    <Field label="年齡">
+                      <Input value={p.age} onChange={(v) => setParentAge(i, v)} type="number" placeholder="70" />
+                    </Field>
+                  </div>
                 ))}
               </div>
             )}

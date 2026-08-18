@@ -79,7 +79,7 @@ export function FamilyTree({ family, selfIsFemale = false }: { family: FamilyMod
   const grandX = (i: number) => grandStart + i * SP;
 
   const c: React.ReactNode[] = [];
-  const hasParents = family.parents.count > 0;
+  const hasParents = family.parents.length > 0;
   const topBar = 128;
   if (hasParents) {
     c.push(link(parentsMid, yParents + 24, parentsMid, topBar, "p1"));
@@ -123,13 +123,27 @@ export function FamilyTree({ family, selfIsFemale = false }: { family: FamilyMod
 
       {/* 父母(直系尊親屬) */}
       {hasParents &&
-        (family.parents.count === 1 ? (
-          <Person cx={parentsMid} cy={yParents} variant="elder-m" color={ROLE_COLOR.parent} label="父母" sub={family.parents.ages[0] ? `${family.parents.ages[0]} 歲` : undefined} kin="直系尊親屬" />
+        (family.parents.length === 1 ? (
+          <Person
+            cx={parentsMid}
+            cy={yParents}
+            variant={family.parents[0].relation === "母" ? "elder-f" : "elder-m"}
+            color={ROLE_COLOR.parent}
+            label={family.parents[0].relation}
+            sub={family.parents[0].age ? `${family.parents[0].age} 歲` : undefined}
+            kin="直系尊親屬"
+          />
         ) : (
-          <>
-            <Person cx={parentsMid - 52} cy={yParents} variant="elder-m" color={ROLE_COLOR.parent} label="父" sub={family.parents.ages[0] ? `${family.parents.ages[0]} 歲` : undefined} kin="直系尊親屬" />
-            <Person cx={parentsMid + 52} cy={yParents} variant="elder-f" color={ROLE_COLOR.parent} label="母" sub={family.parents.ages[1] ? `${family.parents.ages[1]} 歲` : undefined} kin="直系尊親屬" />
-          </>
+          (() => {
+            const father = family.parents.find((p) => p.relation === "父");
+            const mother = family.parents.find((p) => p.relation === "母");
+            return (
+              <>
+                <Person cx={parentsMid - 52} cy={yParents} variant="elder-m" color={ROLE_COLOR.parent} label="父" sub={father?.age ? `${father.age} 歲` : undefined} kin="直系尊親屬" />
+                <Person cx={parentsMid + 52} cy={yParents} variant="elder-f" color={ROLE_COLOR.parent} label="母" sub={mother?.age ? `${mother.age} 歲` : undefined} kin="直系尊親屬" />
+              </>
+            );
+          })()
         ))}
 
       {/* 兄弟姊妹(旁系血親)— 逐位關係 + 性別 */}

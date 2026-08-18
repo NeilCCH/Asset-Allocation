@@ -210,7 +210,7 @@ export function HealthCheckReport({ model, variant = "full" }: { model: ReportMo
           <p className="hcr-note">
             本人 {family.self.age} 歲
             {family.spouseAge != null ? `、配偶 ${family.spouseAge} 歲` : ""}
-            {family.parents.count > 0 ? `、父母 ${family.parents.count} 位` : ""}
+            {family.parents.length > 0 ? `、父母 ${family.parents.length} 位` : ""}
             {family.siblings.length > 0 ? `、兄弟姊妹 ${family.siblings.length} 位` : ""}
             {family.children.length > 0 ? `、子女 ${family.children.length} 位` : ""}
             {family.grandchildren > 0 ? `、孫子女 ${family.grandchildren} 位` : ""}

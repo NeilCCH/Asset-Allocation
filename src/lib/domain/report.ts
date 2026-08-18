@@ -21,7 +21,7 @@ export interface FamilyModel {
   selfIsFemale: boolean;
   hasSpouse: boolean;
   spouseAge?: number;
-  parents: { count: number; ages: number[] };
+  parents: { relation: "父" | "母"; age: number }[];
   siblings: { relation: string; isFemale: boolean }[];
   children: { stage: string; age?: number }[];
   grandchildren: number;

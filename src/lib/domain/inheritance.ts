@@ -43,7 +43,7 @@ export function computeInheritance(f: FamilyModel): InheritanceResult {
   const grand = f.grandchildren;
   const firstPresent = kids > 0 || grand > 0;
   const firstCount = kids > 0 ? kids : grand; // 無子女時,孫子女以代位/次親等繼承
-  const parents = f.parents.count;
+  const parents = f.parents.length;
   const sibs = f.siblings.length;
 
   const orders: OrderRow[] = [

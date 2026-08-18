@@ -76,7 +76,7 @@ export type SiblingRelation = "兄" | "弟" | "姊" | "妹";
 export interface Dependents {
   children: Child[];
   /** 父母:人數 + 各自年齡 */
-  parents: { count: number; ages: number[] };
+  parents: { relation: "父" | "母"; age: number }[];
   /** 兄弟姊妹(遺產第三順位繼承人,旁系):逐位關係 */
   siblings: { relation: SiblingRelation }[];
   /** 孫子女(代位繼承 / 傳承規劃,直系卑親屬):人數 */

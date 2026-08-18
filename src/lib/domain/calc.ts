@@ -183,10 +183,11 @@ export function protectionGap(
 
   // 父母:各自(平均餘命 − 目前年齡)年數 × 每年奉養;無年齡時用後備總額 × 人數
   const parents = core.dependents.parents;
+  const parentsWithAge = parents.filter((p) => p.age > 0);
   const parentSupport =
-    parents.ages.length > 0
-      ? parents.ages.reduce((s, age) => s + Math.max(0, params.parentLifeExpectancy - age) * params.parentSupportAnnual, 0)
-      : parents.count * params.parentSupportTotal;
+    parentsWithAge.length > 0
+      ? parentsWithAge.reduce((s, p) => s + Math.max(0, params.parentLifeExpectancy - p.age) * params.parentSupportAnnual, 0)
+      : parents.length * params.parentSupportTotal;
 
   // 子女教育金(取教育缺口的總需求)
   const eduNeed = educationTotalNeed(data, params);
