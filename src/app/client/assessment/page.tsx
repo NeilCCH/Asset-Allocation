@@ -121,6 +121,9 @@ interface Form {
   // 深化:收入來源拆解(含被動收入,年/萬)
   incomeSources: { salary: string; bonus: string; rental: string; dividend: string; business: string; other: string };
   taxableIncome: string; // 綜合所得淨額(報稅用)
+  // 深化:每月固定收支明細(選填,label -> 萬/月)
+  monthlyIncome: Record<string, string>;
+  monthlyExpense: Record<string, string>;
   // 深化:現有保障明細(家戶:依成員 self / spouse / child0...)
   insByMember: Record<string, InsForm>;
   // 深化:子女高階教育規劃(每位子女一筆)
@@ -169,6 +172,8 @@ const initialForm: Form = {
   majorExpenseYears: "",
   incomeSources: { salary: "", bonus: "", rental: "", dividend: "", business: "", other: "" },
   taxableIncome: "",
+  monthlyIncome: {},
+  monthlyExpense: {},
   insByMember: { self: emptyInsurance },
   eduGoals: [],
   kycExpBand: "",
@@ -179,6 +184,10 @@ const initialForm: Form = {
   kycVolatility: "",
   kycFundSource: "",
 };
+
+// 每月固定收支的建議項目(選填,萬/月)。使用者只需填有的項目。
+const FIXED_INCOME_ITEMS = ["薪資", "租金收入", "股利 / 利息", "年金 / 退休金", "其他固定收入"];
+const FIXED_EXPENSE_ITEMS = ["租金支出", "生活費", "保險費", "子女教育 / 托育", "孝親費", "車貸 / 信貸", "訂閱 / 會費", "其他固定支出"];
 
 const STEPS = ["個資同意", "基本 · 家庭", "收支 · 時間", "資產盤點", "負債 · 退休", "保障 · 教育", "風險屬性"];
 const FAMILIAR_OPTIONS = ["存款", "保險", "股票", "基金/ETF", "債券", "外幣", "期貨/選擇權", "不動產"];
@@ -245,6 +254,8 @@ export default function Assessment() {
   const [insMember, setInsMember] = useState("self");
   const setIncome = (name: keyof Form["incomeSources"], v: string) =>
     setF((p) => ({ ...p, incomeSources: { ...p.incomeSources, [name]: v } }));
+  const setMonthly = (kind: "monthlyIncome" | "monthlyExpense", label: string, v: string) =>
+    setF((p) => ({ ...p, [kind]: { ...p[kind], [label]: v } }));
   const insMembers = [
     { id: "self", label: "本人" },
     ...(f.planning_scope === "含配偶" ? [{ id: "spouse", label: "配偶" }] : []),
@@ -399,6 +410,14 @@ export default function Assessment() {
             : undefined;
         })(),
         taxable_income: f.taxableIncome ? Number(f.taxableIncome) : undefined,
+        monthly_fixed_income: (() => {
+          const a = FIXED_INCOME_ITEMS.map((label) => ({ label, amount: num(f.monthlyIncome[label]) })).filter((i) => i.amount > 0);
+          return a.length ? a : undefined;
+        })(),
+        monthly_fixed_expense: (() => {
+          const a = FIXED_EXPENSE_ITEMS.map((label) => ({ label, amount: num(f.monthlyExpense[label]) })).filter((i) => i.amount > 0);
+          return a.length ? a : undefined;
+        })(),
         insurance_detail: insFormToDetail(f.insByMember.self ?? emptyInsurance),
         spouse_insurance: f.planning_scope === "含配偶" && f.insByMember.spouse ? insFormToDetail(f.insByMember.spouse) : undefined,
         children_insurance: f.children.length > 0 ? f.children.map((_, i) => insFormToDetail(f.insByMember[`child${i}`] ?? emptyInsurance)) : undefined,
@@ -637,6 +656,32 @@ export default function Assessment() {
                 </Field>
                 <p className="mt-0.5 text-xs text-neutral-400">填入後可估算所得稅、稅後所得與邊際稅率(供稅務規劃參考)。</p>
                 <TaxOcr onExtract={(wan) => set("taxableIncome", String(wan))} />
+              </div>
+            </div>
+
+            {/* 每月固定收支明細(選填,萬/月) */}
+            <div>
+              <span className="text-sm font-medium">每月固定收支明細(選填,萬 / 月)</span>
+              <p className="text-xs text-neutral-400">列出每月固定的收入與支出(例如租金支出),讓現金流量更貼近實際。只填有的項目即可,非必填。</p>
+              <div className="mt-2">
+                <p className="text-xs font-semibold text-emerald-700 dark:text-emerald-400">固定收入</p>
+                <div className="mt-1 grid grid-cols-2 gap-2 sm:grid-cols-3">
+                  {FIXED_INCOME_ITEMS.map((label) => (
+                    <Field key={label} label={label}>
+                      <Input value={f.monthlyIncome[label] ?? ""} onChange={(v) => setMonthly("monthlyIncome", label, v)} type="number" placeholder="0" />
+                    </Field>
+                  ))}
+                </div>
+              </div>
+              <div className="mt-3">
+                <p className="text-xs font-semibold text-amber-700 dark:text-amber-400">固定支出</p>
+                <div className="mt-1 grid grid-cols-2 gap-2 sm:grid-cols-3">
+                  {FIXED_EXPENSE_ITEMS.map((label) => (
+                    <Field key={label} label={label}>
+                      <Input value={f.monthlyExpense[label] ?? ""} onChange={(v) => setMonthly("monthlyExpense", label, v)} type="number" placeholder="0" />
+                    </Field>
+                  ))}
+                </div>
               </div>
             </div>
           </Section>

@@ -38,6 +38,11 @@ export interface PersonalStatements {
     outflow: number;
     debtPayment: number;
     net: number;
+    // 每月固定收支明細(選填,萬/月)
+    fixedIncome?: Line[];
+    fixedExpense?: Line[];
+    fixedIncomeTotal?: number;
+    fixedExpenseTotal?: number;
   };
 }
 
@@ -86,6 +91,12 @@ export function personalStatements(data: QuestionnaireData): PersonalStatements 
   const outflow = inflow - net;
   const debtPayment = deep?.liabilities?.monthly_payment ?? 0;
 
+  // ── 每月固定收支明細(選填)──
+  const fixedIncomeItems = deep?.monthly_fixed_income ?? [];
+  const fixedExpenseItems = deep?.monthly_fixed_expense ?? [];
+  const fixedIncomeTotal = fixedIncomeItems.reduce((s, i) => s + i.amount, 0);
+  const fixedExpenseTotal = fixedExpenseItems.reduce((s, i) => s + i.amount, 0);
+
   // ── 所得稅(有填綜合所得淨額時) ──
   const tax = deep?.taxable_income != null ? estimateIncomeTax(deep.taxable_income) : null;
 
@@ -113,6 +124,10 @@ export function personalStatements(data: QuestionnaireData): PersonalStatements 
       outflow: r1(outflow),
       debtPayment: r1(debtPayment),
       net: r1(net),
+      fixedIncome: fixedIncomeItems.length ? fixedIncomeItems.map((i) => ({ label: i.label, amount: r1(i.amount) })) : undefined,
+      fixedExpense: fixedExpenseItems.length ? fixedExpenseItems.map((i) => ({ label: i.label, amount: r1(i.amount) })) : undefined,
+      fixedIncomeTotal: fixedIncomeItems.length ? r1(fixedIncomeTotal) : undefined,
+      fixedExpenseTotal: fixedExpenseItems.length ? r1(fixedExpenseTotal) : undefined,
     },
   };
 }

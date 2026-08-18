@@ -461,6 +461,28 @@ function PersonalStatementsBlock({ s }: { s: PersonalStatements }) {
         <div className="hcr-stmt-row"><span>每月現金流出(支出,含還款 {fmtWan(cf.debtPayment)})</span><span>−{fmtWan(cf.outflow)}</span></div>
         <div className="hcr-stmt-row total" style={{ color: cf.net >= 0 ? "#059669" : "#b45309" }}><span>每月淨現金流</span><span>{fmtWan(cf.net)}</span></div>
         <div style={{ marginTop: 8 }}><Waterfall inflow={cf.inflow} outflow={cf.outflow} net={cf.net} /></div>
+        {(cf.fixedIncome || cf.fixedExpense) && (
+          <div style={{ marginTop: 10, borderTop: "1px solid #eaeef3", paddingTop: 8 }}>
+            {cf.fixedIncome && (
+              <>
+                <div className="hcr-stmt-note">每月固定收入明細</div>
+                {cf.fixedIncome.map((l) => (
+                  <div key={l.label} className="hcr-stmt-row"><span>{l.label}</span><span>{fmtWan(l.amount)}</span></div>
+                ))}
+                <div className="hcr-stmt-row total"><span>固定收入合計</span><span>{fmtWan(cf.fixedIncomeTotal ?? 0)}</span></div>
+              </>
+            )}
+            {cf.fixedExpense && (
+              <>
+                <div className="hcr-stmt-note" style={{ marginTop: 8 }}>每月固定支出明細</div>
+                {cf.fixedExpense.map((l) => (
+                  <div key={l.label} className="hcr-stmt-row"><span>{l.label}</span><span>−{fmtWan(l.amount)}</span></div>
+                ))}
+                <div className="hcr-stmt-row total"><span>固定支出合計</span><span>−{fmtWan(cf.fixedExpenseTotal ?? 0)}</span></div>
+              </>
+            )}
+          </div>
+        )}
       </div>
     </section>
   );
