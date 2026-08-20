@@ -91,3 +91,18 @@ export async function markContactHandled(requestId: string): Promise<{ ok: true 
   if (error) return { ok: false, error: error.message };
   return { ok: true };
 }
+
+/**
+ * 顧問刪除自己名下客戶。⚠️ 不可復原:連動清除問卷作答 / 彙整結果 / CRM 備註 / 預約紀錄(FK cascade)。
+ * RLS(clients_advisor_all)僅允許刪除 advisor_id = 本人 的客戶;另做明確擁有權檢查回明確錯誤。
+ */
+export async function deleteClient(clientId: string): Promise<{ ok: true } | { ok: false; error: string }> {
+  const supabase = await createServerSupabase();
+  const { data: auth } = await supabase.auth.getUser();
+  if (!auth.user) return { ok: false, error: "尚未登入" };
+  const { data: client } = await supabase.from("clients").select("id, advisor_id").eq("id", clientId).maybeSingle();
+  if (!client || client.advisor_id !== auth.user.id) return { ok: false, error: "找不到客戶,或你沒有刪除權限" };
+  const { error } = await supabase.from("clients").delete().eq("id", clientId);
+  if (error) return { ok: false, error: error.message };
+  return { ok: true };
+}

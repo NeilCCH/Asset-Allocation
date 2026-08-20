@@ -10,6 +10,7 @@ import { wealthTier, type WealthTierKey } from "@/lib/domain/wealthTier";
 import { ALLOCATION_DIMENSIONS, dimensionHints } from "@/lib/domain/allocation";
 import { AdvisorWorkbench } from "@/components/AdvisorWorkbench";
 import { CrmPanel } from "@/components/CrmPanel";
+import { DeleteClientButton } from "@/components/advisor/DeleteClientButton";
 import { getClientCrm } from "@/lib/actions/crm";
 
 const TIER_BADGE: Record<WealthTierKey, string> = {
@@ -103,6 +104,19 @@ export default async function ClientDetail({ params }: PageProps<"/advisor/clien
         savedDimensionKeys={saved?.dimensionKeys ?? []}
         savedParams={saved?.paramsOverride ?? {}}
       />
+
+      {/* 危險操作:刪除客戶(僅真實客戶;示範客戶不可刪) */}
+      {isReal && (
+        <section className="mt-8 rounded-2xl border border-red-200 bg-red-50/50 p-5 dark:border-red-900/60 dark:bg-red-950/20">
+          <h2 className="text-sm font-semibold text-red-700 dark:text-red-300">危險操作</h2>
+          <p className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">
+            刪除後,此客戶的所有健檢資料將永久移除且<strong>無法復原</strong>。
+          </p>
+          <div className="mt-3">
+            <DeleteClientButton clientId={id} name={`${data.basic.surname}${data.basic.honorific}`} />
+          </div>
+        </section>
+      )}
     </main>
   );
 }
