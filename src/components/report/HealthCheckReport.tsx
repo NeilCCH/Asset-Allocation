@@ -517,7 +517,7 @@ function PersonalStatementsBlock({ s }: { s: PersonalStatements }) {
 
       {/* ③ 現金流量表 */}
       <div className="hcr-stmt">
-        <div className="hcr-stmt-title">③ 現金流量表 · 月(流入 − 流出 = 淨現金流(結餘))</div>
+        <div className="hcr-stmt-title">③ 現金流量表 · 月(流入 − 流出 = 淨現金流)</div>
         <div className="hcr-stmt-row"><span>每月現金流入(收入)</span><span>{fmtWan(cf.inflow)}</span></div>
         <div className="hcr-stmt-row"><span>每月現金流出(支出,含還款 {fmtWan(cf.debtPayment)})</span><span>−{fmtWan(cf.outflow)}</span></div>
         <div className="hcr-stmt-row total" style={{ color: cf.net >= 0 ? "#059669" : "#b45309" }}><span>每月淨現金流</span><span>{fmtWan(cf.net)}</span></div>
