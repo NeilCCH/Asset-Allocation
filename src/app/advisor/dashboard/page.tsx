@@ -9,6 +9,7 @@ import { redirect } from "next/navigation";
 import { createServerSupabase } from "@/lib/supabase/server";
 import { getMyAdvisor } from "@/lib/actions/advisor";
 import { investableAssets, sumAssets } from "@/lib/domain/calc";
+import { normalizeData } from "@/lib/domain/normalize";
 import { wealthTier, type WealthTierKey } from "@/lib/domain/wealthTier";
 import type { QuestionnaireData } from "@/lib/domain/types";
 import { SignOutButton } from "@/components/ui/SignOutButton";
@@ -66,7 +67,8 @@ export default async function AdvisorDashboard() {
     .map((c) => {
       const qr = firstQR(c.questionnaire_responses);
       if (!qr?.core) return null;
-      const data = { basic: qr.basic, core: qr.core, deep: qr.deep ?? undefined, kyc: qr.kyc ?? undefined } as QuestionnaireData;
+      // ⚠️ 必須正規化:新增資產欄位後,舊客戶資料缺欄,未正規化直接算 sumAssets 會崩潰
+      const data = normalizeData({ basic: qr.basic, core: qr.core, deep: qr.deep ?? undefined, kyc: qr.kyc ?? undefined } as QuestionnaireData);
       const investable = investableAssets(data.core.assets);
       const leadStatus = firstPriv(c.advisor_private)?.lead_status ?? null;
       const pendingContacts = (c.contact_requests ?? []).filter((x) => x.status === "new").length;
