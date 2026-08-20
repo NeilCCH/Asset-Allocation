@@ -385,12 +385,14 @@ export function HealthCheckReport({ model, variant = "full" }: { model: ReportMo
                   {groupLicensesByCategory(model.advisorSignature.licenses as AdvisorLicense[]).map((g) => (
                     <div key={g.category} className="hcr-sign-licrow">
                       <span className="hcr-sign-cat">{g.category}</span>
-                      {g.items.map((l, i) => (
-                        <span key={i} className="hcr-sign-lic">
-                          {l.type}
-                          {l.number && <span className="hcr-sign-licno">{l.number}</span>}
-                        </span>
-                      ))}
+                      <span className="hcr-sign-licgroup">
+                        {g.items.map((l, i) => (
+                          <span key={i} className="hcr-sign-lic">
+                            {l.type}
+                            {l.number && <span className="hcr-sign-licno">{l.number}</span>}
+                          </span>
+                        ))}
+                      </span>
                     </div>
                   ))}
                 </div>
@@ -633,8 +635,9 @@ const css = `
 .hcr-sign-name { font-weight:700; }
 .hcr-sign-org { font-size:16px; color:#666; margin-top:3px; }
 .hcr-sign-lics { margin-top:8px; display:flex; flex-direction:column; gap:5px; }
-.hcr-sign-licrow { display:flex; flex-wrap:wrap; align-items:center; gap:6px; }
-.hcr-sign-cat { font-size:14px; font-weight:700; color:#0369a1; min-width:104px; }
+.hcr-sign-licrow { display:flex; align-items:flex-start; gap:8px; }
+.hcr-sign-cat { font-size:14px; font-weight:700; color:#0369a1; min-width:104px; flex:none; padding-top:4px; }
+.hcr-sign-licgroup { display:flex; flex-wrap:wrap; gap:6px; flex:1; min-width:0; }
 .hcr-sign-lic { display:inline-flex; align-items:center; gap:6px; border:1px solid #e2e8f0; background:#f8fafc; border-radius:6px; padding:2px 9px; font-size:16px; color:#334155; }
 .hcr-sign-licno { font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:13px; color:#94a3b8; }
 .hcr-lic { color:#0369a1; margin-left:6px; font-size:18px; }
