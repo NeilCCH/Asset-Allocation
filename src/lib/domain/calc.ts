@@ -30,15 +30,19 @@ const ASSET_META: Record<
   { label: string; category: AssetBreakdown["category"]; assetClass: AssetClass; riskType?: RiskType; liquid: boolean; investable: boolean }
 > = {
   cash: { label: "現金存款", category: "流動", assetClass: "流動", liquid: true, investable: true },
+  forex: { label: "外幣活存", category: "流動", assetClass: "流動", liquid: true, investable: true },
   stock_tw: { label: "台股", category: "投資", assetClass: "風險", riskType: "風險", liquid: true, investable: true },
   stock_overseas: { label: "海外股票", category: "投資", assetClass: "風險", riskType: "風險", liquid: true, investable: true },
   fund_etf: { label: "基金/ETF", category: "投資", assetClass: "風險", riskType: "風險", liquid: true, investable: true },
   insurance_protection: { label: "保單(保障型)", category: "保障", assetClass: "保障", liquid: false, investable: false },
   insurance_invest: { label: "投資型保單", category: "投資", assetClass: "風險", riskType: "風險", liquid: false, investable: true },
-  insurance_savings: { label: "儲蓄保單", category: "投資", assetClass: "風險", riskType: "穩定", liquid: false, investable: true },
+  insurance_savings: { label: "儲蓄保單", category: "保障", assetClass: "固定", liquid: false, investable: false },
+  gold: { label: "黃金/貴金屬", category: "投資", assetClass: "風險", riskType: "穩定", liquid: true, investable: true },
+  crypto: { label: "加密貨幣", category: "投資", assetClass: "風險", riskType: "風險", liquid: true, investable: true },
   real_estate_own: { label: "不動產(自住)", category: "不動產", assetClass: "固定", liquid: false, investable: false },
   real_estate_invest: { label: "不動產(投資)", category: "不動產", assetClass: "風險", riskType: "穩定", liquid: false, investable: false },
-  other: { label: "其他(外幣/黃金/加密等)", category: "其他", assetClass: "風險", riskType: "風險", liquid: true, investable: true },
+  retire_account: { label: "退休專戶累積金", category: "其他", assetClass: "固定", liquid: false, investable: false },
+  other: { label: "其他(藝術品/收藏等)", category: "其他", assetClass: "固定", liquid: false, investable: false },
 };
 
 export function assetBreakdown(assets: Assets): AssetBreakdown[] {

@@ -276,7 +276,7 @@ export default function Dashboard() {
           <div className="mt-4 space-y-3">
             {view.risk.stable.items.length > 0 && (
               <div>
-                <p className="mb-0.5 text-xs font-semibold" style={{ color: RISK_COLOR.穩定 }}>穩定收益型(收租 / 儲蓄保單)</p>
+                <p className="mb-0.5 text-xs font-semibold" style={{ color: RISK_COLOR.穩定 }}>穩定收益型(收租 / 黃金)</p>
                 {view.risk.stable.items.map((it) => (
                   <RiskRow key={it.key} label={it.label} amount={it.amount} pct={Math.round((it.amount / view.risk.total) * 100)} color={RISK_COLOR.穩定} />
                 ))}
@@ -296,7 +296,7 @@ export default function Dashboard() {
             <span className="font-semibold">{fmt(view.risk.total)}</span>
           </div>
           <p className="mt-3 text-xs leading-relaxed text-neutral-500 dark:text-neutral-400">
-            穩定收益型=收租不動產、儲蓄保單;風險報酬型=股票、基金/ETF、投資型保單(保單以帳戶價值計)、外幣黃金加密等。身故保額不列入。
+            穩定收益型=收租不動產、黃金/貴金屬;風險報酬型=股票、基金/ETF、投資型保單、加密貨幣(投資型保單以帳戶價值計)。儲蓄保單、外幣、退休專戶等歸固定/流動,不列入投資配置。
           </p>
         </Card>
       )}

@@ -173,7 +173,7 @@ export function HealthCheckReport({ model, variant = "full" }: { model: ReportMo
             })}
           </ul>
           <div className="hcr-invest-total"><span>投資配置合計</span><span>{fmtWan(model.riskAssets.total)}</span></div>
-          <p className="hcr-note">穩定收益型=收租不動產、儲蓄保單;風險報酬型=股票、基金/ETF、投資型保單(保單以帳戶價值計)、外幣黃金加密等。身故保額不列入。</p>
+          <p className="hcr-note">穩定收益型=收租不動產、黃金/貴金屬;風險報酬型=股票、基金/ETF、投資型保單、加密貨幣(投資型保單以帳戶價值計)。儲蓄保單、外幣、退休專戶等歸固定/流動,不列入投資配置。</p>
         </section>
       )}
 

@@ -53,13 +53,17 @@ export const URGENCY_OPTIONS: { value: Urgency; label: string }[] = [
 /** 資產盤點欄位順序與標籤(對應 Assets) */
 export const ASSET_FIELDS: { key: keyof Assets; label: string; hint?: string }[] = [
   { key: "cash", label: "現金存款" },
+  { key: "forex", label: "外幣活存" },
   { key: "stock_tw", label: "台股" },
   { key: "stock_overseas", label: "海外股票" },
   { key: "fund_etf", label: "基金 / ETF" },
+  { key: "gold", label: "黃金 / 貴金屬" },
+  { key: "crypto", label: "加密貨幣" },
   { key: "insurance_protection", label: "保單(保障型)", hint: "壽險/醫療/意外等保障" },
   { key: "insurance_invest", label: "投資型保單", hint: "填帳戶價值(現金價值),非保額" },
   { key: "insurance_savings", label: "儲蓄保單", hint: "填帳戶價值(現金價值),非保額" },
   { key: "real_estate_own", label: "不動產(自住)" },
   { key: "real_estate_invest", label: "不動產(投資)" },
-  { key: "other", label: "其他", hint: "外幣 / 黃金 / 加密等" },
+  { key: "retire_account", label: "退休專戶累積金", hint: "勞退自提、企業退休金等受限帳戶" },
+  { key: "other", label: "其他", hint: "藝術品 / 收藏等" },
 ];

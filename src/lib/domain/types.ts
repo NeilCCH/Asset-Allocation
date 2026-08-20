@@ -45,16 +45,20 @@ export interface AssetItem {
 }
 
 export interface Assets {
-  cash: AssetItem; // 現金存款
-  stock_tw: AssetItem; // 台股
-  stock_overseas: AssetItem; // 海外股票
-  fund_etf: AssetItem; // 基金 / ETF
-  insurance_protection: AssetItem; // 保單:保障型
+  cash: AssetItem; // 現金存款(流動)
+  forex: AssetItem; // 外幣活存(流動)
+  stock_tw: AssetItem; // 台股(風險報酬)
+  stock_overseas: AssetItem; // 海外股票(風險報酬)
+  fund_etf: AssetItem; // 基金 / ETF(風險報酬)
+  insurance_protection: AssetItem; // 保單:保障型(獨立)
   insurance_invest: AssetItem; // 保單:投資型(風險報酬)
-  insurance_savings: AssetItem; // 保單:儲蓄型(穩定收益)
-  real_estate_own: AssetItem; // 不動產:自住
-  real_estate_invest: AssetItem; // 不動產:投資
-  other: AssetItem; // 其他(外幣/黃金/加密等)
+  insurance_savings: AssetItem; // 保單:儲蓄型(固定/受限)
+  gold: AssetItem; // 黃金 / 貴金屬(穩定收益)
+  crypto: AssetItem; // 加密貨幣(風險報酬)
+  real_estate_own: AssetItem; // 不動產:自住(固定)
+  real_estate_invest: AssetItem; // 不動產:投資(穩定收益)
+  retire_account: AssetItem; // 退休專戶累積金(固定/受限)
+  other: AssetItem; // 其他:藝術品 / 收藏等(固定)
 }
 
 /** 規劃範圍:個人 或 含配偶(家庭) */
