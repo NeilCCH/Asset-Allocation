@@ -65,8 +65,8 @@ export function personalStatements(data: QuestionnaireData): PersonalStatements 
   const netWorth = totalAssets - totalLiabilities;
 
   // ── 損益表(年) ──
-  // 收入拆解優先用「每月固定收入明細」(×12);其次相容舊的 income_sources;最後用年收入級距估計。
-  // 級距估計作為下限:明細合計不足時補「其他收入」,避免總收入被低估、下游試算跑掉。
+  // 收入:固定收入明細(年) > 舊 income_sources > 年收入級距估計。
+  // 以「填報明細」為準,不再補虛構的「其他收入」把總額拉到級距(避免出現不存在的巨額收入)。
   const bandIncome = INCOME_BAND_VALUE[core.income_band] ?? 0;
   const PASSIVE_LABELS = new Set(["租金收入", "股利 / 利息"]);
   const fixedInc = deep?.annual_fixed_income ?? []; // 固定收入明細以「年」為單位,直接採用
@@ -78,8 +78,6 @@ export function personalStatements(data: QuestionnaireData): PersonalStatements 
       amount: r1(i.amount),
       tag: PASSIVE_LABELS.has(i.label) ? "被動" : undefined,
     }));
-    const detailTotal = income.reduce((s, l) => s + l.amount, 0);
-    if (detailTotal < bandIncome) income.push({ label: "其他收入", amount: r1(bandIncome - detailTotal) });
   } else if (src && [src.salary, src.bonus, src.rental, src.dividend, src.business, src.other].some((v) => v > 0)) {
     income = [
       { label: "薪資", amount: src.salary, tag: "主動" },
@@ -93,13 +91,15 @@ export function personalStatements(data: QuestionnaireData): PersonalStatements 
     income = [{ label: "年收入(級距估計)", amount: bandIncome }];
   }
   const totalIncome = income.reduce((s, l) => s + l.amount, 0);
-  const annualSurplus = (SURPLUS_BAND_VALUE[core.surplus_band] ?? 0) * 12;
-  const totalExpense = Math.max(0, totalIncome - annualSurplus);
+  // 結餘 = 每月結餘級距 × 12;夾在 [−收入, 收入] 內,避免與收入矛盾(結餘不可超過收入)。
+  const rawAnnualSurplus = (SURPLUS_BAND_VALUE[core.surplus_band] ?? 0) * 12;
+  const annualSurplus = Math.max(-totalIncome, Math.min(rawAnnualSurplus, totalIncome));
+  const totalExpense = totalIncome - annualSurplus; // = 收入 − 結餘,恆 ≥ 0
   const passiveIncome = income.filter((l) => l.tag === "被動").reduce((s, l) => s + l.amount, 0);
 
-  // ── 現金流量表(月) ──
+  // ── 現金流量表(月) ── 與損益表採同一份(已夾住)結餘,兩表一致
   const inflow = totalIncome / 12;
-  const net = SURPLUS_BAND_VALUE[core.surplus_band] ?? 0; // 月結餘
+  const net = annualSurplus / 12; // 月結餘
   const outflow = inflow - net;
   const debtPayment = deep?.liabilities?.monthly_payment ?? 0;
 
