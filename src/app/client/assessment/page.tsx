@@ -111,7 +111,6 @@ interface Form {
   liabRate: string;
   liabYears: string;
   // 深化:退休後需求 / 緊急金 / 大額支出
-  retireLifestylePct: string;
   retireMonthlyExpense: string;
   retirePensionMonthly: string;
   emergencyMonths: string;
@@ -161,7 +160,6 @@ const initialForm: Form = {
   liabMonthly: "",
   liabRate: "",
   liabYears: "",
-  retireLifestylePct: "70",
   retireMonthlyExpense: "",
   retirePensionMonthly: "",
   emergencyMonths: "",
@@ -382,7 +380,7 @@ export default function Assessment() {
         urgency: (f.urgency || "一年內") as Urgency, // 已移除急迫性問項,預設中性值供 leads 評分
       },
       deep: {
-        retire_lifestyle_pct: f.retireLifestylePct ? Number(f.retireLifestylePct) : undefined,
+        // 所得替代率不再由客戶填寫,改由顧問於報告參數調整(deep 不帶,計算時用參數預設)
         retire_monthly_expense: f.retireMonthlyExpense ? Number(f.retireMonthlyExpense) : undefined,
         retire_pension_monthly: f.retirePensionMonthly ? Number(f.retirePensionMonthly) : undefined,
         liabilities: {
@@ -732,18 +730,19 @@ export default function Assessment() {
             </div>
             <div className="rounded-lg bg-neutral-50 p-3 dark:bg-neutral-900">
               <span className="text-sm font-medium">退休後需求</span>
-              <div className="mt-1.5 grid grid-cols-3 gap-3">
-                <Field label="所得替代率(%)">
-                  <Input value={f.retireLifestylePct} onChange={(v) => set("retireLifestylePct", v)} type="number" placeholder="70" />
-                </Field>
+              <div className="mt-1.5 grid grid-cols-2 gap-3">
                 <Field label="退休後每月支出(萬)">
                   <Input value={f.retireMonthlyExpense} onChange={(v) => set("retireMonthlyExpense", v)} type="number" placeholder="選填,優先" />
                 </Field>
-                <Field label="退休金月領(萬)">
+                <Field label="勞退月領(萬)">
                   <Input value={f.retirePensionMonthly} onChange={(v) => set("retirePensionMonthly", v)} type="number" placeholder="勞退/月退" />
                 </Field>
               </div>
-              <p className="mt-1 text-xs text-neutral-400">有填「每月支出」則以此為準;「退休金月領」會抵減退休需求。</p>
+              <p className="mt-1 text-xs text-neutral-400">有填「每月支出」則以此為準;「勞退月領」會抵減退休需求。</p>
+              <div className="mt-1.5 flex flex-wrap gap-x-4 gap-y-1 text-xs">
+                <a href="https://calcr2.mol.gov.tw/trial" target="_blank" rel="noopener noreferrer" className="font-medium text-emerald-700 hover:underline dark:text-emerald-400">勞工退休金試算 ↗</a>
+                <a href="https://edesk.bli.gov.tw/me/#/na/login" target="_blank" rel="noopener noreferrer" className="font-medium text-emerald-700 hover:underline dark:text-emerald-400">勞工退休金查詢 ↗</a>
+              </div>
             </div>
             <Field label="緊急預備金(幾個月生活費)">
               <Input value={f.emergencyMonths} onChange={(v) => set("emergencyMonths", v)} type="number" placeholder="6" />
