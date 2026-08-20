@@ -430,7 +430,7 @@ function StackBar({ segments }: { segments: { label: string; value: number; colo
   );
 }
 
-// 現金流量瀑布圖(流入 → 流出 → 淨流)
+// 現金流量瀑布圖(流入 → 流出 → 結餘)
 function Waterfall({ inflow, outflow, net }: { inflow: number; outflow: number; net: number }) {
   const maxV = Math.max(inflow, 0.01);
   const W = 300, H = 118, top = 10, bottom = H - 26, plotH = bottom - top, barW = 56;
@@ -439,7 +439,7 @@ function Waterfall({ inflow, outflow, net }: { inflow: number; outflow: number; 
   const bars = [
     { x: xs[0], y0: bottom, y1: y(inflow), color: "#10b981", label: "流入", val: inflow },
     { x: xs[1], y0: y(inflow), y1: y(net), color: "#f59e0b", label: "流出", val: outflow },
-    { x: xs[2], y0: bottom, y1: y(net), color: net >= 0 ? "#0ea5e9" : "#ef4444", label: "淨流", val: net },
+    { x: xs[2], y0: bottom, y1: y(net), color: net >= 0 ? "#0ea5e9" : "#ef4444", label: "結餘", val: net },
   ];
   return (
     <svg viewBox={`0 0 ${W} ${H}`} width="100%" style={{ maxWidth: 320 }} role="img" aria-label="現金流量瀑布圖">
@@ -517,7 +517,7 @@ function PersonalStatementsBlock({ s }: { s: PersonalStatements }) {
 
       {/* ③ 現金流量表 */}
       <div className="hcr-stmt">
-        <div className="hcr-stmt-title">③ 現金流量表 · 月(流入 − 流出 = 淨現金流)</div>
+        <div className="hcr-stmt-title">③ 現金流量表 · 月(流入 − 流出 = 淨現金流(結餘))</div>
         <div className="hcr-stmt-row"><span>每月現金流入(收入)</span><span>{fmtWan(cf.inflow)}</span></div>
         <div className="hcr-stmt-row"><span>每月現金流出(支出,含還款 {fmtWan(cf.debtPayment)})</span><span>−{fmtWan(cf.outflow)}</span></div>
         <div className="hcr-stmt-row total" style={{ color: cf.net >= 0 ? "#059669" : "#b45309" }}><span>每月淨現金流</span><span>{fmtWan(cf.net)}</span></div>
