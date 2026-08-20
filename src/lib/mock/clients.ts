@@ -23,7 +23,7 @@ export const MOCK_CLIENTS: MockClient[] = [
         assets: {
           cash: { has: true, amount: 300 }, stock_tw: { has: true, amount: 400 },
           stock_overseas: { has: true, amount: 250 }, fund_etf: { has: true, amount: 200 },
-          insurance_protection: { has: true, amount: 60 }, insurance_savings: { has: true, amount: 300 },
+          insurance_protection: { has: true, amount: 60 }, insurance_invest: { has: true, amount: 150 }, insurance_savings: { has: true, amount: 150 },
           real_estate_own: { has: true, amount: 2000 }, real_estate_invest: { has: true, amount: 1500 },
           other: { has: true, amount: 100 },
         },
@@ -73,7 +73,7 @@ export const MOCK_CLIENTS: MockClient[] = [
         assets: {
           cash: { has: true, amount: 120 }, stock_tw: { has: true, amount: 80 },
           stock_overseas: { has: false, amount: 0 }, fund_etf: { has: true, amount: 60 },
-          insurance_protection: { has: true, amount: 40 }, insurance_savings: { has: false, amount: 0 },
+          insurance_protection: { has: true, amount: 40 }, insurance_invest: { has: false, amount: 0 }, insurance_savings: { has: false, amount: 0 },
           real_estate_own: { has: true, amount: 900 }, real_estate_invest: { has: false, amount: 0 },
           other: { has: false, amount: 0 },
         },
@@ -95,7 +95,7 @@ export const MOCK_CLIENTS: MockClient[] = [
         assets: {
           cash: { has: true, amount: 30 }, stock_tw: { has: true, amount: 15 },
           stock_overseas: { has: false, amount: 0 }, fund_etf: { has: false, amount: 0 },
-          insurance_protection: { has: false, amount: 0 }, insurance_savings: { has: false, amount: 0 },
+          insurance_protection: { has: false, amount: 0 }, insurance_invest: { has: false, amount: 0 }, insurance_savings: { has: false, amount: 0 },
           real_estate_own: { has: false, amount: 0 }, real_estate_invest: { has: false, amount: 0 },
           other: { has: true, amount: 5 },
         },

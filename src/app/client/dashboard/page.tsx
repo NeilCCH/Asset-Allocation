@@ -266,17 +266,17 @@ export default function Dashboard() {
         )}
       </Card>
 
-      {/* 風險資產配置:穩定收益 vs 高風險 */}
+      {/* 投資配置:穩定收益 vs 風險報酬 */}
       {view.risk.total > 0 && (
-        <Card title="風險資產配置">
+        <Card title="投資配置">
           <Bar2
             left={{ label: "穩定收益", value: view.risk.stable.total, color: RISK_COLOR.穩定 }}
-            right={{ label: "高風險", value: view.risk.risky.total, color: RISK_COLOR.風險 }}
+            right={{ label: "風險報酬", value: view.risk.risky.total, color: RISK_COLOR.風險 }}
           />
           <div className="mt-4 space-y-3">
             {view.risk.stable.items.length > 0 && (
               <div>
-                <p className="mb-0.5 text-xs font-semibold" style={{ color: RISK_COLOR.穩定 }}>穩定收益型(收租 / 配息)</p>
+                <p className="mb-0.5 text-xs font-semibold" style={{ color: RISK_COLOR.穩定 }}>穩定收益型(收租 / 儲蓄保單)</p>
                 {view.risk.stable.items.map((it) => (
                   <RiskRow key={it.key} label={it.label} amount={it.amount} pct={Math.round((it.amount / view.risk.total) * 100)} color={RISK_COLOR.穩定} />
                 ))}
@@ -284,7 +284,7 @@ export default function Dashboard() {
             )}
             {view.risk.risky.items.length > 0 && (
               <div>
-                <p className="mb-0.5 text-xs font-semibold" style={{ color: RISK_COLOR.風險 }}>高風險型(股票 / 基金 / 其他)</p>
+                <p className="mb-0.5 text-xs font-semibold" style={{ color: RISK_COLOR.風險 }}>風險報酬型(股票 / 基金 / 投資型保單 / 其他)</p>
                 {view.risk.risky.items.map((it) => (
                   <RiskRow key={it.key} label={it.label} amount={it.amount} pct={Math.round((it.amount / view.risk.total) * 100)} color={RISK_COLOR.風險} />
                 ))}
@@ -292,11 +292,11 @@ export default function Dashboard() {
             )}
           </div>
           <div className="mt-3 flex items-baseline justify-between border-t border-neutral-100 pt-2 text-sm dark:border-neutral-800">
-            <span className="font-semibold">風險資產合計</span>
+            <span className="font-semibold">投資配置合計</span>
             <span className="font-semibold">{fmt(view.risk.total)}</span>
           </div>
           <p className="mt-3 text-xs leading-relaxed text-neutral-500 dark:text-neutral-400">
-            穩定收益型=收租不動產、投資型/儲蓄保單(以帳戶價值計);高風險型=股票、基金/ETF、外幣黃金加密等。身故保額不列入。
+            穩定收益型=收租不動產、儲蓄保單;風險報酬型=股票、基金/ETF、投資型保單(保單以帳戶價值計)、外幣黃金加密等。身故保額不列入。
           </p>
         </Card>
       )}

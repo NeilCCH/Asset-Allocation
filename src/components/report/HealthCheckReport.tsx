@@ -149,14 +149,14 @@ export function HealthCheckReport({ model, variant = "full" }: { model: ReportMo
       {/* 風險資產配置:穩定收益 vs 高風險 */}
       {model.riskAssets.total > 0 && (
         <section className="hcr-card">
-          <h2>風險資產配置</h2>
+          <h2>投資配置</h2>
           <div className="hcr-bar">
             <div style={{ width: `${model.riskAssets.stablePct}%`, background: RISK_COLOR.穩定 }} />
             <div style={{ flex: 1, background: RISK_COLOR.風險 }} />
           </div>
           <div className="hcr-bar-legend">
             <span><i className="hcr-ldot" style={{ background: RISK_COLOR.穩定 }} />穩定收益 {fmtWan(model.riskAssets.stable.total)}({model.riskAssets.stablePct}%)</span>
-            <span>高風險 {fmtWan(model.riskAssets.risky.total)}({model.riskAssets.riskyPct}%)<i className="hcr-ldot" style={{ background: RISK_COLOR.風險 }} /></span>
+            <span>風險報酬 {fmtWan(model.riskAssets.risky.total)}({model.riskAssets.riskyPct}%)<i className="hcr-ldot" style={{ background: RISK_COLOR.風險 }} /></span>
           </div>
           <ul className="hcr-invest" style={{ marginTop: 12 }}>
             {[...model.riskAssets.stable.items.map((i) => ({ ...i, c: RISK_COLOR.穩定 })), ...model.riskAssets.risky.items.map((i) => ({ ...i, c: RISK_COLOR.風險 }))].map((a) => {
@@ -172,8 +172,8 @@ export function HealthCheckReport({ model, variant = "full" }: { model: ReportMo
               );
             })}
           </ul>
-          <div className="hcr-invest-total"><span>風險資產合計</span><span>{fmtWan(model.riskAssets.total)}</span></div>
-          <p className="hcr-note">穩定收益型=收租不動產、投資型/儲蓄保單(以帳戶價值計);高風險型=股票、基金/ETF、外幣黃金加密等。身故保額不列入。</p>
+          <div className="hcr-invest-total"><span>投資配置合計</span><span>{fmtWan(model.riskAssets.total)}</span></div>
+          <p className="hcr-note">穩定收益型=收租不動產、儲蓄保單;風險報酬型=股票、基金/ETF、投資型保單(保單以帳戶價值計)、外幣黃金加密等。身故保額不列入。</p>
         </section>
       )}
 

@@ -50,7 +50,8 @@ export interface Assets {
   stock_overseas: AssetItem; // 海外股票
   fund_etf: AssetItem; // 基金 / ETF
   insurance_protection: AssetItem; // 保單:保障型
-  insurance_savings: AssetItem; // 保單:儲蓄/投資型
+  insurance_invest: AssetItem; // 保單:投資型(風險報酬)
+  insurance_savings: AssetItem; // 保單:儲蓄型(穩定收益)
   real_estate_own: AssetItem; // 不動產:自住
   real_estate_invest: AssetItem; // 不動產:投資
   other: AssetItem; // 其他(外幣/黃金/加密等)

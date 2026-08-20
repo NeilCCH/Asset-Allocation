@@ -13,18 +13,20 @@ const TIME_SLOTS: { period: string; slots: string[] }[] = [
 
 export function ContactAdvisorCard() {
   const [message, setMessage] = useState("");
-  const [time, setTime] = useState("");
+  const [times, setTimes] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
   const [sent, setSent] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
+  const toggleTime = (v: string) => setTimes((prev) => (prev.includes(v) ? prev.filter((t) => t !== v) : [...prev, v]));
+
   const submit = async () => {
     const clientId = loadClientId();
     if (!clientId) return setErr("尚未綁定顧問,請先於上方選擇一位顧問");
-    if (!time) return setErr("請選擇一個方便的時段");
+    if (times.length === 0) return setErr("請至少選擇一個方便的時段");
     setBusy(true);
     setErr(null);
-    const res = await requestContact({ clientId, message, preferredTime: time });
+    const res = await requestContact({ clientId, message, preferredTime: times.join("、") });
     setBusy(false);
     if (res.ok) setSent(true);
     else setErr(res.error);
@@ -52,19 +54,19 @@ export function ContactAdvisorCard() {
       </p>
       <div className="mt-3 space-y-3">
         <div>
-          <p className="mb-1.5 text-sm font-medium text-emerald-900 dark:text-emerald-100">方便的時段</p>
+          <p className="mb-1.5 text-sm font-medium text-emerald-900 dark:text-emerald-100">方便的時段(可複選)</p>
           <div className="space-y-2">
             {TIME_SLOTS.map(({ period, slots }) => (
               <div key={period} className="flex flex-wrap items-center gap-2">
                 <span className="w-8 shrink-0 text-sm text-emerald-800 dark:text-emerald-200">{period}</span>
                 {slots.map((s) => {
                   const value = `${period} ${s}`;
-                  const active = time === value;
+                  const active = times.includes(value);
                   return (
                     <button
                       key={s}
                       type="button"
-                      onClick={() => setTime(active ? "" : value)}
+                      onClick={() => toggleTime(value)}
                       className={`rounded-full border px-3.5 py-1.5 text-sm transition-colors ${
                         active
                           ? "border-emerald-600 bg-emerald-600 text-white"
