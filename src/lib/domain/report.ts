@@ -15,6 +15,7 @@ import {
   type RiskAssetBreakdown,
 } from "./calc";
 import { estimateEstateTax, type EstateTaxResult } from "./estateTax";
+import type { RiskAllocationAnalysis } from "./risk";
 import { personalStatements, type PersonalStatements } from "./statements";
 
 export interface FamilyModel {
@@ -71,6 +72,8 @@ export interface ReportModel {
   selectedDimensions?: { title: string; desc: string }[];
   /** 落款:產出建議的顧問與其資格 */
   advisorSignature?: { name: string; company?: string; title?: string; licenses: { type: string; number?: string }[] };
+  /** 顧問版:風險資產配置分析(RR 對照目標配置缺口) */
+  riskAllocation?: RiskAllocationAnalysis;
 }
 
 export function buildReport(
@@ -80,6 +83,7 @@ export function buildReport(
     advisorRecommendation?: string;
     selectedDimensions?: { title: string; desc: string }[];
     advisorSignature?: { name: string; company?: string; title?: string; licenses: { type: string; number?: string }[] };
+    riskAllocation?: RiskAllocationAnalysis;
   },
 ): ReportModel {
   const params = opts?.params ?? DEFAULT_PARAMS;
@@ -150,6 +154,7 @@ export function buildReport(
     advisorRecommendation: opts?.advisorRecommendation,
     selectedDimensions: opts?.selectedDimensions,
     advisorSignature: opts?.advisorSignature,
+    riskAllocation: opts?.riskAllocation,
   };
 }
 

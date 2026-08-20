@@ -1,7 +1,7 @@
 // 風險屬性評估 — 由系統依「行為題(承受意願)」+「客觀資料(承受能力)」計算,
 // 客戶不自評。承受能力與意願取其低(prudent),對應 RR1–RR5 / 保守~積極型。
 import type { QuestionnaireData } from "./types";
-import { investableAssets, sumAssets } from "./calc";
+import { investableAssets, riskAssetBreakdown, sumAssets } from "./calc";
 
 export interface RiskAssessment {
   capacity: number; // 承受能力 0-100
@@ -64,6 +64,32 @@ export function assessRisk(data: QuestionnaireData): RiskAssessment | null {
   const { profile, rr } = classify(score);
 
   return { capacity, tolerance, score, profile, rr, capacityFactors, toleranceFactors, investableRatio };
+}
+
+// ── 風險資產配置分析(⚠️ 顧問專屬:含 RR 與目標配置,屬顧問決策輔助)──
+// 依風險屬性 RR 給「風險投資占風險資產」之參考目標區間,對照現況算落差(缺口)。
+const TARGET_RISKY_BY_RR: Record<1 | 2 | 3 | 4 | 5, number> = { 1: 20, 2: 35, 3: 50, 4: 65, 5: 80 };
+
+export interface RiskAllocationAnalysis {
+  rr: 1 | 2 | 3 | 4 | 5;
+  profile: string;
+  riskTotal: number;
+  stablePct: number;
+  currentRiskyPct: number; // 現況:風險投資占風險資產
+  targetRiskyPct: number; // 依 RR 之參考目標
+  gap: number; // 現況 − 目標(正=偏積極,負=偏保守)
+  status: "偏積極" | "偏保守" | "相符";
+}
+
+export function riskAllocationAnalysis(data: QuestionnaireData): RiskAllocationAnalysis | null {
+  const risk = assessRisk(data);
+  if (!risk) return null;
+  const ra = riskAssetBreakdown(data.core.assets);
+  if (ra.total <= 0) return null;
+  const targetRiskyPct = TARGET_RISKY_BY_RR[risk.rr];
+  const gap = ra.riskyPct - targetRiskyPct;
+  const status = Math.abs(gap) <= 10 ? "相符" : gap > 0 ? "偏積極" : "偏保守";
+  return { rr: risk.rr, profile: risk.profile, riskTotal: ra.total, stablePct: ra.stablePct, currentRiskyPct: ra.riskyPct, targetRiskyPct, gap, status };
 }
 
 function classify(score: number): { profile: string; rr: 1 | 2 | 3 | 4 | 5 } {

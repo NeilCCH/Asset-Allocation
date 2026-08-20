@@ -9,9 +9,10 @@ import { computeInheritance } from "@/lib/domain/inheritance";
 import { groupLicensesByCategory, type AdvisorLicense } from "@/lib/domain/licenses";
 
 const GAP_FORMULA: Record<string, string> = {
-  退休金缺口: "退休後總支出需求 − (現有資產成長估計 + 未來持續投入估計)",
-  保障缺口: "(未償負債 + 扶養支出 + 子女教育金) − (現有壽險保額 + 流動資產)",
-  教育金缺口: "Σ 每位子女(每年教育+生活預算 × 就讀年數),依就學時程折現",
+  退休金缺口:
+    "退休後總支出需求 − (現有可投資資產成長 + 未來持續投入)。支出需求=退休首年年支出×(1+通膨)^距退休年數×退休年數;資產成長以年報酬複利;未來投入採成長型年金(每年投入依薪資成長率成長、以年報酬複利)",
+  保障缺口: "(未償負債 + 未來扶養支出 + 子女教育金) − (現有壽險保額 + 流動資產)",
+  教育金缺口: "Σ 每位子女(每年教育+生活預算 × 就讀年數),依距就學年數以報酬率折現",
 };
 
 // 資產三分類配色
@@ -173,6 +174,29 @@ export function HealthCheckReport({ model, variant = "full" }: { model: ReportMo
           </ul>
           <div className="hcr-invest-total"><span>風險資產合計</span><span>{fmtWan(model.riskAssets.total)}</span></div>
           <p className="hcr-note">穩定收益型=收租不動產、投資型/儲蓄保單(以帳戶價值計);高風險型=股票、基金/ETF、外幣黃金加密等。身故保額不列入。</p>
+        </section>
+      )}
+
+      {/* 風險屬性與配置落差(⚠️ 顧問參考,僅完整版) */}
+      {full && model.riskAllocation && (
+        <section className="hcr-card hcr-advisor">
+          <h2>風險屬性與配置落差(顧問參考)</h2>
+          <div className="hcr-stats">
+            <Stat label="風險屬性" value={`RR${model.riskAllocation.rr}`} sub={model.riskAllocation.profile} />
+            <Stat label="現況風險投資" value={`${model.riskAllocation.currentRiskyPct}%`} sub="占風險資產" />
+            <Stat label="參考目標" value={`${model.riskAllocation.targetRiskyPct}%`} sub={`落差 ${model.riskAllocation.gap > 0 ? "+" : ""}${model.riskAllocation.gap}%`} />
+          </div>
+          <div className={`hcr-gap ${model.riskAllocation.status === "相符" ? "ok" : "short"}`} style={{ marginTop: 12 }}>
+            <span className="hcr-gap-name">配置落差</span>
+            <span className="hcr-gap-val">
+              {model.riskAllocation.status}
+              {model.riskAllocation.status !== "相符" ? `(${model.riskAllocation.gap > 0 ? "+" : ""}${model.riskAllocation.gap}%)` : ""}
+            </span>
+          </div>
+          <p className="hcr-note">
+            依風險屬性 RR{model.riskAllocation.rr} 之參考目標「風險投資占風險資產約 {model.riskAllocation.targetRiskyPct}%」對照現況 {model.riskAllocation.currentRiskyPct}%,
+            落差 {model.riskAllocation.gap > 0 ? "+" : ""}{model.riskAllocation.gap}%({model.riskAllocation.status})。此為客觀規則參考,實際配置由顧問依專業判斷提供。
+          </p>
         </section>
       )}
 

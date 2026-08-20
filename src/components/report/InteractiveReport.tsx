@@ -6,6 +6,7 @@ import { BackLink } from "@/components/ui/BackLink";
 import type { QuestionnaireData } from "@/lib/domain/types";
 import { CalcParams } from "@/lib/domain/params";
 import { buildReport } from "@/lib/domain/report";
+import { riskAllocationAnalysis } from "@/lib/domain/risk";
 import { HealthCheckReport } from "./HealthCheckReport";
 import { PrintButton } from "./PrintButton";
 
@@ -29,9 +30,10 @@ export function InteractiveReport({
   const setParam = (k: keyof CalcParams, v: number) => setParams((p) => ({ ...p, [k]: v }));
   const isDefault = JSON.stringify(params) === JSON.stringify(initialParams);
 
+  const riskAllocation = useMemo(() => riskAllocationAnalysis(data) ?? undefined, [data]);
   const model = useMemo(
-    () => buildReport(data, { params, advisorRecommendation, selectedDimensions, advisorSignature }),
-    [data, params, advisorRecommendation, selectedDimensions, advisorSignature],
+    () => buildReport(data, { params, advisorRecommendation, selectedDimensions, advisorSignature, riskAllocation }),
+    [data, params, advisorRecommendation, selectedDimensions, advisorSignature, riskAllocation],
   );
 
   return (
