@@ -17,7 +17,6 @@ export function ProfileForm({ advisor }: { advisor: AdvisorProfile }) {
   const [jobTitle, setJobTitle] = useState(advisor.job_title ?? "");
   const [mobile, setMobile] = useState(advisor.mobile ?? "");
   const [website, setWebsite] = useState(advisor.website ?? "");
-  const [facebook, setFacebook] = useState(advisor.facebook_url ?? "");
   const [licenseNos, setLicenseNos] = useState<Partial<Record<LicenseType, string>>>(() =>
     Object.fromEntries(advisor.licenses.map((l) => [l.type, l.number ?? ""])) as Partial<Record<LicenseType, string>>,
   );
@@ -47,7 +46,6 @@ export function ProfileForm({ advisor }: { advisor: AdvisorProfile }) {
       jobTitle: jobTitle.trim() || undefined,
       mobile: mobile.trim(),
       website: website.trim() || undefined,
-      facebook: facebook.trim() || undefined,
       licenses: licenseEntries.map(([type, number]) => ({ type, number: number.trim() || undefined })),
     });
     setBusy(false);
@@ -88,17 +86,11 @@ export function ProfileForm({ advisor }: { advisor: AdvisorProfile }) {
         <input value={mobile} onChange={(e) => setMobile(e.target.value)} className={inputCls} placeholder="0912-345-678" />
       </label>
 
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        <label className="block">
-          <span className="text-sm font-medium">個人網頁</span>
-          <input value={website} onChange={(e) => setWebsite(e.target.value)} className={inputCls} placeholder="https://(選填)" inputMode="url" />
-        </label>
-        <label className="block">
-          <span className="text-sm font-medium">Facebook</span>
-          <input value={facebook} onChange={(e) => setFacebook(e.target.value)} className={inputCls} placeholder="https://facebook.com/…(選填)" inputMode="url" />
-        </label>
-      </div>
-      <p className="-mt-2 text-xs text-neutral-400">個人網頁 / FB 會顯示在客戶端的顧問推薦卡,方便客戶了解你、與你聯繫。</p>
+      <label className="block">
+        <span className="text-sm font-medium">個人介紹連結</span>
+        <input value={website} onChange={(e) => setWebsite(e.target.value)} className={inputCls} placeholder="官網 / FB / IG / Linktree…(選填)" inputMode="url" />
+      </label>
+      <p className="-mt-2 text-xs text-neutral-400">會以「認識我」按鈕顯示在客戶端的顧問推薦卡。免輸入 http://,直接貼網址即可。</p>
 
       <div>
         <span className="text-sm font-medium">專業證照</span>

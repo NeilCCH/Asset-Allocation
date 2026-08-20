@@ -449,19 +449,16 @@ function UnlockCard({
                     </p>
                   </div>
                 )}
-                {(a.website || a.facebook) && (
-                  <p className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs">
-                    {a.website && (
-                      <a href={a.website} target="_blank" rel="noopener noreferrer nofollow" onClick={(e) => e.stopPropagation()} className="font-medium text-sky-600 hover:underline dark:text-sky-400">
-                        個人網頁
-                      </a>
-                    )}
-                    {a.facebook && (
-                      <a href={a.facebook} target="_blank" rel="noopener noreferrer nofollow" onClick={(e) => e.stopPropagation()} className="font-medium text-sky-600 hover:underline dark:text-sky-400">
-                        Facebook
-                      </a>
-                    )}
-                  </p>
+                {a.website && (
+                  <a
+                    href={/^https?:\/\//i.test(a.website) ? a.website : `https://${a.website}`}
+                    target="_blank"
+                    rel="noopener noreferrer nofollow"
+                    onClick={(e) => e.stopPropagation()}
+                    className="mt-2 inline-flex items-center gap-1 rounded-full border border-sky-300 bg-sky-50 px-3 py-1 text-xs font-semibold text-sky-700 hover:bg-sky-100 dark:border-sky-800 dark:bg-sky-950/40 dark:text-sky-300 dark:hover:bg-sky-900/50"
+                  >
+                    認識我 →
+                  </a>
                 )}
               </div>
               <button

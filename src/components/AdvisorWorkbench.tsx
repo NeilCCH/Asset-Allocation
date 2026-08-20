@@ -146,9 +146,10 @@ export function AdvisorWorkbench({
         </div>
 
         {/* 可調參數 */}
-        <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3">
           <ParamInput label="年報酬率" suffix="%" value={params.returnRate * 100} onChange={(v) => setParam("returnRate", v / 100)} step={0.5} />
           <ParamInput label="通膨率" suffix="%" value={params.inflationRate * 100} onChange={(v) => setParam("inflationRate", v / 100)} step={0.5} />
+          <ParamInput label="薪資成長率" suffix="%" value={params.salaryGrowthRate * 100} onChange={(v) => setParam("salaryGrowthRate", v / 100)} step={0.5} />
           <ParamInput label="預估餘命" suffix="歲" value={params.lifeExpectancy} onChange={(v) => setParam("lifeExpectancy", v)} step={1} />
           <ParamInput label="所得替代率" suffix="%" value={params.defaultRetireLifestylePct} onChange={(v) => setParam("defaultRetireLifestylePct", v)} step={5} />
         </div>

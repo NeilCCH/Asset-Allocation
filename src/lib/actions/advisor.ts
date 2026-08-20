@@ -4,6 +4,13 @@
 import { createServerSupabase, createServiceSupabase } from "@/lib/supabase/server";
 import type { AdvisorLicense } from "@/lib/domain/licenses";
 
+/** 個人介紹連結正規化:免輸入協定,自動補 https://。空值回 null。 */
+function normalizeUrl(u?: string): string | null {
+  const s = (u ?? "").trim();
+  if (!s) return null;
+  return /^https?:\/\//i.test(s) ? s : `https://${s}`;
+}
+
 function genReferralCode(): string {
   const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // 去除易混淆字元
   let s = "";
@@ -86,7 +93,6 @@ export async function updateAdvisorProfile(input: {
   jobTitle?: string;
   mobile: string;
   website?: string;
-  facebook?: string;
   licenses: AdvisorLicense[];
 }): Promise<{ ok: true } | { ok: false; error: string }> {
   const supabase = await createServerSupabase();
@@ -103,10 +109,10 @@ export async function updateAdvisorProfile(input: {
     .from("advisors")
     .update({ company_name: input.companyName?.trim() || null, job_title: input.jobTitle?.trim() || null })
     .eq("id", auth.user.id);
-  // 個人網頁 / Facebook:best-effort(migration 0007 未執行時忽略)
+  // 個人介紹連結:best-effort(migration 0007 未執行時忽略)。存於 website 欄,自動補 https://。
   await supabase
     .from("advisors")
-    .update({ website: input.website?.trim() || null, facebook_url: input.facebook?.trim() || null })
+    .update({ website: normalizeUrl(input.website) })
     .eq("id", auth.user.id);
   return { ok: true };
 }

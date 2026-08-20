@@ -93,6 +93,13 @@ function fvAnnuity(pmt: number, rate: number, years: number): number {
   return pmt * ((Math.pow(1 + rate, years) - 1) / rate);
 }
 
+/** 成長型年金終值:首年投入 pmt,之後每年以 growth 成長,期間以 rate 複利。 */
+function fvGrowingAnnuity(pmt: number, rate: number, growth: number, years: number): number {
+  if (years <= 0) return 0;
+  if (Math.abs(rate - growth) < 1e-9) return pmt * years * Math.pow(1 + rate, years - 1);
+  return (pmt * (Math.pow(1 + rate, years) - Math.pow(1 + growth, years))) / (rate - growth);
+}
+
 /** 目前年支出估計 = 年收入 − 年結餘(透明推導,無另問開銷) */
 function estimateAnnualExpense(data: QuestionnaireData): number {
   const annualIncome = INCOME_BAND_VALUE[data.core.income_band] ?? 0;
@@ -140,7 +147,8 @@ export function retirementGap(
   // 退休時可累積資產 = 現有可投資資產成長 + 未來持續投入終值
   const grownCurrent = grow(investableAssets(core.assets), params.returnRate, yearsToRetire);
   const annualContribution = Math.max(0, (SURPLUS_BAND_VALUE[core.surplus_band] ?? 0) * 12);
-  const contributions = fvAnnuity(annualContribution, params.returnRate, yearsToRetire);
+  // 未來每年可投入金額依「期望薪資成長率」逐年成長
+  const contributions = fvGrowingAnnuity(annualContribution, params.returnRate, params.salaryGrowthRate, yearsToRetire);
   const accumulable = grownCurrent + contributions + pensionTotal;
 
   const gap = round(totalNeed - accumulable);
@@ -339,7 +347,8 @@ export function retirementReserve(
   const currentAssetsGrown = grow(investableAssets(core.assets), r, yearsToRetire);
   const shortfall = Math.max(0, capitalAtRetirement - currentAssetsGrown);
 
-  const fvFactor = yearsToRetire <= 0 ? 0 : r === 0 ? yearsToRetire : (Math.pow(1 + r, yearsToRetire) - 1) / r;
+  // 首年需存金額(之後每年依薪資成長率成長):以成長型年金因子回推
+  const fvFactor = fvGrowingAnnuity(1, r, params.salaryGrowthRate, yearsToRetire);
   const requiredAnnualSaving = fvFactor > 0 ? shortfall / fvFactor : shortfall;
 
   return {

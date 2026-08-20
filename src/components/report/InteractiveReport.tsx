@@ -53,9 +53,10 @@ export function InteractiveReport({
               </button>
             )}
           </div>
-          <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3">
             <P label="年報酬率" suffix="%" value={params.returnRate * 100} step={0.5} onChange={(v) => setParam("returnRate", v / 100)} />
             <P label="通膨率" suffix="%" value={params.inflationRate * 100} step={0.5} onChange={(v) => setParam("inflationRate", v / 100)} />
+            <P label="薪資成長率" suffix="%" value={params.salaryGrowthRate * 100} step={0.5} onChange={(v) => setParam("salaryGrowthRate", v / 100)} />
             <P label="預估餘命" suffix="歲" value={params.lifeExpectancy} step={1} onChange={(v) => setParam("lifeExpectancy", v)} />
             <P label="所得替代率" suffix="%" value={params.defaultRetireLifestylePct} step={5} onChange={(v) => setParam("defaultRetireLifestylePct", v)} />
           </div>

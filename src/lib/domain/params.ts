@@ -6,6 +6,8 @@ export interface CalcParams {
   returnRate: number;
   /** 年化通膨率假設 */
   inflationRate: number;
+  /** 期望薪資成長率(年化)— 未來每年可投入金額依此成長 */
+  salaryGrowthRate: number;
   /** 預估餘命(歲)— 退休後年數 = lifeExpectancy − 退休年齡 */
   lifeExpectancy: number;
   /** 退休後想維持的生活水準預設(目前開銷幾成),未填深化題時採用 */
@@ -29,6 +31,7 @@ export interface CalcParams {
 export const DEFAULT_PARAMS: CalcParams = {
   returnRate: 0.04,
   inflationRate: 0.02,
+  salaryGrowthRate: 0.02, // 每年可投入金額成長率(薪資成長)
   lifeExpectancy: 84, // 預設;實際依客戶性別帶入台灣平均餘命(見下)
   defaultRetireLifestylePct: 70,
   dependentSupportAnnual: 15,
