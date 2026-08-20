@@ -219,7 +219,8 @@ export default function Assessment() {
     const p = loadProgress();
     const done = !!loadDraft();
     if (p) {
-      setF({ ...initialForm, ...p.f });
+      // 合併舊進度時,資產欄位以 emptyAssets 打底,確保新增欄位(外幣/黃金/加密/退休專戶等)不缺鍵而崩潰
+      setF({ ...initialForm, ...p.f, assets: { ...emptyAssets, ...(p.f?.assets ?? {}) } });
       setStep(p.step ?? 0);
       setMaxStep(done ? STEPS.length - 1 : p.maxStep ?? p.step ?? 0);
     } else if (done) {
