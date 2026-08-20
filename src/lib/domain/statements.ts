@@ -50,8 +50,9 @@ export function personalStatements(data: QuestionnaireData): PersonalStatements 
   const { core, deep } = data;
 
   // ── 資產負債表 ──
+  // 保障型保單不計入資產(獨立顯示)
   const assets: Line[] = assetBreakdown(core.assets)
-    .filter((a) => a.amount > 0)
+    .filter((a) => a.amount > 0 && a.assetClass !== "保障")
     .map((a) => ({ label: a.label, amount: a.amount }));
   const totalAssets = assets.reduce((s, a) => s + a.amount, 0);
 

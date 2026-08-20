@@ -14,12 +14,16 @@ const GAP_FORMULA: Record<string, string> = {
   教育金缺口: "Σ 每位子女(每年教育+生活預算 × 就讀年數),依就學時程折現",
 };
 
-const CAT_COLOR: Record<string, string> = {
-  流動: "#10b981",
-  投資: "#0ea5e9",
-  保障: "#8b5cf6",
-  不動產: "#f59e0b",
-  其他: "#94a3b8",
+// 資產三分類配色
+const CLASS_COLOR: Record<string, string> = {
+  流動: "#0ea5e9",
+  固定: "#f59e0b",
+  風險: "#8b5cf6",
+};
+// 風險資產:穩定 vs 高風險
+const RISK_COLOR: Record<string, string> = {
+  穩定: "#10b981",
+  風險: "#f43f5e",
 };
 
 function Donut({ segments }: { segments: { label: string; value: number; color: string }[] }) {
@@ -61,23 +65,21 @@ function Donut({ segments }: { segments: { label: string; value: number; color: 
 export function HealthCheckReport({ model, variant = "full" }: { model: ReportModel; variant?: "simple" | "full" }) {
   const full = variant === "full";
   const family = model.family;
-  const catTotals = new Map<string, number>();
-  model.assets.forEach((a) => catTotals.set(a.category, (catTotals.get(a.category) ?? 0) + a.amount));
-  const segments = [...catTotals.entries()].map(([label, value]) => ({
-    label,
-    value,
-    color: CAT_COLOR[label] ?? "#94a3b8",
+  // 資產分布以三分類(固定 / 流動 / 風險)呈現
+  const segments = model.assetClasses.map((c) => ({
+    label: c.assetClass,
+    value: c.amount,
+    color: CLASS_COLOR[c.assetClass] ?? "#94a3b8",
   }));
 
   // 健檢重點 — 客觀事實摘要(非建議)
-  const topCat = [...catTotals.entries()].sort((a, b) => b[1] - a[1])[0];
-  const topCatPct = topCat && model.summary.total > 0 ? Math.round((topCat[1] / model.summary.total) * 100) : 0;
+  const topCls = [...model.assetClasses].sort((a, b) => b.amount - a.amount)[0];
   const computedGaps = model.gaps.filter((g) => g.result.status === "computed");
   const shortfalls = computedGaps.filter((g) => g.result.gap > 0).map((g) => g.name.replace(/缺口$/, ""));
   const pendingGaps = model.gaps.filter((g) => g.result.status === "needs_deep_data").length;
   const highlights: string[] = [];
-  if (topCat) highlights.push(`資產以「${topCat[0]}」為主,約占 ${topCatPct}%;流動資產占 ${model.summary.liquidPct}%。`);
-  highlights.push(`保障型與投資型比重為 ${model.summary.protectionPct}% : ${100 - model.summary.protectionPct}%。`);
+  if (topCls) highlights.push(`資產以「${topCls.assetClass}資產」為主,約占 ${topCls.pct}%;流動資產占 ${model.summary.liquidPct}%、風險資產占 ${model.summary.riskPct}%。`);
+  if (model.summary.protection > 0) highlights.push(`另有保障型保單 ${fmtWan(model.summary.protection)}(獨立於資產,不計入總額)。`);
   if (shortfalls.length) highlights.push(`試算顯示 ${shortfalls.join("、")} 有缺口(詳見下方明細)。`);
   else if (computedGaps.length) highlights.push(`已試算之缺口項目均達標。`);
   if (pendingGaps > 0) highlights.push(`另有 ${pendingGaps} 項缺口待補充深化資料後試算。`);
@@ -98,11 +100,11 @@ export function HealthCheckReport({ model, variant = "full" }: { model: ReportMo
         <div className="hcr-date">產出日期<br />{model.generatedAt}</div>
       </header>
 
-      {/* 關鍵數字 */}
+      {/* 關鍵數字(資產總額不含保障型保單) */}
       <section className="hcr-stats">
-        <Stat label="資產總額" value={fmtWan(model.summary.total)} />
-        <Stat label="流動資產" value={`${model.summary.liquidPct}%`} sub={fmtWan(model.summary.liquid)} />
-        <Stat label="保障型占比" value={`${model.summary.protectionPct}%`} sub="保障 vs 投資" />
+        <Stat label="資產總額" value={fmtWan(model.summary.total)} sub="不含保障型保單" />
+        <Stat label="流動資產占比" value={`${model.summary.liquidPct}%`} sub={fmtWan(model.summary.liquid)} />
+        <Stat label="風險資產占比" value={`${model.summary.riskPct}%`} sub={fmtWan(model.summary.riskTotal)} />
       </section>
 
       {/* 健檢重點(客觀摘要) */}
@@ -120,7 +122,7 @@ export function HealthCheckReport({ model, variant = "full" }: { model: ReportMo
       {/* 家庭財務報表(參考公司三表結構) */}
       <PersonalStatementsBlock s={model.statements} />
 
-      {/* 資產分布 */}
+      {/* 資產分布(固定 / 流動 / 風險 三類;保障獨立) */}
       <section className="hcr-card">
         <h2>資產類別分布</h2>
         <div className="hcr-dist">
@@ -128,55 +130,51 @@ export function HealthCheckReport({ model, variant = "full" }: { model: ReportMo
           <ul className="hcr-legend">
             {model.assets.map((a) => (
               <li key={a.label}>
-                <span className="hcr-dot" style={{ background: CAT_COLOR[a.category] ?? "#94a3b8" }} />
+                <span className="hcr-dot" style={{ background: CLASS_COLOR[a.assetClass] ?? "#94a3b8" }} />
                 <span className="hcr-legend-label">{a.label}</span>
                 <span className="hcr-legend-val">{fmtWan(a.amount)}<em>{a.pct}%</em></span>
               </li>
             ))}
           </ul>
         </div>
+        {model.summary.protection > 0 && (
+          <div className="hcr-gap short" style={{ marginTop: 12 }}>
+            <span className="hcr-gap-name">保障型保單(獨立顯示,不計入資產總額)</span>
+            <span className="hcr-gap-val">{fmtWan(model.summary.protection)}</span>
+          </div>
+        )}
       </section>
 
-      {/* 保障 vs 投資 */}
-      <section className="hcr-card">
-        <h2>保障 vs 投資 比重</h2>
-        <div className="hcr-bar">
-          <div style={{ width: pct(model.summary.protection, model.summary.investment), background: "#8b5cf6" }} />
-          <div style={{ flex: 1, background: "#0ea5e9" }} />
-        </div>
-        <div className="hcr-bar-legend">
-          <span><i className="hcr-ldot" style={{ background: "#8b5cf6" }} />保障型 {fmtWan(model.summary.protection)}</span>
-          <span>投資型 {fmtWan(model.summary.investment)}<i className="hcr-ldot" style={{ background: "#0ea5e9" }} /></span>
-        </div>
-      </section>
-
-      {/* 投資組合分析(投資型保單以帳戶價值計,保額不列入) */}
-      {(() => {
-        const inv = model.assets.filter((a) => a.category === "投資" && a.amount > 0);
-        const invTotal = inv.reduce((s, a) => s + a.amount, 0);
-        if (invTotal === 0) return null;
-        return (
-          <section className="hcr-card">
-            <h2>投資組合分析</h2>
-            <ul className="hcr-invest">
-              {inv.map((a) => {
-                const p = Math.round((a.amount / invTotal) * 100);
-                return (
-                  <li key={a.label}>
-                    <div className="hcr-invest-row">
-                      <span>{a.label}</span>
-                      <span>{fmtWan(a.amount)}<em>{p}%</em></span>
-                    </div>
-                    <div className="hcr-invest-bar"><div style={{ width: `${p}%` }} /></div>
-                  </li>
-                );
-              })}
-            </ul>
-            <div className="hcr-invest-total"><span>投資資產合計</span><span>{fmtWan(invTotal)}</span></div>
-            <p className="hcr-note">投資型/儲蓄保單以「帳戶價值(現金價值)」計入,身故保額不列入投資統計,以反映實際可運用的投資部位。</p>
-          </section>
-        );
-      })()}
+      {/* 風險資產配置:穩定收益 vs 高風險 */}
+      {model.riskAssets.total > 0 && (
+        <section className="hcr-card">
+          <h2>風險資產配置</h2>
+          <div className="hcr-bar">
+            <div style={{ width: `${model.riskAssets.stablePct}%`, background: RISK_COLOR.穩定 }} />
+            <div style={{ flex: 1, background: RISK_COLOR.風險 }} />
+          </div>
+          <div className="hcr-bar-legend">
+            <span><i className="hcr-ldot" style={{ background: RISK_COLOR.穩定 }} />穩定收益 {fmtWan(model.riskAssets.stable.total)}({model.riskAssets.stablePct}%)</span>
+            <span>高風險 {fmtWan(model.riskAssets.risky.total)}({model.riskAssets.riskyPct}%)<i className="hcr-ldot" style={{ background: RISK_COLOR.風險 }} /></span>
+          </div>
+          <ul className="hcr-invest" style={{ marginTop: 12 }}>
+            {[...model.riskAssets.stable.items.map((i) => ({ ...i, c: RISK_COLOR.穩定 })), ...model.riskAssets.risky.items.map((i) => ({ ...i, c: RISK_COLOR.風險 }))].map((a) => {
+              const p = Math.round((a.amount / model.riskAssets.total) * 100);
+              return (
+                <li key={a.key}>
+                  <div className="hcr-invest-row">
+                    <span><i className="hcr-ldot" style={{ background: a.c }} />{a.label}</span>
+                    <span>{fmtWan(a.amount)}<em>{p}%</em></span>
+                  </div>
+                  <div className="hcr-invest-bar"><div style={{ width: `${p}%`, background: a.c }} /></div>
+                </li>
+              );
+            })}
+          </ul>
+          <div className="hcr-invest-total"><span>風險資產合計</span><span>{fmtWan(model.riskAssets.total)}</span></div>
+          <p className="hcr-note">穩定收益型=收租不動產、投資型/儲蓄保單(以帳戶價值計);高風險型=股票、基金/ETF、外幣黃金加密等。身故保額不列入。</p>
+        </section>
+      )}
 
       {/* 缺口概況 */}
       <section className="hcr-card">
@@ -522,10 +520,6 @@ function Stat({ label, value, sub }: { label: string; value: string; sub?: strin
   );
 }
 
-function pct(a: number, b: number): string {
-  const t = a + b;
-  return t > 0 ? `${(a / t) * 100}%` : "50%";
-}
 function pctNum(r: number): string {
   return `${(r * 100).toFixed(1)}%`;
 }

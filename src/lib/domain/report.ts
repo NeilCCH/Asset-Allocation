@@ -4,14 +4,15 @@ import type { QuestionnaireData, InsuranceDetail } from "./types";
 import { CalcParams, DEFAULT_PARAMS } from "./params";
 import {
   assetBreakdown,
+  assetClassBreakdown,
   computeGaps,
   gapSolutions,
   investableAssets,
-  liquidAssets,
-  protectionVsInvestment,
+  riskAssetBreakdown,
   sumAssets,
   type GapResult,
   type GapSolution,
+  type RiskAssetBreakdown,
 } from "./calc";
 import { estimateEstateTax, type EstateTaxResult } from "./estateTax";
 import { personalStatements, type PersonalStatements } from "./statements";
@@ -32,15 +33,19 @@ export interface ReportModel {
   generatedAt: string;
   params: CalcParams;
   summary: {
-    total: number;
+    total: number; // 資產總額(不含保障型保單)
     liquid: number;
     liquidPct: number;
     investable: number;
-    protection: number;
-    investment: number;
-    protectionPct: number;
+    protection: number; // 保障型保單(獨立於資產)
+    riskTotal: number; // 風險資產合計
+    riskPct: number; // 風險資產占總資產
   };
-  assets: { label: string; category: string; amount: number; pct: number }[];
+  assets: { label: string; category: string; assetClass: string; amount: number; pct: number }[];
+  /** 資產三分類分布(固定 / 流動 / 風險) */
+  assetClasses: { assetClass: "流動" | "固定" | "風險"; amount: number; pct: number }[];
+  /** 風險資產:穩定收益 vs 高風險 */
+  riskAssets: RiskAssetBreakdown;
   gaps: { name: string; result: GapResult }[];
   /** 現有保障總覽(保單健檢,本人) */
   insurance: { label: string; has: boolean; text: string }[];
@@ -79,10 +84,10 @@ export function buildReport(
 ): ReportModel {
   const params = opts?.params ?? DEFAULT_PARAMS;
   const total = sumAssets(data.core.assets);
-  const liquid = liquidAssets(data.core.assets);
   const investable = investableAssets(data.core.assets);
-  const pvi = protectionVsInvestment(data.core.assets);
-  const pviTotal = pvi.protection + pvi.investment;
+  const cls = assetClassBreakdown(data.core.assets);
+  const riskAssets = riskAssetBreakdown(data.core.assets);
+  const liquid = cls.slices.find((s) => s.assetClass === "流動")?.amount ?? 0;
   const gaps = computeGaps(data, params);
 
   return {
@@ -94,15 +99,18 @@ export function buildReport(
       liquid,
       liquidPct: total > 0 ? Math.round((liquid / total) * 100) : 0,
       investable,
-      protection: pvi.protection,
-      investment: pvi.investment,
-      protectionPct: pviTotal > 0 ? Math.round((pvi.protection / pviTotal) * 100) : 0,
+      protection: cls.protection,
+      riskTotal: riskAssets.total,
+      riskPct: total > 0 ? Math.round((riskAssets.total / total) * 100) : 0,
     },
+    assetClasses: cls.slices.map((s) => ({ assetClass: s.assetClass, amount: s.amount, pct: s.pct })),
+    riskAssets,
     assets: assetBreakdown(data.core.assets)
-      .filter((a) => a.amount > 0)
+      .filter((a) => a.amount > 0 && a.assetClass !== "保障")
       .map((a) => ({
         label: a.label,
         category: a.category,
+        assetClass: a.assetClass,
         amount: a.amount,
         pct: total > 0 ? Math.round((a.amount / total) * 100) : 0,
       })),

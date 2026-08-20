@@ -11,26 +11,33 @@ import {
 
 // ── 資產彙整(現況全貌圖來源) ─────────────────────────
 
+// 資產三分類(固定 / 流動 / 風險);保障型保單不計入資產,獨立顯示。
+export type AssetClass = "流動" | "固定" | "風險" | "保障";
+// 風險資產再分:穩定(收租/配息等穩定收益)vs 風險(高波動)
+export type RiskType = "穩定" | "風險";
+
 export interface AssetBreakdown {
   label: string;
   key: keyof Assets;
   amount: number;
-  category: "流動" | "投資" | "保障" | "不動產" | "其他";
+  category: "流動" | "投資" | "保障" | "不動產" | "其他"; // 舊分類(保留給既有計算)
+  assetClass: AssetClass;
+  riskType?: RiskType;
 }
 
 const ASSET_META: Record<
   keyof Assets,
-  { label: string; category: AssetBreakdown["category"]; liquid: boolean; investable: boolean }
+  { label: string; category: AssetBreakdown["category"]; assetClass: AssetClass; riskType?: RiskType; liquid: boolean; investable: boolean }
 > = {
-  cash: { label: "現金存款", category: "流動", liquid: true, investable: true },
-  stock_tw: { label: "台股", category: "投資", liquid: true, investable: true },
-  stock_overseas: { label: "海外股票", category: "投資", liquid: true, investable: true },
-  fund_etf: { label: "基金/ETF", category: "投資", liquid: true, investable: true },
-  insurance_protection: { label: "保單(保障型)", category: "保障", liquid: false, investable: false },
-  insurance_savings: { label: "投資型/儲蓄保單", category: "投資", liquid: false, investable: true },
-  real_estate_own: { label: "不動產(自住)", category: "不動產", liquid: false, investable: false },
-  real_estate_invest: { label: "不動產(投資)", category: "不動產", liquid: false, investable: false },
-  other: { label: "其他(外幣/黃金/加密等)", category: "其他", liquid: true, investable: true },
+  cash: { label: "現金存款", category: "流動", assetClass: "流動", liquid: true, investable: true },
+  stock_tw: { label: "台股", category: "投資", assetClass: "風險", riskType: "風險", liquid: true, investable: true },
+  stock_overseas: { label: "海外股票", category: "投資", assetClass: "風險", riskType: "風險", liquid: true, investable: true },
+  fund_etf: { label: "基金/ETF", category: "投資", assetClass: "風險", riskType: "風險", liquid: true, investable: true },
+  insurance_protection: { label: "保單(保障型)", category: "保障", assetClass: "保障", liquid: false, investable: false },
+  insurance_savings: { label: "投資型/儲蓄保單", category: "投資", assetClass: "風險", riskType: "穩定", liquid: false, investable: true },
+  real_estate_own: { label: "不動產(自住)", category: "不動產", assetClass: "固定", liquid: false, investable: false },
+  real_estate_invest: { label: "不動產(投資)", category: "不動產", assetClass: "風險", riskType: "穩定", liquid: false, investable: false },
+  other: { label: "其他(外幣/黃金/加密等)", category: "其他", assetClass: "風險", riskType: "風險", liquid: true, investable: true },
 };
 
 export function assetBreakdown(assets: Assets): AssetBreakdown[] {
@@ -39,11 +46,67 @@ export function assetBreakdown(assets: Assets): AssetBreakdown[] {
     label: ASSET_META[key].label,
     amount: assets[key].has ? Math.max(0, assets[key].amount) : 0,
     category: ASSET_META[key].category,
+    assetClass: ASSET_META[key].assetClass,
+    riskType: ASSET_META[key].riskType,
   }));
 }
 
+/** 資產總額 — ⚠️ 不含保障型保單(保障不視為可運用資產,獨立顯示)。 */
 export function sumAssets(assets: Assets): number {
-  return assetBreakdown(assets).reduce((s, a) => s + a.amount, 0);
+  return assetBreakdown(assets)
+    .filter((a) => a.assetClass !== "保障")
+    .reduce((s, a) => s + a.amount, 0);
+}
+
+/** 保障型保單金額(獨立於資產總額) */
+export const protectionAssets = (assets: Assets) => sumBy(assets, (m) => m.assetClass === "保障");
+
+// 資產三分類分布(固定 / 流動 / 風險),另附獨立的保障金額
+export interface ClassSlice {
+  assetClass: "流動" | "固定" | "風險";
+  amount: number;
+  pct: number;
+}
+export function assetClassBreakdown(assets: Assets): { slices: ClassSlice[]; total: number; protection: number } {
+  const total = sumAssets(assets);
+  const order: ClassSlice["assetClass"][] = ["流動", "固定", "風險"];
+  const slices = order
+    .map((c) => {
+      const amount = sumBy(assets, (m) => m.assetClass === c);
+      return { assetClass: c, amount, pct: total > 0 ? Math.round((amount / total) * 100) : 0 };
+    })
+    .filter((s) => s.amount > 0);
+  return { slices, total, protection: protectionAssets(assets) };
+}
+
+// 風險資產:穩定 vs 風險 兩組明細與比重
+export interface RiskAssetGroup {
+  items: { key: keyof Assets; label: string; amount: number; pct: number }[];
+  total: number;
+}
+export interface RiskAssetBreakdown {
+  stable: RiskAssetGroup;
+  risky: RiskAssetGroup;
+  total: number;
+  stablePct: number;
+  riskyPct: number;
+}
+export function riskAssetBreakdown(assets: Assets): RiskAssetBreakdown {
+  const build = (rt: RiskType): RiskAssetGroup => {
+    const raw = (Object.keys(ASSET_META) as (keyof Assets)[])
+      .filter((k) => ASSET_META[k].riskType === rt)
+      .map((k) => ({ key: k, label: ASSET_META[k].label, amount: assets[k].has ? Math.max(0, assets[k].amount) : 0 }))
+      .filter((i) => i.amount > 0);
+    const total = raw.reduce((s, i) => s + i.amount, 0);
+    return {
+      total,
+      items: raw.map((i) => ({ ...i, pct: total > 0 ? Math.round((i.amount / total) * 100) : 0 })).sort((a, b) => b.amount - a.amount),
+    };
+  };
+  const stable = build("穩定");
+  const risky = build("風險");
+  const total = stable.total + risky.total;
+  return { stable, risky, total, stablePct: total > 0 ? Math.round((stable.total / total) * 100) : 0, riskyPct: total > 0 ? Math.round((risky.total / total) * 100) : 0 };
 }
 
 function sumBy(assets: Assets, pick: (m: (typeof ASSET_META)[keyof Assets]) => boolean): number {
@@ -87,12 +150,6 @@ export function investmentBreakdown(assets: Assets): InvestmentBreakdown {
 const grow = (pv: number, rate: number, years: number) => pv * Math.pow(1 + rate, years);
 
 /** 期末年金終值:每年投入 pmt,rate 報酬,years 年 */
-function fvAnnuity(pmt: number, rate: number, years: number): number {
-  if (years <= 0) return 0;
-  if (rate === 0) return pmt * years;
-  return pmt * ((Math.pow(1 + rate, years) - 1) / rate);
-}
-
 /** 成長型年金終值:首年投入 pmt,之後每年以 growth 成長,期間以 rate 複利。 */
 function fvGrowingAnnuity(pmt: number, rate: number, growth: number, years: number): number {
   if (years <= 0) return 0;

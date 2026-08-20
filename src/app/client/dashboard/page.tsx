@@ -20,12 +20,9 @@ import {
 } from "recharts";
 import type { QuestionnaireData } from "@/lib/domain/types";
 import {
-  assetBreakdown,
+  assetClassBreakdown,
   computeGaps,
-  investmentBreakdown,
-  liquidAssets,
-  protectionVsInvestment,
-  sumAssets,
+  riskAssetBreakdown,
   type GapResult,
 } from "@/lib/domain/calc";
 import { clientDefaultParams } from "@/lib/domain/params";
@@ -39,12 +36,16 @@ import { linkClientAccount } from "@/lib/actions/clientAccount";
 import { listRecommendedAdvisors, type RecommendedAdvisor } from "@/lib/actions/advisorDirectory";
 import { createClient } from "@/lib/supabase/client";
 
-const CATEGORY_COLOR: Record<string, string> = {
-  流動: "#10b981",
-  投資: "#0ea5e9",
-  保障: "#8b5cf6",
-  不動產: "#f59e0b",
-  其他: "#94a3b8",
+// 資產三分類配色
+const CLASS_COLOR: Record<string, string> = {
+  流動: "#0ea5e9", // 天藍
+  固定: "#f59e0b", // 琥珀
+  風險: "#8b5cf6", // 紫
+};
+// 風險資產:穩定收益 vs 高風險
+const RISK_COLOR: Record<string, string> = {
+  穩定: "#10b981", // 綠
+  風險: "#f43f5e", // 玫紅
 };
 
 function fmt(wan: number): string {
@@ -137,15 +138,16 @@ export default function Dashboard() {
 
   const view = useMemo(() => {
     if (!data) return null;
-    const breakdown = assetBreakdown(data.core.assets).filter((a) => a.amount > 0);
-    const byCategory = new Map<string, number>();
-    breakdown.forEach((a) => byCategory.set(a.category, (byCategory.get(a.category) ?? 0) + a.amount));
+    const cls = assetClassBreakdown(data.core.assets);
+    const risk = riskAssetBreakdown(data.core.assets);
     return {
-      total: sumAssets(data.core.assets),
-      liquid: liquidAssets(data.core.assets),
-      pvi: protectionVsInvestment(data.core.assets),
-      investments: investmentBreakdown(data.core.assets),
-      pie: [...byCategory.entries()].map(([category, amount]) => ({ name: category, value: amount })),
+      total: cls.total,
+      liquid: cls.slices.find((s) => s.assetClass === "流動")?.amount ?? 0,
+      protection: cls.protection,
+      classSlices: cls.slices,
+      pie: cls.slices.map((s) => ({ name: s.assetClass, value: s.amount })),
+      risk,
+      riskPct: cls.total > 0 ? Math.round((risk.total / cls.total) * 100) : 0,
       gaps: computeGaps(data, clientDefaultParams(data.basic.honorific)),
     };
   }, [data]);
@@ -161,17 +163,13 @@ export default function Dashboard() {
       </Center>
     );
 
-  const { pvi } = view;
-  const pviTotal = pvi.protection + pvi.investment;
-  const protectionPct = pviTotal > 0 ? Math.round((pvi.protection / pviTotal) * 100) : 0;
   const liquidPct = view.total > 0 ? Math.round((view.liquid / view.total) * 100) : 0;
 
-  // 資產分布文字敘述:最大類別 + 流動性
-  const topCat = [...view.pie].sort((a, b) => b.value - a.value)[0];
-  const topPct = topCat && view.total > 0 ? Math.round((topCat.value / view.total) * 100) : 0;
+  // 資產分布文字敘述(客觀事實):最大類別 + 流動/風險占比 + 保障獨立
+  const topCat = [...view.classSlices].sort((a, b) => b.amount - a.amount)[0];
   const assetNarrative = topCat
-    ? `你的資產以「${topCat.name}」為主,約占 ${topPct}%;流動資產占 ${liquidPct}%。` +
-      (liquidPct < 10 ? "流動性偏低,建議留意短期資金調度。" : topPct > 60 ? "單一類別占比偏高,可留意分散。" : "整體分布尚屬均衡。")
+    ? `資產以「${topCat.assetClass}資產」為主,約占 ${topCat.pct}%;流動資產占 ${liquidPct}%、風險資產占 ${view.riskPct}%。` +
+      (view.protection > 0 ? `另有保障型保單 ${fmt(view.protection)}(獨立於資產,不計入總額)。` : "")
     : "";
 
   // 遺產稅預估(僅達課稅標準時顯示)
@@ -229,14 +227,14 @@ export default function Dashboard() {
         </p>
       </header>
 
-      {/* 關鍵數字 */}
+      {/* 關鍵數字(資產總額不含保障型保單) */}
       <div className="mt-6 grid grid-cols-3 gap-3">
-        <Stat label="資產總額" value={fmt(view.total)} />
+        <Stat label="資產總額" value={fmt(view.total)} hint="不含保障型保單" />
         <Stat label="流動資產占比" value={`${liquidPct}%`} hint={fmt(view.liquid)} />
-        <Stat label="保障型占比" value={`${protectionPct}%`} hint="保障 vs 投資" />
+        <Stat label="風險資產占比" value={`${view.riskPct}%`} hint={fmt(view.risk.total)} />
       </div>
 
-      {/* 資產分布 */}
+      {/* 資產分布(固定 / 流動 / 風險 三類;保障獨立) */}
       <Card title="資產類別分布">
         {view.pie.length === 0 ? (
           <Empty>尚未填入任何資產金額</Empty>
@@ -246,11 +244,11 @@ export default function Dashboard() {
               <PieChart>
                 <Pie data={view.pie} dataKey="value" nameKey="name" innerRadius={55} outerRadius={90} paddingAngle={2}>
                   {view.pie.map((entry) => (
-                    <Cell key={entry.name} fill={CATEGORY_COLOR[entry.name] ?? "#94a3b8"} />
+                    <Cell key={entry.name} fill={CLASS_COLOR[entry.name] ?? "#94a3b8"} />
                   ))}
                 </Pie>
                 <Tooltip formatter={(v) => fmt(Number(v))} />
-                <Legend />
+                <Legend formatter={(v) => `${v}資產`} />
               </PieChart>
             </ResponsiveContainer>
           </div>
@@ -260,41 +258,45 @@ export default function Dashboard() {
             {assetNarrative}
           </p>
         )}
+        {view.protection > 0 && (
+          <div className="mt-2 flex items-center justify-between rounded-lg border border-violet-200 bg-violet-50 px-3 py-2 text-sm dark:border-violet-900 dark:bg-violet-950/30">
+            <span className="font-medium text-violet-800 dark:text-violet-200">保障型保單(獨立顯示)</span>
+            <span className="font-semibold text-violet-800 dark:text-violet-200">{fmt(view.protection)}</span>
+          </div>
+        )}
       </Card>
 
-      {/* 保障 vs 投資 */}
-      <Card title="保障 vs 投資 比重">
-        <Bar2 left={{ label: "保障型", value: pvi.protection, color: "#8b5cf6" }} right={{ label: "投資型", value: pvi.investment, color: "#0ea5e9" }} />
-        <p className="mt-3 text-xs text-neutral-500 dark:text-neutral-400">
-          保單刻意區分「保障型」與「儲蓄/投資型」,幫助你看清保障與資產累積各占多少。
-        </p>
-      </Card>
-
-      {/* 投資組合分析(投資型保單以帳戶價值計,保額不列入) */}
-      {view.investments.total > 0 && (
-        <Card title="投資組合分析">
-          <div className="space-y-2.5">
-            {view.investments.items.map((it) => (
-              <div key={it.key}>
-                <div className="flex items-baseline justify-between text-sm">
-                  <span className="font-medium">{it.label}</span>
-                  <span className="text-neutral-600 dark:text-neutral-300">
-                    {fmt(it.amount)}
-                    <span className="ml-1.5 text-xs text-neutral-400">{it.pct}%</span>
-                  </span>
-                </div>
-                <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-neutral-100 dark:bg-neutral-800">
-                  <div className="h-full rounded-full bg-sky-500" style={{ width: `${it.pct}%` }} />
-                </div>
+      {/* 風險資產配置:穩定收益 vs 高風險 */}
+      {view.risk.total > 0 && (
+        <Card title="風險資產配置">
+          <Bar2
+            left={{ label: "穩定收益", value: view.risk.stable.total, color: RISK_COLOR.穩定 }}
+            right={{ label: "高風險", value: view.risk.risky.total, color: RISK_COLOR.風險 }}
+          />
+          <div className="mt-4 space-y-3">
+            {view.risk.stable.items.length > 0 && (
+              <div>
+                <p className="mb-0.5 text-xs font-semibold" style={{ color: RISK_COLOR.穩定 }}>穩定收益型(收租 / 配息)</p>
+                {view.risk.stable.items.map((it) => (
+                  <RiskRow key={it.key} label={it.label} amount={it.amount} pct={Math.round((it.amount / view.risk.total) * 100)} color={RISK_COLOR.穩定} />
+                ))}
               </div>
-            ))}
+            )}
+            {view.risk.risky.items.length > 0 && (
+              <div>
+                <p className="mb-0.5 text-xs font-semibold" style={{ color: RISK_COLOR.風險 }}>高風險型(股票 / 基金 / 其他)</p>
+                {view.risk.risky.items.map((it) => (
+                  <RiskRow key={it.key} label={it.label} amount={it.amount} pct={Math.round((it.amount / view.risk.total) * 100)} color={RISK_COLOR.風險} />
+                ))}
+              </div>
+            )}
           </div>
           <div className="mt-3 flex items-baseline justify-between border-t border-neutral-100 pt-2 text-sm dark:border-neutral-800">
-            <span className="font-semibold">投資資產合計</span>
-            <span className="font-semibold text-sky-700 dark:text-sky-300">{fmt(view.investments.total)}</span>
+            <span className="font-semibold">風險資產合計</span>
+            <span className="font-semibold">{fmt(view.risk.total)}</span>
           </div>
           <p className="mt-3 text-xs leading-relaxed text-neutral-500 dark:text-neutral-400">
-            投資型/儲蓄保單以「帳戶價值(現金價值)」計入,身故保額不列入投資統計,以反映實際可運用的投資部位。
+            穩定收益型=收租不動產、投資型/儲蓄保單(以帳戶價值計);高風險型=股票、基金/ETF、外幣黃金加密等。身故保額不列入。
           </p>
         </Card>
       )}
@@ -533,6 +535,23 @@ function Bar2({ left, right }: { left: { label: string; value: number; color: st
           {right.label} {fmt(right.value)}
           <span className="h-2 w-2 rounded-full" style={{ background: right.color }} />
         </span>
+      </div>
+    </div>
+  );
+}
+
+function RiskRow({ label, amount, pct, color }: { label: string; amount: number; pct: number; color: string }) {
+  return (
+    <div className="mt-1.5">
+      <div className="flex items-baseline justify-between text-sm">
+        <span className="font-medium">{label}</span>
+        <span className="text-neutral-600 dark:text-neutral-300">
+          {fmt(amount)}
+          <span className="ml-1.5 text-xs text-neutral-400">{pct}%</span>
+        </span>
+      </div>
+      <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-neutral-100 dark:bg-neutral-800">
+        <div className="h-full rounded-full" style={{ width: `${pct}%`, background: color }} />
       </div>
     </div>
   );
