@@ -25,7 +25,6 @@ import {
   INCOME_BAND_OPTIONS,
   INCOME_TYPE_OPTIONS,
   SURPLUS_BAND_OPTIONS,
-  URGENCY_OPTIONS,
 } from "@/lib/domain/options";
 import { saveDraft, loadDraft } from "@/lib/draft";
 import { loadReferral } from "@/lib/referral";
@@ -184,7 +183,7 @@ const initialForm: Form = {
 
 // 每月固定收支的建議項目(選填,萬/月)。使用者只需填有的項目。
 const FIXED_INCOME_ITEMS = ["薪資", "租金收入", "股利 / 利息", "年金 / 退休金", "其他固定收入"];
-const FIXED_EXPENSE_ITEMS = ["租金支出", "生活費", "保險費", "子女教育 / 托育", "孝親費", "車貸 / 信貸", "訂閱 / 會費", "其他固定支出"];
+const FIXED_EXPENSE_ITEMS = ["租金支出", "生活費", "保險費", "子女教育 / 托育", "孝親費", "消費性貸款(非房貸)", "訂閱 / 會費", "其他固定支出"];
 
 const STEPS = ["個資同意", "基本 · 家庭", "收支 · 時間", "資產盤點", "負債 · 退休", "保障 · 教育", "風險屬性"];
 const FAMILIAR_OPTIONS = ["存款", "保險", "股票", "基金/ETF", "債券", "外幣", "期貨/選擇權", "不動產"];
@@ -338,7 +337,7 @@ export default function Assessment() {
   const canNext = useMemo(() => {
     if (step === 0) return f.pdpa;
     if (step === 1) return f.surname.trim() !== "" && f.age !== "" && f.retire_age !== "";
-    if (step === 2) return f.income_band && f.surplus_band && f.horizon && f.urgency;
+    if (step === 2) return f.income_band && f.surplus_band && f.horizon;
     return true;
   }, [step, f]);
 
@@ -380,7 +379,7 @@ export default function Assessment() {
         surplus_band: f.surplus_band as SurplusBand,
         assets,
         horizon: f.horizon as Horizon,
-        urgency: f.urgency as Urgency,
+        urgency: (f.urgency || "一年內") as Urgency, // 已移除急迫性問項,預設中性值供 leads 評分
       },
       deep: {
         retire_lifestyle_pct: f.retireLifestylePct ? Number(f.retireLifestylePct) : undefined,
@@ -398,7 +397,7 @@ export default function Assessment() {
           ? { amount: Number(f.majorExpenseAmount) || 0, years_until: 0 }
           : undefined,
         taxable_income: f.taxableIncome ? Number(f.taxableIncome) : undefined,
-        monthly_fixed_income: (() => {
+        annual_fixed_income: (() => {
           const a = FIXED_INCOME_ITEMS.map((label) => ({ label, amount: num(f.monthlyIncome[label]) })).filter((i) => i.amount > 0);
           return a.length ? a : undefined;
         })(),
@@ -448,7 +447,7 @@ export default function Assessment() {
       <BackLink href="/client" label="返回" accent="emerald" />
 
       {/* 進度 */}
-      <div className="mt-5 flex items-center gap-2">
+      <div className="mt-5 flex items-start gap-2">
         {STEPS.map((s, i) => {
           const reachable = i <= maxStep;
           return (
@@ -622,9 +621,6 @@ export default function Assessment() {
             <Field label="這筆資金多久內用不到" required>
               <Select value={f.horizon} onChange={(v) => set("horizon", v as Horizon)} options={HORIZON_OPTIONS} placeholder="請選擇" />
             </Field>
-            <Field label="規劃急迫性" required>
-              <Select value={f.urgency} onChange={(v) => set("urgency", v as Urgency)} options={URGENCY_OPTIONS} placeholder="請選擇" />
-            </Field>
 
             {/* 綜合所得淨額 / 稅單 OCR(選填深化) */}
             <div>
@@ -637,10 +633,12 @@ export default function Assessment() {
 
             {/* 每月固定收支明細(選填,萬/月) */}
             <div>
-              <span className="text-sm font-medium">每月固定收支明細(選填,萬 / 月)</span>
-              <p className="text-xs text-neutral-400">列出每月固定的收入與支出(例如租金支出),讓現金流量更貼近實際。只填有的項目即可,非必填。</p>
+              <span className="text-sm font-medium">固定收支明細(選填)</span>
+              <p className="text-xs text-neutral-400">列出固定的收入與支出(例如租金支出),讓損益與現金流更貼近實際。只填有的項目即可,非必填。</p>
               <div className="mt-2">
-                <p className="text-xs font-semibold text-emerald-700 dark:text-emerald-400">固定收入</p>
+                <p className="text-xs font-semibold text-emerald-700 dark:text-emerald-400">
+                  固定收入 <span className="font-bold text-red-500">(萬 / 年)</span>
+                </p>
                 <div className="mt-1 grid grid-cols-2 gap-2 sm:grid-cols-3">
                   {FIXED_INCOME_ITEMS.map((label) => (
                     <Field key={label} label={label}>
@@ -650,7 +648,9 @@ export default function Assessment() {
                 </div>
               </div>
               <div className="mt-3">
-                <p className="text-xs font-semibold text-amber-700 dark:text-amber-400">固定支出</p>
+                <p className="text-xs font-semibold text-amber-700 dark:text-amber-400">
+                  固定支出 <span className="font-bold text-red-500">(萬 / 月)</span>
+                </p>
                 <div className="mt-1 grid grid-cols-2 gap-2 sm:grid-cols-3">
                   {FIXED_EXPENSE_ITEMS.map((label) => (
                     <Field key={label} label={label}>

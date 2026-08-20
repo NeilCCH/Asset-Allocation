@@ -38,10 +38,8 @@ export interface PersonalStatements {
     outflow: number;
     debtPayment: number;
     net: number;
-    // 每月固定收支明細(選填,萬/月)
-    fixedIncome?: Line[];
+    // 每月固定支出明細(選填,萬/月)
     fixedExpense?: Line[];
-    fixedIncomeTotal?: number;
     fixedExpenseTotal?: number;
   };
 }
@@ -70,13 +68,13 @@ export function personalStatements(data: QuestionnaireData): PersonalStatements 
   // 級距估計作為下限:明細合計不足時補「其他收入」,避免總收入被低估、下游試算跑掉。
   const bandIncome = INCOME_BAND_VALUE[core.income_band] ?? 0;
   const PASSIVE_LABELS = new Set(["租金收入", "股利 / 利息"]);
-  const fixedInc = deep?.monthly_fixed_income ?? [];
+  const fixedInc = deep?.annual_fixed_income ?? []; // 固定收入明細以「年」為單位,直接採用
   const src = deep?.income_sources;
   let income: Line[];
   if (fixedInc.length > 0) {
     income = fixedInc.map((i) => ({
       label: i.label,
-      amount: r1(i.amount * 12),
+      amount: r1(i.amount),
       tag: PASSIVE_LABELS.has(i.label) ? "被動" : undefined,
     }));
     const detailTotal = income.reduce((s, l) => s + l.amount, 0);
@@ -104,10 +102,8 @@ export function personalStatements(data: QuestionnaireData): PersonalStatements 
   const outflow = inflow - net;
   const debtPayment = deep?.liabilities?.monthly_payment ?? 0;
 
-  // ── 每月固定收支明細(選填)──
-  const fixedIncomeItems = deep?.monthly_fixed_income ?? [];
+  // ── 每月固定支出明細(選填,月)──(固定收入為年,已計入上方損益表)
   const fixedExpenseItems = deep?.monthly_fixed_expense ?? [];
-  const fixedIncomeTotal = fixedIncomeItems.reduce((s, i) => s + i.amount, 0);
   const fixedExpenseTotal = fixedExpenseItems.reduce((s, i) => s + i.amount, 0);
 
   // ── 所得稅(有填綜合所得淨額時) ──
@@ -137,9 +133,7 @@ export function personalStatements(data: QuestionnaireData): PersonalStatements 
       outflow: r1(outflow),
       debtPayment: r1(debtPayment),
       net: r1(net),
-      fixedIncome: fixedIncomeItems.length ? fixedIncomeItems.map((i) => ({ label: i.label, amount: r1(i.amount) })) : undefined,
       fixedExpense: fixedExpenseItems.length ? fixedExpenseItems.map((i) => ({ label: i.label, amount: r1(i.amount) })) : undefined,
-      fixedIncomeTotal: fixedIncomeItems.length ? r1(fixedIncomeTotal) : undefined,
       fixedExpenseTotal: fixedExpenseItems.length ? r1(fixedExpenseTotal) : undefined,
     },
   };
