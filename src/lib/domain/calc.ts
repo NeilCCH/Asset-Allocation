@@ -156,7 +156,7 @@ const grow = (pv: number, rate: number, years: number) => pv * Math.pow(1 + rate
 
 /** 期末年金終值:每年投入 pmt,rate 報酬,years 年 */
 /** 成長型年金終值:首年投入 pmt,之後每年以 growth 成長,期間以 rate 複利。 */
-function fvGrowingAnnuity(pmt: number, rate: number, growth: number, years: number): number {
+export function fvGrowingAnnuity(pmt: number, rate: number, growth: number, years: number): number {
   if (years <= 0) return 0;
   if (Math.abs(rate - growth) < 1e-9) return pmt * years * Math.pow(1 + rate, years - 1);
   return (pmt * (Math.pow(1 + rate, years) - Math.pow(1 + growth, years))) / (rate - growth);

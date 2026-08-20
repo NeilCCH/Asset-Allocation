@@ -1,8 +1,8 @@
 // 家庭財務報表 — 參考公司三表(資產負債表 / 損益表 / 現金流量表)之結構與會計邏輯。
 // 單位:資產負債表為萬元;損益/現金流為年或月(萬元)。
 import type { QuestionnaireData } from "./types";
-import { assetBreakdown } from "./calc";
-import { INCOME_BAND_VALUE, SURPLUS_BAND_VALUE } from "./params";
+import { assetBreakdown, fvGrowingAnnuity } from "./calc";
+import { INCOME_BAND_VALUE, SURPLUS_BAND_VALUE, type CalcParams } from "./params";
 import { estimateIncomeTax } from "./incomeTax";
 
 export interface Line {
@@ -19,6 +19,10 @@ export interface PersonalStatements {
     totalAssets: number;
     totalLiabilities: number;
     netWorth: number;
+    // 退休時預估未來值(TVM)
+    futureAssets?: number;
+    futureLiabilities?: number;
+    futureNetWorth?: number;
   };
   // 損益表(年):收入 − 支出 = 結餘
   incomeStatement: {
@@ -31,6 +35,10 @@ export interface PersonalStatements {
     incomeTax?: number; // 應納所得稅(萬),有填綜合所得淨額時
     afterTaxIncome?: number; // 稅後所得(萬)
     marginalRate?: number; // 邊際稅率
+    // 退休前一年預估未來值(收入依薪資成長、支出依通膨)
+    futureIncome?: number;
+    futureExpense?: number;
+    futureSurplus?: number;
   };
   // 現金流量表(月):流入 − 流出 = 淨現金流
   cashFlow: {
@@ -41,12 +49,24 @@ export interface PersonalStatements {
     // 每月固定支出明細(選填,萬/月)
     fixedExpense?: Line[];
     fixedExpenseTotal?: number;
+    // 退休前一年預估未來值(月)
+    futureInflow?: number;
+    futureOutflow?: number;
+    futureNet?: number;
+  };
+  // 未來值投影假設(有帶 params 時才有)
+  projection?: {
+    years: number; // 距退休年數
+    retireAge: number;
+    returnRate: number;
+    inflationRate: number;
+    salaryGrowthRate: number;
   };
 }
 
 const r1 = (n: number) => Math.round(n * 10) / 10;
 
-export function personalStatements(data: QuestionnaireData): PersonalStatements {
+export function personalStatements(data: QuestionnaireData, params?: CalcParams): PersonalStatements {
   const { core, deep } = data;
 
   // ── 資產負債表 ──
@@ -110,6 +130,32 @@ export function personalStatements(data: QuestionnaireData): PersonalStatements 
   // ── 所得稅(有填綜合所得淨額時) ──
   const tax = deep?.taxable_income != null ? estimateIncomeTax(deep.taxable_income) : null;
 
+  // ── 未來值投影(TVM,以財務計算機概念投影到退休年) ──
+  // 資產:現值以報酬率複利成長 + 年結餘持續投入(成長型年金,依薪資成長率)
+  // 收入:依薪資成長率;支出:依通膨率(退休前一年之估計)
+  const n = Math.max(0, core.retire_age - core.age);
+  type FutureVals = {
+    futureAssets: number; futureLiabilities: number; futureNetWorth: number;
+    futureIncome: number; futureExpense: number; futureSurplus: number;
+    futureInflow: number; futureOutflow: number; futureNet: number;
+  };
+  let future: FutureVals | null = null;
+  if (params && n > 0) {
+    const { returnRate: r, inflationRate: inf, salaryGrowthRate: g } = params;
+    const fv = (pv: number, rate: number) => pv * Math.pow(1 + rate, n);
+    const futureAssets = fv(totalAssets, r) + fvGrowingAnnuity(Math.max(0, annualSurplus), r, g, n);
+    const futureLiabilities = Math.max(0, totalLiabilities - debtPayment * 12 * n); // 簡化:以每月還款累計抵減本金
+    const futureIncome = fv(totalIncome, g);
+    const futureExpense = fv(totalExpense, inf);
+    const futureInflow = fv(inflow, g);
+    const futureOutflow = fv(outflow, inf);
+    future = {
+      futureAssets, futureLiabilities, futureNetWorth: futureAssets - futureLiabilities,
+      futureIncome, futureExpense, futureSurplus: futureIncome - futureExpense,
+      futureInflow, futureOutflow, futureNet: futureInflow - futureOutflow,
+    };
+  }
+
   return {
     balanceSheet: {
       assets,
@@ -117,6 +163,9 @@ export function personalStatements(data: QuestionnaireData): PersonalStatements 
       totalAssets: r1(totalAssets),
       totalLiabilities: r1(totalLiabilities),
       netWorth: r1(netWorth),
+      futureAssets: future ? r1(future.futureAssets) : undefined,
+      futureLiabilities: future ? r1(future.futureLiabilities) : undefined,
+      futureNetWorth: future ? r1(future.futureNetWorth) : undefined,
     },
     incomeStatement: {
       income,
@@ -128,6 +177,9 @@ export function personalStatements(data: QuestionnaireData): PersonalStatements 
       incomeTax: tax ? tax.tax : undefined,
       afterTaxIncome: tax ? r1(totalIncome - tax.tax) : undefined,
       marginalRate: tax ? tax.marginalRate : undefined,
+      futureIncome: future ? r1(future.futureIncome) : undefined,
+      futureExpense: future ? r1(future.futureExpense) : undefined,
+      futureSurplus: future ? r1(future.futureSurplus) : undefined,
     },
     cashFlow: {
       inflow: r1(inflow),
@@ -136,6 +188,13 @@ export function personalStatements(data: QuestionnaireData): PersonalStatements 
       net: r1(net),
       fixedExpense: fixedExpenseItems.length ? fixedExpenseItems.map((i) => ({ label: i.label, amount: r1(i.amount) })) : undefined,
       fixedExpenseTotal: fixedExpenseItems.length ? r1(fixedExpenseTotal) : undefined,
+      futureInflow: future ? r1(future.futureInflow) : undefined,
+      futureOutflow: future ? r1(future.futureOutflow) : undefined,
+      futureNet: future ? r1(future.futureNet) : undefined,
     },
+    projection:
+      params && n > 0
+        ? { years: n, retireAge: core.retire_age, returnRate: params.returnRate, inflationRate: params.inflationRate, salaryGrowthRate: params.salaryGrowthRate }
+        : undefined,
   };
 }

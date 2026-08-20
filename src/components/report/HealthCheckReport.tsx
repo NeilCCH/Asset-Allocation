@@ -462,10 +462,16 @@ function PersonalStatementsBlock({ s }: { s: PersonalStatements }) {
   const bs = s.balanceSheet;
   const is = s.incomeStatement;
   const cf = s.cashFlow;
+  const proj = s.projection;
   return (
     <section className="hcr-card">
       <h2>家庭財務報表</h2>
       <p className="hcr-note" style={{ marginTop: 0, marginBottom: 10 }}>參考公司三表結構,依會計邏輯分列:資產負債表、損益表、現金流量表(以家庭為單位)。</p>
+      {proj && (
+        <p className="hcr-note" style={{ marginTop: 0, marginBottom: 10, color: "#0369a1", background: "#f0f9ff" }}>
+          <strong>未來值(退休時)</strong>以財務計算機概念投影 {proj.years} 年到 {proj.retireAge} 歲:資產以年報酬 {pctNum(proj.returnRate)} 複利、並持續投入年結餘(成長型年金,依薪資成長 {pctNum(proj.salaryGrowthRate)});收入依薪資成長、支出依通膨 {pctNum(proj.inflationRate)}。屬試算,非保證。
+        </p>
+      )}
 
       {/* ① 資產負債表 */}
       <div className="hcr-stmt">
@@ -488,6 +494,12 @@ function PersonalStatementsBlock({ s }: { s: PersonalStatements }) {
           </div>
         </div>
         <StackBar segments={[{ label: "負債", value: bs.totalLiabilities, color: "#f59e0b" }, { label: "淨值", value: Math.max(0, bs.netWorth), color: "#10b981" }]} />
+        {bs.futureNetWorth != null && (
+          <div className="hcr-stmt-future">
+            <span>退休時預估淨值(未來值)</span>
+            <span>{fmtWan(bs.futureNetWorth)}</span>
+          </div>
+        )}
       </div>
 
       {/* ② 損益表 */}
@@ -499,6 +511,13 @@ function PersonalStatementsBlock({ s }: { s: PersonalStatements }) {
         <div className="hcr-stmt-row total"><span>年收入合計</span><span>{fmtWan(is.totalIncome)}</span></div>
         <div className="hcr-stmt-row"><span>年支出(推估)</span><span>−{fmtWan(is.totalExpense)}</span></div>
         <div className="hcr-stmt-row total" style={{ color: "#059669" }}><span>年結餘</span><span>{fmtWan(is.surplus)}</span></div>
+        {is.futureSurplus != null && (
+          <div className="hcr-stmt-future-group">
+            <div className="hcr-stmt-future"><span>退休前一年 · 年收入(未來值)</span><span>{fmtWan(is.futureIncome ?? 0)}</span></div>
+            <div className="hcr-stmt-future"><span>年支出(未來值)</span><span>−{fmtWan(is.futureExpense ?? 0)}</span></div>
+            <div className="hcr-stmt-future"><span>年結餘(未來值)</span><span>{fmtWan(is.futureSurplus)}</span></div>
+          </div>
+        )}
         {is.incomeTax != null && (
           <>
             <div className="hcr-stmt-row"><span>綜所稅(估)</span><span>−{fmtWan(is.incomeTax)}</span></div>
@@ -521,6 +540,12 @@ function PersonalStatementsBlock({ s }: { s: PersonalStatements }) {
         <div className="hcr-stmt-row"><span>每月現金流入(收入)</span><span>{fmtWan(cf.inflow)}</span></div>
         <div className="hcr-stmt-row"><span>每月現金流出(支出,含還款 {fmtWan(cf.debtPayment)})</span><span>−{fmtWan(cf.outflow)}</span></div>
         <div className="hcr-stmt-row total" style={{ color: cf.net >= 0 ? "#059669" : "#b45309" }}><span>每月淨現金流</span><span>{fmtWan(cf.net)}</span></div>
+        {cf.futureNet != null && (
+          <div className="hcr-stmt-future">
+            <span>退休前一年 · 每月淨現金流(未來值)</span>
+            <span>{fmtWan(cf.futureNet)}</span>
+          </div>
+        )}
         <div style={{ marginTop: 8 }}><Waterfall inflow={cf.inflow} outflow={cf.outflow} net={cf.net} /></div>
         {cf.fixedExpense && (
           <div style={{ marginTop: 10, borderTop: "1px solid #eaeef3", paddingTop: 8 }}>
@@ -624,6 +649,9 @@ const css = `
 .hcr-stmt-row { display:flex; justify-content:space-between; font-size:18px; padding:2px 0; color:#555; }
 .hcr-stmt-row.total { font-weight:700; color:#334155; border-top:1px solid #eee; margin-top:2px; padding-top:3px; }
 .hcr-stmt-note { font-size:17px; color:#0369a1; margin-top:4px; }
+.hcr-stmt-future { display:flex; justify-content:space-between; font-size:18px; font-weight:600; color:#0369a1; background:#f0f9ff; border:1px solid #e0f2fe; border-radius:7px; padding:4px 9px; margin-top:4px; }
+.hcr-stmt-future-group { margin-top:4px; display:flex; flex-direction:column; gap:2px; }
+.hcr-stmt-future-group .hcr-stmt-future { margin-top:0; }
 .hcr-advisor { background:#f4faf6; border-color:#cfe9dd; }
 .hcr-dims { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:14px; }
 .hcr-dim { padding:12px 14px; background:#fff; border:1px solid #dcece3; border-left:3px solid #10b981; border-radius:10px; break-inside:avoid; }

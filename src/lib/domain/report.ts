@@ -144,7 +144,7 @@ export function buildReport(
       grandchildren: data.core.dependents.grandchildren?.count ?? 0,
     },
     solutions: gapSolutions(data, params),
-    statements: personalStatements(data),
+    statements: personalStatements(data, params),
     profile: {
       age: data.core.age,
       retireAge: data.core.retire_age,
