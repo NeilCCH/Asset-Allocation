@@ -27,7 +27,7 @@ export interface FamilyModel {
   siblings: { relation: string; isFemale: boolean }[];
   children: { stage: string; age?: number }[];
   grandchildren: number;
-  grandparents: number;
+  grandparents: { relation: string; isFemale: boolean }[];
 }
 
 export interface ReportModel {
@@ -143,7 +143,10 @@ export function buildReport(
       siblings: (data.core.dependents.siblings ?? []).map((s) => ({ relation: s.relation, isFemale: s.relation === "姊" || s.relation === "妹" })),
       children: data.core.dependents.children.map((c) => ({ stage: c.stage, age: c.age })),
       grandchildren: data.core.dependents.grandchildren?.count ?? 0,
-      grandparents: data.core.dependents.grandparents?.length ?? 0,
+      grandparents: (data.core.dependents.grandparents ?? []).map((g) => ({
+        relation: g.relation,
+        isFemale: g.relation === "祖母" || g.relation === "外祖母",
+      })),
     },
     solutions: gapSolutions(data, params),
     statements: personalStatements(data, params),

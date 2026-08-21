@@ -13,6 +13,7 @@ const ROLE_COLOR: Record<string, string> = {
   sibling: "#94a3b8",
   child: "#8b5cf6",
   grand: "#ec4899",
+  grandparent: "#b45309",
 };
 
 function Person({ cx, cy, variant, color, label, sub, kin, scale = 1 }: { cx: number; cy: number; variant: Variant; color: string; label: string; sub?: string; kin?: string; scale?: number }) {
@@ -78,8 +79,23 @@ export function FamilyTree({ family, selfIsFemale = false }: { family: FamilyMod
   const grandStart = coupleMid - ((nGrand - 1) * SP) / 2;
   const grandX = (i: number) => grandStart + i * SP;
 
+  // 祖父母(第四順位,父母上方一代)— 僅在有資料時才畫,無則版面完全不變
+  const gps = family.grandparents;
+  const hasGp = gps.length > 0;
+  const GP_GEN = 150;
+  const yGp = yParents - GP_GEN;
+  const gpStart = parentsMid - ((gps.length - 1) * SP) / 2;
+  const gpX = (i: number) => gpStart + i * SP;
+
   const c: React.ReactNode[] = [];
   const hasParents = family.parents.length > 0;
+  if (hasGp) {
+    const gpBar = yParents - 30;
+    const descentTop = yGp + 62; // 於祖父母標籤下方起線,避免壓字
+    c.push(link(gpX(0), gpBar, gpX(gps.length - 1), gpBar, "gpbar"));
+    for (let i = 0; i < gps.length; i++) c.push(link(gpX(i), descentTop, gpX(i), gpBar, `gpd${i}`));
+    if (hasParents) c.push(link(parentsMid, gpBar, parentsMid, yParents - 14, "gp0"));
+  }
   const topBar = 128;
   if (hasParents) {
     c.push(link(parentsMid, yParents + 24, parentsMid, topBar, "p1"));
@@ -105,6 +121,7 @@ export function FamilyTree({ family, selfIsFemale = false }: { family: FamilyMod
   // 動態版面寬度:涵蓋所有節點
   const allX = [
     ...(hasParents ? [parentsMid - 52, parentsMid + 52] : []),
+    ...(hasGp ? gps.map((_, i) => gpX(i)) : []),
     ...Array.from({ length: nSib }, (_, i) => sibX(i)),
     selfCx,
     ...(hasSpouse ? [spouseCx] : []),
@@ -116,10 +133,17 @@ export function FamilyTree({ family, selfIsFemale = false }: { family: FamilyMod
   const width = Math.max(360, maxX - minX);
   // 高度需容納最底列人偶下方的關係文字,避免裁切
   const height = nGrand > 0 && kids.length > 0 ? 504 : kids.length > 0 ? 392 : 262;
+  // 有祖父母時向上擴充版面(無則自 0 起,版面不變)
+  const topY = hasGp ? yGp - 44 : 0;
 
   return (
-    <svg viewBox={`${minX} 0 ${width} ${height}`} width="100%" style={{ maxWidth: Math.min(720, width) }} role="img" aria-label="家族關係圖">
+    <svg viewBox={`${minX} ${topY} ${width} ${height - topY}`} width="100%" style={{ maxWidth: Math.min(720, width) }} role="img" aria-label="家族關係圖">
       {c}
+
+      {/* 祖父母(直系尊親屬 · 第四順位)*/}
+      {hasGp && gps.map((g, i) => (
+        <Person key={`gp${i}`} cx={gpX(i)} cy={yGp} variant={g.isFemale ? "elder-f" : "elder-m"} color={ROLE_COLOR.grandparent} label={g.relation} kin="祖輩" />
+      ))}
 
       {/* 父母(直系尊親屬) */}
       {hasParents &&
