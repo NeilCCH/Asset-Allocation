@@ -568,6 +568,14 @@ function GapRow({ name, gap }: { name: string; gap: GapResult }) {
       </div>
     );
   }
+  if (gap.status === "not_planned") {
+    return (
+      <div className="flex items-center justify-between rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 dark:border-amber-900 dark:bg-amber-950/30">
+        <span className="text-sm font-medium">{name}</span>
+        <span className="text-sm font-semibold text-amber-700 dark:text-amber-300">退休生活尚未規劃</span>
+      </div>
+    );
+  }
   const shortfall = gap.gap > 0;
   return (
     <div className={`rounded-lg border px-4 py-3 ${shortfall ? "border-amber-200 bg-amber-50 dark:border-amber-900 dark:bg-amber-950/30" : "border-emerald-200 bg-emerald-50 dark:border-emerald-900 dark:bg-emerald-950/30"}`}>

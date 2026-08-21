@@ -193,7 +193,7 @@ function estimateAnnualExpense(data: QuestionnaireData): number {
 
 // ── 缺口結果型別 ─────────────────────────────────────
 
-export type GapStatus = "computed" | "needs_deep_data";
+export type GapStatus = "computed" | "needs_deep_data" | "not_planned";
 
 export interface GapResult {
   status: GapStatus;
@@ -221,6 +221,10 @@ export function retirementGap(
     data.deep?.retire_monthly_expense != null
       ? data.deep.retire_monthly_expense * 12
       : estimateAnnualExpense(data) * lifestylePct;
+  // 無退休生活需求依據(未填退休後每月支出,且無收入/結餘級距可推估)→ 尚未規劃,不可顯示「已足夠」
+  if (annualNeedNow <= 0) {
+    return { status: "not_planned", gap: 0, breakdown: [], missing: ["退休後每月支出(或收支級距)"] };
+  }
   const annualNeedAtRetire = annualNeedNow * Math.pow(1 + params.inflationRate, yearsToRetire);
   const totalNeed = annualNeedAtRetire * retireYears;
 

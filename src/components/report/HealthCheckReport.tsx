@@ -501,7 +501,8 @@ function Waterfall({ inflow, outflow, net }: { inflow: number; outflow: number; 
 // 現金流量趨勢線圖(三線並進:主動收入 / 被動收入含勞退 / 貸款還款)
 function CashFlowLines({ series, retireAge, loanEndAge }: { series: NonNullable<PersonalStatements["cashFlow"]["series"]>; retireAge: number; loanEndAge?: number }) {
   if (series.length < 2) return null;
-  const W = 560, H = 300, ml = 46, mr = 84, mt = 20, mb = 42;
+  // 圖表區約占 2/3(plotW),圖例區約占 1/3(mr);整體加寬提升可讀性
+  const W = 760, H = 320, ml = 50, mr = 224, mt = 24, mb = 48;
   const plotW = W - ml - mr, plotH = H - mt - mb;
   const minAge = series[0].age, maxAge = series[series.length - 1].age;
   const rawMax = Math.max(...series.flatMap((p) => [p.active, p.passive, p.debt]), 1);
@@ -518,28 +519,28 @@ function CashFlowLines({ series, retireAge, loanEndAge }: { series: NonNullable<
   const gridY = [0, 0.25, 0.5, 0.75, 1].map((f) => niceMax * f);
   const COL = { active: "#2a78d6", passive: "#1baf7a", debt: "#eb6834" };
   return (
-    <svg viewBox={`0 0 ${W} ${H}`} width="100%" style={{ maxWidth: 560, height: "auto", aspectRatio: `${W} / ${H}` }} role="img" aria-label="家庭現金流三線趨勢圖:主動收入隨薪資成長至退休停止,被動收入依通膨成長並於退休後併入勞退,貸款還款隨餘額遞減至還清">
+    <svg viewBox={`0 0 ${W} ${H}`} width="100%" style={{ maxWidth: 760, height: "auto", aspectRatio: `${W} / ${H}` }} role="img" aria-label="家庭現金流三線趨勢圖:主動收入隨薪資成長至退休停止,被動收入依通膨成長並於退休後併入勞退,貸款還款隨餘額遞減至還清">
       {/* Y 網格與刻度(萬/月) */}
       {gridY.map((v, i) => (
         <g key={i}>
           <line x1={ml} y1={y(v)} x2={ml + plotW} y2={y(v)} stroke={i === 0 ? "#cbd5e1" : "#eef2f6"} strokeWidth="1" />
-          <text x={ml - 6} y={y(v) + 3} textAnchor="end" fontSize="10" fill="#94a3b8">{Math.round(v)}</text>
+          <text x={ml - 8} y={y(v) + 4} textAnchor="end" fontSize="13" fill="#94a3b8">{Math.round(v)}</text>
         </g>
       ))}
-      <text x={ml - 6} y={mt - 8} textAnchor="end" fontSize="9.5" fill="#94a3b8">萬/月</text>
+      <text x={ml - 8} y={mt - 9} textAnchor="end" fontSize="12" fill="#94a3b8">萬/月</text>
       {/* 里程碑:退休 / 還款結束 */}
       {loanEndAge != null && loanEndAge < maxAge && (
         <g>
           <line x1={x(loanEndAge)} y1={mt} x2={x(loanEndAge)} y2={mt + plotH} stroke="#e2c9b8" strokeWidth="1" strokeDasharray="3 3" />
-          <text x={x(loanEndAge)} y={mt + plotH + 26} textAnchor="middle" fontSize="9.5" fill="#b45309">還款結束·{loanEndAge}</text>
+          <text x={x(loanEndAge)} y={mt + plotH + 32} textAnchor="middle" fontSize="12" fill="#b45309">還款結束·{loanEndAge}</text>
         </g>
       )}
       <line x1={x(retireAge)} y1={mt} x2={x(retireAge)} y2={mt + plotH} stroke="#bcd4ee" strokeWidth="1" strokeDasharray="3 3" />
-      <text x={x(retireAge)} y={mt + plotH + 26} textAnchor="middle" fontSize="9.5" fill="#185fa5">退休·{retireAge}</text>
+      <text x={x(retireAge)} y={mt + plotH + 32} textAnchor="middle" fontSize="12" fill="#185fa5">退休·{retireAge}</text>
       {/* X 端點年齡 */}
-      <text x={ml} y={mt + plotH + 14} textAnchor="middle" fontSize="9.5" fill="#94a3b8">{minAge}</text>
-      <text x={ml + plotW} y={mt + plotH + 14} textAnchor="middle" fontSize="9.5" fill="#94a3b8">{maxAge}</text>
-      <text x={ml + plotW / 2} y={mt + plotH + 14} textAnchor="middle" fontSize="9.5" fill="#94a3b8">年齡</text>
+      <text x={ml} y={mt + plotH + 16} textAnchor="middle" fontSize="12" fill="#94a3b8">{minAge}</text>
+      <text x={ml + plotW} y={mt + plotH + 16} textAnchor="middle" fontSize="12" fill="#94a3b8">{maxAge}</text>
+      <text x={ml + plotW / 2} y={mt + plotH + 16} textAnchor="middle" fontSize="12" fill="#94a3b8">年齡</text>
       {/* 三條線 */}
       {debtPts.length > 1 && <path d={toPath(debtPts)} fill="none" stroke={COL.debt} strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />}
       {passivePts.length > 1 && <path d={toPath(passivePts)} fill="none" stroke={COL.passive} strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />}
@@ -550,7 +551,7 @@ function CashFlowLines({ series, retireAge, loanEndAge }: { series: NonNullable<
       {debtEnd && (() => {
         const flip = x(debtEnd.age) > ml + plotW * 0.55;
         return (
-          <text x={x(debtEnd.age) + (flip ? -8 : 8)} y={Math.max(mt + 9, y(debtEnd.v) - 8)} textAnchor={flip ? "end" : "start"} fontSize="10.5" fontWeight="700" fill={COL.debt}>
+          <text x={x(debtEnd.age) + (flip ? -8 : 8)} y={Math.max(mt + 9, y(debtEnd.v) - 8)} textAnchor={flip ? "end" : "start"} fontSize="13" fontWeight="700" fill={COL.debt}>
             {loanEndAge ?? debtEnd.age} 歲清償
           </text>
         );
@@ -562,7 +563,7 @@ function CashFlowLines({ series, retireAge, loanEndAge }: { series: NonNullable<
         const flip = x(activeEnd.age) > ml + plotW * 0.55;
         const ly = Math.max(mt + 9, y(activeEnd.v) - 8);
         return (
-          <text x={x(activeEnd.age) + (flip ? -9 : 9)} y={ly} textAnchor={flip ? "end" : "start"} fontSize="10.5" fontWeight="700" fill={COL.active}>
+          <text x={x(activeEnd.age) + (flip ? -9 : 9)} y={ly} textAnchor={flip ? "end" : "start"} fontSize="13" fontWeight="700" fill={COL.active}>
             退休 {activeEnd.v} 萬/月
           </text>
         );
@@ -572,20 +573,20 @@ function CashFlowLines({ series, retireAge, loanEndAge }: { series: NonNullable<
         const flip = x(retireAge) > ml + plotW * 0.55;
         const ly = Math.min(mt + plotH - 4, y(passiveAtRetire.passive) + 18);
         return (
-          <text x={x(retireAge) + (flip ? -9 : 9)} y={ly} textAnchor={flip ? "end" : "start"} fontSize="10.5" fontWeight="700" fill={COL.passive}>
+          <text x={x(retireAge) + (flip ? -9 : 9)} y={ly} textAnchor={flip ? "end" : "start"} fontSize="13" fontWeight="700" fill={COL.passive}>
             退休後 {passiveAtRetire.passive} 萬/月
           </text>
         );
       })()}
-      {/* 圖例(右側) */}
-      <g fontSize="10">
-        <rect x={ml + plotW + 12} y={mt + 4} width="9" height="9" rx="2" fill={COL.active} />
-        <text x={ml + plotW + 25} y={mt + 12} fill="#475569">主動收入</text>
-        <rect x={ml + plotW + 12} y={mt + 22} width="9" height="9" rx="2" fill={COL.passive} />
-        <text x={ml + plotW + 25} y={mt + 30} fill="#475569">被動收入</text>
-        <text x={ml + plotW + 25} y={mt + 42} fill="#94a3b8" fontSize="8.5">+ 勞退月領</text>
-        <rect x={ml + plotW + 12} y={mt + 50} width="9" height="9" rx="2" fill={COL.debt} />
-        <text x={ml + plotW + 25} y={mt + 58} fill="#475569">貸款還款</text>
+      {/* 圖例(右側,約占 1/3;放大字級便於閱覽) */}
+      <g fontSize="16">
+        <rect x={ml + plotW + 20} y={mt + 14} width="15" height="15" rx="3" fill={COL.active} />
+        <text x={ml + plotW + 44} y={mt + 27} fill="#334155">主動收入</text>
+        <rect x={ml + plotW + 20} y={mt + 46} width="15" height="15" rx="3" fill={COL.passive} />
+        <text x={ml + plotW + 44} y={mt + 59} fill="#334155">被動收入</text>
+        <text x={ml + plotW + 44} y={mt + 79} fill="#94a3b8" fontSize="13">+ 勞退月領</text>
+        <rect x={ml + plotW + 20} y={mt + 98} width="15" height="15" rx="3" fill={COL.debt} />
+        <text x={ml + plotW + 44} y={mt + 111} fill="#334155">貸款還款</text>
       </g>
     </svg>
   );
@@ -1030,10 +1031,12 @@ function pctNum(r: number): string {
 }
 function gapClass(g: ReportModel["gaps"][number]["result"]): string {
   if (g.status === "needs_deep_data") return "pending";
+  if (g.status === "not_planned") return "short"; // 警示色:尚未規劃,不可視為足夠
   return g.gap > 0 ? "short" : "ok";
 }
 function gapText(g: ReportModel["gaps"][number]["result"]): string {
   if (g.status === "needs_deep_data") return "補充深化問卷後可試算";
+  if (g.status === "not_planned") return "退休生活尚未規劃,請補充需求";
   return g.gap > 0 ? `不足 ${fmtWan(g.gap)}` : "已足夠";
 }
 

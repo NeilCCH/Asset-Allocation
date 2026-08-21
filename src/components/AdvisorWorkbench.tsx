@@ -344,6 +344,8 @@ function GapCard({ name, gap }: { name: string; gap: GapResult }) {
       <div className="mt-1 text-sm font-semibold">
         {gap.status === "needs_deep_data" ? (
           <span className="text-neutral-400">待深化</span>
+        ) : gap.status === "not_planned" ? (
+          <span className="text-amber-600 dark:text-amber-400">未規劃</span>
         ) : gap.gap > 0 ? (
           <span className="text-amber-600 dark:text-amber-400">缺 {Math.round(gap.gap).toLocaleString("zh-TW")} 萬</span>
         ) : (
