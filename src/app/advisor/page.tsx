@@ -18,8 +18,6 @@ export default function AdvisorAuth() {
   const [jobTitle, setJobTitle] = useState("");
   const [mobile, setMobile] = useState("");
   const [licenseNos, setLicenseNos] = useState<Partial<Record<LicenseType, string>>>({});
-  const [cardFront, setCardFront] = useState<File | null>(null);
-  const [cardBack, setCardBack] = useState<File | null>(null);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
   // 讀「實際 DOM 值」以相容自動填入(autofill 常不觸發 React onChange)
@@ -55,20 +53,7 @@ export default function AdvisorAuth() {
   const licensesValid =
     licenseEntries.length > 0 &&
     licenseEntries.every(([type, no]) => !LICENSE_REQUIRES_NUMBER[type] || no.trim() !== "");
-  const registerValid = fullName.trim() && mobile.trim() && licensesValid && cardFront && cardBack;
-
-  const uploadCard = async (
-    supabase: ReturnType<typeof createClient>,
-    uid: string,
-    file: File,
-    side: "front" | "back",
-  ): Promise<string> => {
-    const ext = file.name.split(".").pop() || "jpg";
-    const path = `${uid}/${side}-${Date.now()}.${ext}`;
-    const { error } = await supabase.storage.from("advisor-cards").upload(path, file, { upsert: true });
-    if (error) throw error;
-    return path;
-  };
+  const registerValid = fullName.trim() && mobile.trim() && licensesValid;
 
   const submit = async () => {
     // 讀實際 DOM 值以相容自動填入(不以 disabled 鎖欄位,避免 autofill 未觸發 onChange 時卡住按鈕)
@@ -110,17 +95,12 @@ export default function AdvisorAuth() {
         }
         user = data.user;
       }
-      const uid = user.id;
-      const cardFrontPath = await uploadCard(supabase, uid, cardFront!, "front");
-      const cardBackPath = await uploadCard(supabase, uid, cardBack!, "back");
       const res = await createAdvisorProfile({
         fullName: fullName.trim(),
         companyName: companyName.trim() || undefined,
         jobTitle: jobTitle.trim() || undefined,
         mobile: mobile.trim(),
         licenses: licenseEntries.map(([type, number]) => ({ type, number: number.trim() || undefined })),
-        cardFrontPath,
-        cardBackPath,
       });
       if (!res.ok) throw new Error(res.error);
       router.push("/advisor/dashboard");
@@ -185,16 +165,6 @@ export default function AdvisorAuth() {
               <input value={mobile} onChange={(e) => setMobile(e.target.value)} className={inputCls} placeholder="0912-345-678" />
             </Field>
 
-            {/* 名片上傳(帳號驗證參考) */}
-            <div>
-              <span className="text-sm font-medium">名片(正反面)</span>
-              <p className="mt-0.5 text-xs text-neutral-400">作為帳號驗證參考,兩面皆需上傳。</p>
-              <div className="mt-2 grid grid-cols-2 gap-3">
-                <CardUpload label="名片正面" file={cardFront} onChange={setCardFront} />
-                <CardUpload label="名片反面" file={cardBack} onChange={setCardBack} />
-              </div>
-            </div>
-
             {/* 證照 */}
             <div>
               <span className="text-sm font-medium">專業證照(佐證專家資格)</span>
@@ -238,26 +208,3 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   );
 }
 
-function CardUpload({ label, file, onChange }: { label: string; file: File | null; onChange: (f: File | null) => void }) {
-  const url = file ? URL.createObjectURL(file) : null;
-  return (
-    <label className="flex aspect-[7/4] cursor-pointer flex-col items-center justify-center overflow-hidden rounded-lg border border-dashed border-neutral-300 bg-neutral-50 text-center text-xs text-neutral-500 hover:border-sky-400 dark:border-neutral-700 dark:bg-neutral-900">
-      {url ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={url} alt={label} className="h-full w-full object-cover" />
-      ) : (
-        <span className="px-2">
-          📇<br />
-          {label}<br />
-          <span className="text-neutral-400">點擊上傳</span>
-        </span>
-      )}
-      <input
-        type="file"
-        accept="image/*"
-        className="hidden"
-        onChange={(e) => onChange(e.target.files?.[0] ?? null)}
-      />
-    </label>
-  );
-}

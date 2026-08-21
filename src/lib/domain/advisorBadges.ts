@@ -47,12 +47,10 @@ export interface CompletenessInput {
   mobile?: string | null;
   website?: string | null;
   facebook_url?: string | null;
-  card_front_path?: string | null;
-  card_back_path?: string | null;
   licenses?: AdvisorLicense[];
 }
 
-/** 檔案完成度:以專業能力(證照)為主、輔以基本資料與名片。 */
+/** 檔案完成度:以專業能力(證照)為主、輔以基本資料。 */
 export function profileCompleteness(a: CompletenessInput): Completeness {
   const licenses = a.licenses ?? [];
   const items: CompletenessItem[] = [
@@ -61,7 +59,6 @@ export function profileCompleteness(a: CompletenessInput): Completeness {
     { label: "職稱", ok: !!a.job_title },
     { label: "手機", ok: !!a.mobile },
     { label: "個人網頁 / FB", ok: !!(a.website || a.facebook_url) },
-    { label: "名片(雙面)", ok: !!(a.card_front_path && a.card_back_path) },
     { label: "專業證照", ok: licenses.length > 0 },
     { label: "多元證照(≥2 類)", ok: groupLicensesByCategory(licenses).length >= 2 },
   ];

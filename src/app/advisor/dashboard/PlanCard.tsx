@@ -58,7 +58,7 @@ export function PlanCard({
           {expired && <p className="mt-1 text-xs text-amber-700 dark:text-amber-400">到期日 {untilStr},續約後恢復優先曝光。</p>}
           <p className="mt-1.5 text-sm text-neutral-600 dark:text-neutral-300">
             升級<strong>付費推薦</strong>後,系統會把你排在未綁定客戶的顧問推薦名單<strong>前列</strong>,
-            優先取得主動上門的潛在客戶(名片驗證通過者更佳)。
+            優先取得主動上門的潛在客戶(證照完整者更佳)。
           </p>
         </div>
         {requested ? (
