@@ -281,27 +281,7 @@ export function HealthCheckReport({ model, variant = "full" }: { model: ReportMo
       )}
 
       {/* 家戶保障總覽(保單健檢:本人 + 配偶 + 子女) */}
-      {full && model.householdInsurance.some((m) => m.rows.length > 0) && (
-        <section className="hcr-card">
-          <h2>家戶保障總覽</h2>
-          {model.householdInsurance
-            .filter((m) => m.rows.length > 0)
-            .map((m) => (
-              <div key={m.member} style={{ marginBottom: 10 }}>
-                <div style={{ fontSize: 20, fontWeight: 700, color: "#334155", margin: "4px 0" }}>{m.member}</div>
-                <div className="hcr-ins">
-                  {m.rows.map((r) => (
-                    <div key={r.label} className={`hcr-ins-row ${r.has ? "on" : "off"}`}>
-                      <span>{r.has ? "✓ " : "— "}{r.label}</span>
-                      <span>{r.has ? r.text : "尚無"}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ))}
-          <p className="hcr-note">各險種單位不同:壽險/意外/重疾為保額(萬)、醫療為日額+實支實付、失能/長照為每月給付。含配偶與子女以利家戶保障檢視。</p>
-        </section>
-      )}
+      {full && <HouseholdInsuranceBlock model={model} />}
 
       {/* 家系關係圖(完整版) */}
       {full && (
@@ -652,6 +632,104 @@ function RiskAllocGauge({ current, target }: { current: number; target: number }
   );
 }
 
+// 家戶保障總覽:壽險保障缺口(家庭責任 vs 已備)+ 各成員投保完整度
+function HouseholdInsuranceBlock({ model }: { model: ReportModel }) {
+  const members = model.householdInsurance.filter((m) => m.rows.length > 0);
+  if (members.length === 0) return null;
+  const pg = model.gaps.find((x) => x.name === "保障缺口")?.result;
+  return (
+    <section className="hcr-card">
+      <h2>家戶保障總覽</h2>
+
+      {/* 壽險保障缺口:家庭責任 vs 已備 */}
+      {pg && pg.status === "computed" && (() => {
+        const bd: Record<string, number> = {};
+        pg.breakdown.forEach((b) => { bd[b.label] = b.amount; });
+        const debt = Math.max(0, bd["未償負債"] ?? 0);
+        const support = Math.max(0, bd["扶養支出"] ?? 0);
+        const edu = Math.max(0, bd["子女教育金"] ?? 0);
+        const life = Math.abs(bd["現有壽險保額"] ?? 0);
+        const liquid = Math.abs(bd["流動資產"] ?? 0);
+        const need = debt + support + edu, have = life + liquid;
+        const gap = pg.gap, covered = gap <= 0;
+        const maxV = Math.max(need, have, 1);
+        const w = (v: number) => `${Math.max(0, (v / maxV) * 100)}%`;
+        const needSegs = [
+          { label: "未償負債", value: debt, color: "#f59e0b" },
+          { label: "扶養支出", value: support, color: "#fb923c" },
+          { label: "子女教育金", value: edu, color: "#fbbf24" },
+        ].filter((s) => s.value > 0);
+        const haveSegs = [
+          { label: "現有壽險保額", value: life, color: "#0ea5e9" },
+          { label: "流動資產", value: liquid, color: "#10b981" },
+        ].filter((s) => s.value > 0);
+        return (
+          <div style={{ marginBottom: 16 }}>
+            <div className="hcr-sub-label">壽險保障缺口(家庭責任 vs 已備)</div>
+            <div className="hcr-stats">
+              <Stat label="家庭責任總額" value={fmtWan(need)} sub="負債 + 扶養 + 教育" />
+              <Stat label="已備保障" value={fmtWan(have)} sub="壽險保額 + 流動資產" />
+              <Stat label={covered ? "保障充足" : "壽險保障缺口"} value={fmtWan(Math.abs(gap))} sub={covered ? "已足夠" : "建議補足壽險"} />
+            </div>
+            <div style={{ marginTop: 12 }}>
+              <div className="hcr-cmp-row">
+                <span className="hcr-cmp-tag">家庭責任</span>
+                <div className="hcr-cmp-track">{needSegs.map((s) => <div key={s.label} style={{ width: w(s.value), background: s.color }} />)}</div>
+                <span className="hcr-cmp-num">{fmtWan(need)}</span>
+              </div>
+              <div className="hcr-cmp-row">
+                <span className="hcr-cmp-tag">已備保障</span>
+                <div className="hcr-cmp-track">
+                  {haveSegs.map((s) => <div key={s.label} style={{ width: w(s.value), background: s.color }} />)}
+                  {!covered && <div style={{ width: w(gap), background: "repeating-linear-gradient(45deg, #ef4444, #ef4444 4px, #fca5a5 4px, #fca5a5 8px)" }} />}
+                </div>
+                <span className="hcr-cmp-num">{fmtWan(have)}</span>
+              </div>
+            </div>
+            <div className="hcr-bar-legend" style={{ marginTop: 8, flexWrap: "wrap", gap: 14 }}>
+              {[...needSegs, ...haveSegs].map((s) => <span key={s.label}><i className="hcr-ldot" style={{ background: s.color }} />{s.label} {fmtWan(s.value)}</span>)}
+              {!covered && <span><i className="hcr-ldot" style={{ background: "#ef4444" }} />缺口 {fmtWan(gap)}</span>}
+            </div>
+            {covered ? (
+              <div className="hcr-gap ok" style={{ marginTop: 10 }}>
+                <span className="hcr-gap-name">壽險保障評估</span>
+                <span className="hcr-gap-val">已足夠(盈餘 {fmtWan(Math.abs(gap))})</span>
+              </div>
+            ) : (
+              <p className="hcr-alert">⚠ 家庭責任 {fmtWan(need)} 高於已備保障 {fmtWan(have)},壽險保障缺口約 <strong>{fmtWan(gap)}</strong>;建議增加壽險保額以覆蓋家庭責任,保障家人於事故時仍能清償負債並維持生活。</p>
+            )}
+          </div>
+        );
+      })()}
+
+      {/* 各成員投保完整度 + 清單 */}
+      {members.map((m) => {
+        const on = m.rows.filter((r) => r.has).length, total = m.rows.length;
+        const pct = Math.round((on / total) * 100);
+        const col = pct >= 75 ? "#059669" : pct >= 50 ? "#d97706" : "#dc2626";
+        return (
+          <div key={m.member} style={{ marginBottom: 12 }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", margin: "4px 0" }}>
+              <span style={{ fontSize: 20, fontWeight: 700, color: "#334155" }}>{m.member}</span>
+              <span style={{ fontSize: 16, fontWeight: 700, color: col }}>投保 {on}/{total} 項</span>
+            </div>
+            <div className="hcr-invest-bar" style={{ marginBottom: 6 }}><div style={{ width: `${pct}%`, background: col }} /></div>
+            <div className="hcr-ins">
+              {m.rows.map((r) => (
+                <div key={r.label} className={`hcr-ins-row ${r.has ? "on" : "off"}`}>
+                  <span>{r.has ? "✓ " : "✕ "}{r.label}</span>
+                  <span>{r.has ? r.text : "尚無"}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+      })}
+      <p className="hcr-note">各險種單位不同:壽險/意外/重疾為保額(萬)、醫療為日額+實支實付、失能/長照為每月給付。壽險保障缺口 =(未償負債 + 未來扶養 + 子女教育)−(現有壽險保額 + 流動資產);其餘險種為家戶保障完整度檢視,實際規劃由顧問依需求判斷。</p>
+    </section>
+  );
+}
+
 // 退休金準備分析:需求 vs 可累積(現有資產成長 + 未來投入 + 勞退)比較
 function RetirementReadinessBlock({ model }: { model: ReportModel }) {
   const gr = model.gaps.find((x) => x.name === "退休金缺口")?.result;
@@ -961,7 +1039,9 @@ const css = `
 .hcr-ins-row { display:flex; justify-content:space-between; font-size:20px; padding:8px 12px; border-radius:8px; border:1px solid #eee; }
 .hcr-ins-row.on { background:#ecfdf5; border-color:#a7f3d0; }
 .hcr-ins-row.on span:last-child { color:#059669; font-weight:600; }
-.hcr-ins-row.off span:last-child { color:#bbb; }
+.hcr-ins-row.off { background:#fef2f2; border-color:#fecaca; }
+.hcr-ins-row.off span:first-child { color:#dc2626; }
+.hcr-ins-row.off span:last-child { color:#f87171; }
 .hcr-calc { background:#f8fafc; border:1px solid #eaeef3; border-radius:10px; padding:12px; margin-bottom:10px; break-inside:avoid; }
 .hcr-calc-title { font-size:20px; font-weight:700; }
 .hcr-calc-formula { font-size:17px; color:#475569; background:#eef2f6; padding:6px 8px; border-radius:6px; margin:6px 0; }
