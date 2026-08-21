@@ -56,6 +56,10 @@ export interface PersonalStatements {
     futureInflow?: number;
     futureOutflow?: number;
     futureNet?: number;
+    // 逐年現金流趨勢(月,萬):主動收入 / 被動收入(退休後含勞退) / 貸款還款
+    series?: { age: number; active: number; passive: number; debt: number }[];
+    retireAge?: number;
+    loanEndAge?: number; // 現有貸款預估還清年齡(有貸款時)
   };
   // 未來值投影假設(有帶 params 時才有)
   projection?: {
@@ -175,6 +179,42 @@ export function personalStatements(data: QuestionnaireData, params?: CalcParams)
     };
   }
 
+  // ── 逐年現金流趨勢(月,萬)── 主動收入(薪資成長,退休停止)/ 被動收入(通膨成長,退休後併入勞退)/ 貸款還款(隨餘額遞減至還清)
+  let cashSeries: PersonalStatements["cashFlow"]["series"];
+  let loanEndAge: number | undefined;
+  if (params) {
+    const g = params.salaryGrowthRate;
+    const inf = params.inflationRate;
+    const startAge = core.age;
+    const retAge = core.retire_age;
+    const life = Math.max(retAge, params.lifeExpectancy);
+    const activeMonthNow = Math.max(0, (totalIncome - passiveIncome) / 12); // 主動收入(月)
+    const passiveMonthNow = passiveIncome / 12; // 被動收入(月,當前)
+    const pensionMonth = deep?.retire_pension_monthly ?? 0; // 勞退月領
+    const liabRate = deep?.liabilities?.interest_rate ?? 0;
+    const pl = deep?.planned_loan;
+    const plRate = liabRate || 2;
+    const plPmt = pl && pl.amount > 0 ? loanMonthlyPayment(pl.amount, plRate, pl.term_years) : 0;
+    const series: NonNullable<PersonalStatements["cashFlow"]["series"]> = [];
+    for (let age = startAge; age <= life; age++) {
+      const t = age - startAge;
+      const active = age <= retAge ? activeMonthNow * Math.pow(1 + g, t) : 0;
+      const passive = passiveMonthNow * Math.pow(1 + inf, t) + (age >= retAge ? pensionMonth : 0);
+      let debt = 0;
+      if (totalLiabilities > 0 && debtPayment > 0) {
+        const rem = remainingLoanBalance(totalLiabilities, debtPayment, liabRate, t);
+        debt += debtPayment * (rem / totalLiabilities);
+        if (rem <= 0 && loanEndAge === undefined) loanEndAge = age;
+      }
+      if (pl && pl.amount > 0 && t >= pl.years_until) {
+        const remp = remainingLoanBalance(pl.amount, plPmt, plRate, t - pl.years_until);
+        debt += plPmt * (remp / pl.amount);
+      }
+      series.push({ age, active: r1(active), passive: r1(passive), debt: r1(debt) });
+    }
+    cashSeries = series;
+  }
+
   return {
     balanceSheet: {
       assets,
@@ -213,6 +253,9 @@ export function personalStatements(data: QuestionnaireData, params?: CalcParams)
       futureInflow: future ? r1(future.futureInflow) : undefined,
       futureOutflow: future ? r1(future.futureOutflow) : undefined,
       futureNet: future ? r1(future.futureNet) : undefined,
+      series: cashSeries,
+      retireAge: cashSeries ? core.retire_age : undefined,
+      loanEndAge,
     },
     projection:
       params && n > 0
