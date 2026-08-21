@@ -52,18 +52,23 @@ export function InteractiveReport({
         <PrintButton />
       </div>
 
-      {/* 可調參數面板(列印時隱藏) */}
-      <div className="mx-auto max-w-3xl px-5 pt-4 print:hidden">
-        <div className="rounded-xl border border-sky-200 bg-sky-50 p-4 dark:border-sky-900 dark:bg-sky-950/30">
-          <div className="flex items-center justify-between">
-            <span className="text-sm font-semibold text-sky-900 dark:text-sky-100">試算參數(可調,報告即時重算)</span>
+      {/* 可調參數面板(⚠️ 列印時不呈現) */}
+      <div className="mx-auto max-w-4xl px-4 pt-4 print:hidden">
+        <div className="rounded-2xl border border-sky-200 bg-white p-5 shadow-sm dark:border-sky-900 dark:bg-neutral-950">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <span className="inline-flex items-center gap-1 rounded-full bg-sky-100 px-2.5 py-1 text-xs font-semibold text-sky-700 dark:bg-sky-900/50 dark:text-sky-300">
+                <span aria-hidden>⚙</span> 互動試算
+              </span>
+              <span className="text-sm font-semibold text-neutral-700 dark:text-neutral-200">試算參數(可調,報告即時重算)</span>
+            </div>
             {!isDefault && (
-              <button onClick={() => setParams(initialParams)} className="text-xs text-sky-600 hover:underline dark:text-sky-400">
-                重設
+              <button onClick={() => setParams(initialParams)} className="rounded-lg border border-sky-200 px-2.5 py-1 text-xs font-medium text-sky-600 hover:bg-sky-50 dark:border-sky-800 dark:text-sky-400 dark:hover:bg-sky-950/40">
+                重設為預設
               </button>
             )}
           </div>
-          <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3">
+          <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
             <P label="年報酬率" suffix="%" value={params.returnRate * 100} step={0.5} onChange={(v) => setParam("returnRate", v / 100)} />
             <P label="通膨率" suffix="%" value={params.inflationRate * 100} step={0.5} onChange={(v) => setParam("inflationRate", v / 100)} />
             <P label="薪資成長率" suffix="%" value={params.salaryGrowthRate * 100} step={0.5} onChange={(v) => setParam("salaryGrowthRate", v / 100)} />
@@ -85,9 +90,9 @@ export function InteractiveReport({
         </div>
       </div>
 
-      {/* 退休金回推試算(列印時隱藏;與客戶即時互動) */}
-      <div className="mx-auto max-w-3xl px-5 pt-3 print:hidden">
-        <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 dark:border-emerald-900 dark:bg-emerald-950/30">
+      {/* 退休金回推試算(⚠️ 列印時不呈現;與客戶即時互動) */}
+      <div className="mx-auto max-w-4xl px-4 pt-3 print:hidden">
+        <div className="rounded-2xl border border-emerald-200 bg-white p-5 shadow-sm dark:border-emerald-900 dark:bg-neutral-950">
           <h3 className="text-sm font-semibold text-emerald-900 dark:text-emerald-100">退休金回推試算</h3>
           <p className="mt-0.5 text-xs text-emerald-700/80 dark:text-emerald-300/80">輸入退休後每月想固定領取的金額,即時回推需準備多少(採上方試算參數)。</p>
           <div className="mt-3 flex items-center gap-2">
@@ -113,8 +118,8 @@ export function InteractiveReport({
       </div>
 
       <div className="bg-neutral-100 px-3 py-6 dark:bg-neutral-900 sm:px-4 print:bg-white print:p-0">
-        {/* 螢幕上呈現為 A4 直式頁面(與列印一致) */}
-        <div className="mx-auto w-full max-w-[210mm] rounded-lg bg-white shadow-md ring-1 ring-black/5 print:max-w-none print:rounded-none print:shadow-none print:ring-0">
+        {/* 螢幕上呈現為文件頁面(較寬,易讀);列印時強制 A4 直式 */}
+        <div className="mx-auto w-full max-w-4xl rounded-lg bg-white shadow-md ring-1 ring-black/5 print:max-w-none print:rounded-none print:shadow-none print:ring-0">
           <HealthCheckReport model={model} />
         </div>
       </div>
