@@ -337,7 +337,8 @@ export function HealthCheckReport({ model, variant = "full" }: { model: ReportMo
         <h2>試算計算明細(供驗證)</h2>
         <p className="hcr-note">
           試算參數:年報酬 {pctNum(model.params.returnRate)} · 通膨 {pctNum(model.params.inflationRate)} ·
-          薪資成長 {pctNum(model.params.salaryGrowthRate)} · 預估餘命 {model.params.lifeExpectancy} 歲 ·
+          {model.params.estRetireSalaryAnnual != null && model.params.estRetireSalaryAnnual > 0 ? ` 預估退休前薪資 ${fmtWan(model.params.estRetireSalaryAnnual)}/年 · ` : " "}
+          預估餘命 {model.params.lifeExpectancy} 歲 ·
           所得替代率 {model.params.defaultRetireLifestylePct}% · 子女獨立年齡 {model.params.childIndependentAge} 歲
         </p>
         {model.gaps
@@ -456,8 +457,8 @@ export function HealthCheckReport({ model, variant = "full" }: { model: ReportMo
           <li><b>未來值(複利終值)</b>:FV = PV × (1 + r)<sup>n</sup>,r 為年報酬率、n 為年數(財務管理 Time Value of Money)。</li>
           <li><b>年結餘持續投入(成長型年金終值)</b>:FV = PMT × [ (1+r)<sup>n</sup> − (1+g)<sup>n</sup> ] / (r − g),g 為年成長率(r = g 時以 n×PMT×(1+r)<sup>n−1</sup> 計)。</li>
           <li><b>貸款攤還</b>:月付金 = P × i / [ 1 − (1+i)<sup>−N</sup> ];剩餘本金 = P × (1+i)<sup>m</sup> − PMT × [ (1+i)<sup>m</sup> − 1 ] / i(i 為月利率、N 為總期數、m 為已繳期數)。</li>
-          <li><b>退休當年薪資(單利)</b>:退休當年薪資 = 現在薪資 ×(1 + g × n),g 為薪資成長率(客戶互動參數)、n 為距退休年數;採單利而非複利估計。</li>
-          <li><b>現金流趨勢三線</b>:主動收入(薪資)依成長率「單利」逐年估計、退休即停止;被動收入依通膨率逐年複利;退休後併入勞退月領(《勞工退休金條例》新制個人專戶);貸款還款隨本金餘額遞減至還清。</li>
+          <li><b>退休前薪資(互動參數)</b>:由顧問/客戶輸入「預估退休前薪資」,主動收入曲線自現況<b>線性推估</b>至該值:當年主動收入 = 現況 +(預估退休前薪資 − 現況)× t / n,t 為經過年數、n 為距退休年數。</li>
+          <li><b>現金流趨勢三線</b>:主動收入(薪資)自現況線性推估至預估退休前薪資、退休即停止;被動收入依通膨率逐年複利;退休後併入勞退月領(《勞工退休金條例》新制個人專戶);貸款還款隨本金餘額遞減至還清。</li>
           <li><b>綜合所得稅</b>:依《所得稅法》綜合所得淨額累進級距計算應納稅額與邊際稅率;免稅額、扣除額依財政部每年度公告。</li>
           <li><b>遺產稅</b>:依《遺產及贈與稅法》,(遺產總額 − 免稅額 − 各項扣除額) × 累進稅率 − 累進差額;免稅額與扣除額以國稅局公告為準。</li>
           <li><b>保險保障之計入</b>:保障型保單以風險移轉性質列示、不視為可運用資產,故不計入資產總額;其保單價值準備金(解約金)之現金價值可另計入「儲蓄保單」納入資產評估。</li>
@@ -601,7 +602,7 @@ function PersonalStatementsBlock({ s }: { s: PersonalStatements }) {
       <p className="hcr-note" style={{ marginTop: 0, marginBottom: 10 }}>參考公司三表結構,依會計邏輯分列:資產負債表、損益表、現金流量表(以家庭為單位)。</p>
       {proj && (
         <p className="hcr-note" style={{ marginTop: 0, marginBottom: 10, color: "#0369a1", background: "#f0f9ff" }}>
-          <strong>未來值(退休時)</strong>以財務計算機概念投影 {proj.years} 年到 {proj.retireAge} 歲:資產以年報酬 {pctNum(proj.returnRate)} 複利、並持續投入年結餘(成長型年金);主動收入(薪資)依成長率 {pctNum(proj.salaryGrowthRate)} <strong>單利</strong>估計、被動收入依通膨、支出依通膨 {pctNum(proj.inflationRate)}。屬試算,非保證。
+          <strong>未來值(退休時)</strong>以財務計算機概念投影 {proj.years} 年到 {proj.retireAge} 歲:資產以年報酬 {pctNum(proj.returnRate)} 複利、並持續投入年結餘(成長型年金);主動收入(薪資)自現況<strong>線性推估</strong>至「預估退休前薪資」{s.cashFlow.estRetireSalaryUsed != null ? `(${fmtWan(s.cashFlow.estRetireSalaryUsed)}/年)` : ""}、被動收入依通膨、支出依通膨 {pctNum(proj.inflationRate)}。屬試算,非保證。
         </p>
       )}
 
@@ -700,7 +701,7 @@ function PersonalStatementsBlock({ s }: { s: PersonalStatements }) {
             <div className="hcr-stmt-note" style={{ marginTop: 10 }}>現金流趨勢(時間軸並進,萬/月)</div>
             <div style={{ marginTop: 4 }}><CashFlowLines series={cf.series} retireAge={cf.retireAge} loanEndAge={cf.loanEndAge} /></div>
             <p className="hcr-note">
-              主動收入依薪資成長率「單利」推估,退休即停止(空心圈);被動收入依通膨率成長,退休後併入勞退月領(綠點起跳);
+              主動收入自現況線性推估至「預估退休前薪資」,退休即停止(空心圈);被動收入依通膨率成長,退休後併入勞退月領(綠點起跳);
               貸款還款隨本金餘額遞減,還清後歸零(實心點)。屬逐年試算,受市場與提前清償等因素影響,非保證。
             </p>
           </>

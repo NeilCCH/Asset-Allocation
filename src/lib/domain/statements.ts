@@ -33,6 +33,7 @@ export interface PersonalStatements {
     totalIncome: number;
     totalExpense: number;
     surplus: number;
+    activeIncome: number; // 主動收入(年,萬)= 總收入 − 被動收入
     passiveIncome: number;
     passiveRatio: number; // 被動收入占總收入
     incomeTax?: number; // 應納所得稅(萬),有填綜合所得淨額時
@@ -64,6 +65,7 @@ export interface PersonalStatements {
     series?: { age: number; active: number; passive: number; debt: number }[];
     retireAge?: number;
     loanEndAge?: number; // 現有貸款預估還清年齡(有貸款時)
+    estRetireSalaryUsed?: number; // 圖表採用的「預估退休前薪資」(萬/年);未填則等於現況主動收入
   };
   // 未來值投影假設(有帶 params 時才有)
   projection?: {
@@ -127,6 +129,10 @@ export function personalStatements(data: QuestionnaireData, params?: CalcParams)
   const annualSurplus = Math.max(-totalIncome, Math.min(rawAnnualSurplus, totalIncome));
   const totalExpense = totalIncome - annualSurplus; // = 收入 − 結餘,恆 ≥ 0
   const passiveIncome = income.filter((l) => l.tag === "被動").reduce((s, l) => s + l.amount, 0);
+  // 主動收入(年):總收入 − 被動收入。退休前薪資:優先採互動參數「預估退休前薪資」,未填則沿用現況主動收入。
+  const activeIncomeAnnual = Math.max(0, totalIncome - passiveIncome);
+  const estRetireSalaryAnnual =
+    params?.estRetireSalaryAnnual && params.estRetireSalaryAnnual > 0 ? params.estRetireSalaryAnnual : activeIncomeAnnual;
 
   // 退休後仍持續的收入:主動收入(薪資/獎金/事業)於退休後停止,僅保留被動收入 + 勞退月領
   const pensionAnnual = (deep?.retire_pension_monthly ?? 0) * 12;
@@ -152,7 +158,7 @@ export function personalStatements(data: QuestionnaireData, params?: CalcParams)
 
   // ── 未來值投影(TVM,以財務計算機概念投影到退休年) ──
   // 資產:現值以報酬率複利成長 + 年結餘持續投入(成長型年金,依薪資成長率)
-  // 收入:主動(薪資)依成長率「單利」、被動依通膨;支出:依通膨率(退休當年之估計)
+  // 收入:主動採「預估退休前薪資」(互動參數)、被動依通膨;支出:依通膨率(退休當年之估計)
   const n = Math.max(0, core.retire_age - core.age);
   type FutureVals = {
     futureAssets: number; futureLiabilities: number; futureNetWorth: number; futurePlannedLoan: number;
@@ -175,9 +181,8 @@ export function personalStatements(data: QuestionnaireData, params?: CalcParams)
       plannedFutureLiab = remainingLoanBalance(pl.amount, pmt, rate, n - pl.years_until);
     }
     const futureLiabilities = existingFutureLiab + plannedFutureLiab;
-    // 退休當年收入:主動(薪資)依成長率單利成長、被動依通膨複利;兩者相加
-    const activeAnnualNow = Math.max(0, totalIncome - passiveIncome);
-    const futureActiveIncome = activeAnnualNow * (1 + g * n); // 單利:退休當年薪資 = 現在薪資 ×(1 + g × n)
+    // 退休當年收入:主動採「預估退休前薪資」(互動參數)、被動依通膨複利;兩者相加
+    const futureActiveIncome = estRetireSalaryAnnual;
     const futurePassiveIncome = passiveIncome * Math.pow(1 + inf, n);
     const futureIncome = futureActiveIncome + futurePassiveIncome;
     const futureExpense = fv(totalExpense, inf);
@@ -190,16 +195,17 @@ export function personalStatements(data: QuestionnaireData, params?: CalcParams)
     };
   }
 
-  // ── 逐年現金流趨勢(月,萬)── 主動收入(薪資成長,退休停止)/ 被動收入(通膨成長,退休後併入勞退)/ 貸款還款(隨餘額遞減至還清)
+  // ── 逐年現金流趨勢(月,萬)── 主動收入(現況→預估退休前薪資,線性推估,退休停止)/ 被動收入(通膨成長,退休後併入勞退)/ 貸款還款(隨餘額遞減至還清)
   let cashSeries: PersonalStatements["cashFlow"]["series"];
   let loanEndAge: number | undefined;
   if (params) {
-    const g = params.salaryGrowthRate;
     const inf = params.inflationRate;
     const startAge = core.age;
     const retAge = core.retire_age;
     const life = Math.max(retAge, params.lifeExpectancy);
-    const activeMonthNow = Math.max(0, (totalIncome - passiveIncome) / 12); // 主動收入(月)
+    const yearsToRetire = Math.max(1, retAge - startAge);
+    const activeMonthNow = activeIncomeAnnual / 12; // 主動收入(月,現況)
+    const retireMonth = estRetireSalaryAnnual / 12; // 主動收入(月,退休前預估)
     const passiveMonthNow = passiveIncome / 12; // 被動收入(月,當前)
     const pensionMonth = deep?.retire_pension_monthly ?? 0; // 勞退月領
     const liabRate = deep?.liabilities?.interest_rate ?? 0;
@@ -209,8 +215,8 @@ export function personalStatements(data: QuestionnaireData, params?: CalcParams)
     const series: NonNullable<PersonalStatements["cashFlow"]["series"]> = [];
     for (let age = startAge; age <= life; age++) {
       const t = age - startAge;
-      // 主動收入(薪資):依成長率「單利」逐年估計,退休即停止。退休當年薪資 = 現在薪資 ×(1 + g × n)
-      const active = age <= retAge ? activeMonthNow * (1 + g * t) : 0;
+      // 主動收入(薪資):自現況「線性」推估至預估退休前薪資,退休即停止(不再以成長率估算)
+      const active = age <= retAge ? activeMonthNow + (retireMonth - activeMonthNow) * (Math.min(t, yearsToRetire) / yearsToRetire) : 0;
       const passive = passiveMonthNow * Math.pow(1 + inf, t) + (age >= retAge ? pensionMonth : 0);
       let debt = 0;
       if (totalLiabilities > 0 && debtPayment > 0) {
@@ -246,6 +252,7 @@ export function personalStatements(data: QuestionnaireData, params?: CalcParams)
       totalIncome: r1(totalIncome),
       totalExpense: r1(totalExpense),
       surplus: r1(annualSurplus),
+      activeIncome: r1(activeIncomeAnnual),
       passiveIncome: r1(passiveIncome),
       passiveRatio: totalIncome > 0 ? Math.round((passiveIncome / totalIncome) * 100) : 0,
       incomeTax: tax ? tax.tax : undefined,
@@ -271,6 +278,7 @@ export function personalStatements(data: QuestionnaireData, params?: CalcParams)
       series: cashSeries,
       retireAge: cashSeries ? core.retire_age : undefined,
       loanEndAge,
+      estRetireSalaryUsed: cashSeries ? r1(estRetireSalaryAnnual) : undefined,
     },
     projection:
       params && n > 0

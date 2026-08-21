@@ -6,8 +6,10 @@ export interface CalcParams {
   returnRate: number;
   /** 年化通膨率假設 */
   inflationRate: number;
-  /** 期望薪資成長率(年化)— 未來每年可投入金額依此成長 */
+  /** 期望薪資成長率(年化)— 內部用於「年結餘持續投入」之成長型年金,非 UI 參數 */
   salaryGrowthRate: number;
+  /** 預估退休前薪資(萬/年)— 由互動參數填入;主動收入曲線自現況線性推估至此值。未填則沿用現況主動收入 */
+  estRetireSalaryAnnual?: number;
   /** 預估餘命(歲)— 退休後年數 = lifeExpectancy − 退休年齡 */
   lifeExpectancy: number;
   /** 退休後想維持的生活水準預設(目前開銷幾成),未填深化題時採用 */

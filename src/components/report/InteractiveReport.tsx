@@ -43,6 +43,9 @@ export function InteractiveReport({
     () => buildReport(data, { params, advisorRecommendation, selectedDimensions, advisorSignature, riskAllocation }),
     [data, params, advisorRecommendation, selectedDimensions, advisorSignature, riskAllocation],
   );
+  // 現況主動收入(萬/年)— 作為「預估退休前薪資」輸入的預設起點
+  const currentActive = model.statements.incomeStatement.activeIncome;
+  const retireSalary = params.estRetireSalaryAnnual && params.estRetireSalaryAnnual > 0 ? params.estRetireSalaryAnnual : currentActive;
 
   return (
     <div className="flex-1">
@@ -71,7 +74,7 @@ export function InteractiveReport({
           <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
             <P label="年報酬率" suffix="%" value={params.returnRate * 100} step={0.5} onChange={(v) => setParam("returnRate", v / 100)} />
             <P label="通膨率" suffix="%" value={params.inflationRate * 100} step={0.5} onChange={(v) => setParam("inflationRate", v / 100)} />
-            <P label="薪資成長率" suffix="%" value={params.salaryGrowthRate * 100} step={0.5} onChange={(v) => setParam("salaryGrowthRate", v / 100)} />
+            <P label="預估退休前薪資" suffix="萬/年" value={retireSalary} step={10} onChange={(v) => setParam("estRetireSalaryAnnual", v)} />
             <P label="預估餘命" suffix="歲" value={params.lifeExpectancy} step={1} onChange={(v) => setParam("lifeExpectancy", v)} />
             <P label="所得替代率" suffix="%" value={params.defaultRetireLifestylePct} step={5} onChange={(v) => setParam("defaultRetireLifestylePct", v)} />
           </div>

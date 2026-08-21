@@ -8,6 +8,7 @@ import type { LeadScore } from "@/lib/domain/leads";
 import type { QuestionnaireData } from "@/lib/domain/types";
 import { CalcParams, clientDefaultParams } from "@/lib/domain/params";
 import { computeGaps, gapSolutions, type GapResult } from "@/lib/domain/calc";
+import { personalStatements } from "@/lib/domain/statements";
 import { assessRisk } from "@/lib/domain/risk";
 import { saveAdvisorWorkbench } from "@/lib/actions/advisor";
 
@@ -53,6 +54,9 @@ export function AdvisorWorkbench({
   const gaps = useMemo(() => computeGaps(data, params), [data, params]);
   const solutions = useMemo(() => gapSolutions(data, params), [data, params]);
   const risk = useMemo(() => assessRisk(data), [data]);
+  // 現況主動收入(萬/年)— 作為「預估退休前薪資」輸入的預設起點
+  const currentActive = useMemo(() => personalStatements(data).incomeStatement.activeIncome, [data]);
+  const retireSalary = params.estRetireSalaryAnnual && params.estRetireSalaryAnnual > 0 ? params.estRetireSalaryAnnual : currentActive;
   const isDefault = JSON.stringify(params) === JSON.stringify(clientDefaults);
 
   const toggle = (k: string) => setChecked((p) => ({ ...p, [k]: !p[k] }));
@@ -144,7 +148,7 @@ export function AdvisorWorkbench({
         <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3">
           <ParamInput label="年報酬率" suffix="%" value={params.returnRate * 100} onChange={(v) => setParam("returnRate", v / 100)} step={0.5} />
           <ParamInput label="通膨率" suffix="%" value={params.inflationRate * 100} onChange={(v) => setParam("inflationRate", v / 100)} step={0.5} />
-          <ParamInput label="薪資成長率" suffix="%" value={params.salaryGrowthRate * 100} onChange={(v) => setParam("salaryGrowthRate", v / 100)} step={0.5} />
+          <ParamInput label="預估退休前薪資" suffix="萬/年" value={retireSalary} onChange={(v) => setParam("estRetireSalaryAnnual", v)} step={10} />
           <ParamInput label="預估餘命" suffix="歲" value={params.lifeExpectancy} onChange={(v) => setParam("lifeExpectancy", v)} step={1} />
           <ParamInput label="所得替代率" suffix="%" value={params.defaultRetireLifestylePct} onChange={(v) => setParam("defaultRetireLifestylePct", v)} step={5} />
         </div>
