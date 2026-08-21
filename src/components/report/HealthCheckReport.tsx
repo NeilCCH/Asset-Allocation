@@ -570,6 +570,15 @@ function CashFlowLines({ series, retireAge, loanEndAge }: { series: NonNullable<
       {activePts.length > 1 && <path d={toPath(activePts)} fill="none" stroke={COL.active} strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />}
       {/* 端點標記 */}
       {debtEnd && <circle cx={x(debtEnd.age)} cy={y(debtEnd.v)} r="4" fill={COL.debt} stroke="#fff" strokeWidth="1.5" />}
+      {/* 貸款還清年齡標註;置於端點上方避免與 X 軸年齡重疊 */}
+      {debtEnd && (() => {
+        const flip = x(debtEnd.age) > ml + plotW * 0.55;
+        return (
+          <text x={x(debtEnd.age) + (flip ? -8 : 8)} y={Math.max(mt + 9, y(debtEnd.v) - 8)} textAnchor={flip ? "end" : "start"} fontSize="10.5" fontWeight="700" fill={COL.debt}>
+            {loanEndAge ?? debtEnd.age} 歲清償
+          </text>
+        );
+      })()}
       {passiveAtRetire && <circle cx={x(retireAge)} cy={y(passiveAtRetire.passive)} r="3.5" fill={COL.passive} stroke="#fff" strokeWidth="1.5" />}
       {activeEnd && <circle cx={x(activeEnd.age)} cy={y(activeEnd.v)} r="4.5" fill="#fff" stroke={COL.active} strokeWidth="2.2" />}
       {/* 退休當年主動收入(推估終點)數值標註;靠右時翻到左側避免出界 */}
