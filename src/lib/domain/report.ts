@@ -96,7 +96,7 @@ export function buildReport(
   const gaps = computeGaps(data, params);
 
   return {
-    clientName: `${data.basic.surname}${data.basic.honorific}`,
+    clientName: `${data.basic.surname ?? ""}${data.basic.honorific ?? ""}` || "客戶",
     generatedAt: new Date().toISOString().slice(0, 10),
     params,
     summary: {
