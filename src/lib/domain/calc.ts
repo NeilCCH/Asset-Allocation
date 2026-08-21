@@ -263,7 +263,7 @@ export function protectionGap(
   const { core, deep } = data;
   const liabilities = deep!.liabilities!;
   const unpaidLiabilities =
-    liabilities.mortgage_balance + liabilities.loan_balance;
+    liabilities.mortgage_balance + liabilities.loan_balance + (liabilities.credit_card_balance ?? 0);
 
   // 扶養支出現值 — 子女:至經濟獨立年齡的年數 × 每年扶養
   const perChildYears = core.dependents.children.reduce(

@@ -123,6 +123,7 @@ export interface EduGoal {
 export interface Liabilities {
   mortgage_balance: number; // 房貸餘額(萬元)
   loan_balance: number; // 其他貸款餘額(萬元)
+  credit_card_balance?: number; // 信用卡餘額(萬元)
   monthly_payment: number; // 月付(萬元)
   interest_rate?: number; // 平均利率(%)
   remaining_years?: number; // 剩餘年限

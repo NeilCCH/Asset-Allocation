@@ -33,7 +33,7 @@ export function estimateEstateTax(data: QuestionnaireData): EstateTaxResult {
   const children = dep?.children?.length ?? 0;
   const parents = dep?.parents?.length ?? 0;
   const liabilities = data.deep?.liabilities
-    ? data.deep.liabilities.mortgage_balance + data.deep.liabilities.loan_balance
+    ? data.deep.liabilities.mortgage_balance + data.deep.liabilities.loan_balance + (data.deep.liabilities.credit_card_balance ?? 0)
     : 0;
 
   const deductions = [

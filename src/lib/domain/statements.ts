@@ -93,6 +93,7 @@ export function personalStatements(data: QuestionnaireData, params?: CalcParams)
   if (deep?.liabilities) {
     if (deep.liabilities.mortgage_balance > 0) liabilities.push({ label: "房貸餘額", amount: deep.liabilities.mortgage_balance });
     if (deep.liabilities.loan_balance > 0) liabilities.push({ label: "其他貸款餘額", amount: deep.liabilities.loan_balance });
+    if ((deep.liabilities.credit_card_balance ?? 0) > 0) liabilities.push({ label: "信用卡餘額", amount: deep.liabilities.credit_card_balance! });
   }
   const totalLiabilities = liabilities.reduce((s, l) => s + l.amount, 0);
   const netWorth = totalAssets - totalLiabilities;

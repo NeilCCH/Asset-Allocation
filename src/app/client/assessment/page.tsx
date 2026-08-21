@@ -109,6 +109,7 @@ interface Form {
   // 深化:負債
   mortgageBalance: string;
   loanBalance: string;
+  creditCardBalance: string;
   liabMonthly: string;
   liabRate: string;
   liabYears: string;
@@ -164,6 +165,7 @@ const initialForm: Form = {
   assets: emptyAssets,
   mortgageBalance: "",
   loanBalance: "",
+  creditCardBalance: "",
   liabMonthly: "",
   liabRate: "",
   liabYears: "",
@@ -423,6 +425,7 @@ export default function Assessment() {
         liabilities: {
           mortgage_balance: Number(f.mortgageBalance) || 0,
           loan_balance: Number(f.loanBalance) || 0,
+          credit_card_balance: Number(f.creditCardBalance) || 0,
           monthly_payment: Number(f.liabMonthly) || 0,
           interest_rate: f.liabRate ? Number(f.liabRate) : undefined,
           remaining_years: f.liabYears ? Number(f.liabYears) : undefined,
@@ -762,7 +765,8 @@ export default function Assessment() {
               勾選你持有的類別並填入概略金額(萬元),不確定填大概即可。
             </p>
             <div className="space-y-2">
-              {ASSET_FIELDS.map((field) => {
+              {/* 保障型保單非「可運用資產」,不列於資產盤點;其保障於「保障 · 教育」步驟填報,保單價值金另計入儲蓄保單 */}
+              {ASSET_FIELDS.filter((field) => field.key !== "insurance_protection").map((field) => {
                 const a = f.assets[field.key];
                 return (
                   <div key={field.key} className="rounded-lg border border-neutral-200 p-3 dark:border-neutral-800">
@@ -803,12 +807,15 @@ export default function Assessment() {
             <p className="-mt-2 mb-1 text-sm text-neutral-500 dark:text-neutral-400">
               填寫以下資訊才能完整試算「保障缺口」與退休準備。沒有的項目留白即可。
             </p>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
               <Field label="房貸餘額(萬)">
                 <Input value={f.mortgageBalance} onChange={(v) => set("mortgageBalance", v)} type="number" placeholder="0" />
               </Field>
               <Field label="其他貸款餘額(萬)">
                 <Input value={f.loanBalance} onChange={(v) => set("loanBalance", v)} type="number" placeholder="0" />
+              </Field>
+              <Field label="信用卡餘額(萬)">
+                <Input value={f.creditCardBalance} onChange={(v) => set("creditCardBalance", v)} type="number" placeholder="0" />
               </Field>
             </div>
             <div className="grid grid-cols-3 gap-3">
