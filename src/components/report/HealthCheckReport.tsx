@@ -26,15 +26,22 @@ const RISK_COLOR: Record<string, string> = {
   穩定: "#10b981",
   風險: "#f43f5e",
 };
+// 收入分類配色(主動 / 被動 / 半被動)
+const TAG_COLOR: Record<string, string> = {
+  主動: "#0ea5e9",
+  被動: "#10b981",
+  半被動: "#8b5cf6",
+  其他: "#94a3b8",
+};
 
-function Donut({ segments }: { segments: { label: string; value: number; color: string }[] }) {
+function Donut({ segments, centerLabel = "總資產", centerValue, size = 160, ariaLabel = "資產類別分布" }: { segments: { label: string; value: number; color: string }[]; centerLabel?: string; centerValue?: string; size?: number; ariaLabel?: string }) {
   const total = segments.reduce((s, x) => s + x.value, 0) || 1;
   const R = 60;
   const C = 2 * Math.PI * R;
   const GAP = 2; // 區段間細縫
   let offset = 0;
   return (
-    <svg viewBox="0 0 160 160" width="160" height="160" role="img" aria-label="資產類別分布">
+    <svg viewBox="0 0 160 160" width={size} height={size} role="img" aria-label={ariaLabel}>
       <circle cx="80" cy="80" r={R} fill="none" stroke="#eef2f6" strokeWidth="26" />
       <g transform="rotate(-90 80 80)">
         {segments.map((s) => {
@@ -57,9 +64,37 @@ function Donut({ segments }: { segments: { label: string; value: number; color: 
           return el;
         })}
       </g>
-      <text x="80" y="75" textAnchor="middle" fontSize="12" fill="#94a3b8">總資產</text>
-      <text x="80" y="94" textAnchor="middle" fontSize="17" fontWeight="700" fill="#334155">{fmtWan(total)}</text>
+      <text x="80" y="75" textAnchor="middle" fontSize="12" fill="#94a3b8">{centerLabel}</text>
+      <text x="80" y="94" textAnchor="middle" fontSize="17" fontWeight="700" fill="#334155">{centerValue ?? fmtWan(total)}</text>
     </svg>
+  );
+}
+
+// 收入結構圓環(依主動/被動/半被動上色)+ 圖例
+function IncomeDonutBlock({ title, lines, total }: { title: string; lines: { label: string; amount: number; tag?: string }[]; total: number }) {
+  const segs = lines
+    .filter((l) => l.amount > 0)
+    .map((l) => ({ label: l.label, value: l.amount, tag: l.tag, color: TAG_COLOR[l.tag ?? "其他"] ?? TAG_COLOR["其他"] }));
+  return (
+    <div className="hcr-income-donut">
+      <div className="hcr-income-donut-title">{title}</div>
+      {segs.length === 0 || total <= 0 ? (
+        <p style={{ fontSize: 16, color: "#94a3b8", margin: "20px 0" }}>無持續性收入</p>
+      ) : (
+        <>
+          <Donut segments={segs} centerLabel="年收入" centerValue={fmtWan(total)} size={140} ariaLabel={`${title}收入結構`} />
+          <ul className="hcr-income-legend">
+            {segs.map((s) => (
+              <li key={s.label}>
+                <span className="hcr-dot" style={{ background: s.color }} />
+                <span className="hcr-income-legend-label">{s.label}{s.tag ? `(${s.tag})` : ""}</span>
+                <em>{Math.round((s.value / total) * 100)}%</em>
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
+    </div>
   );
 }
 
@@ -539,12 +574,16 @@ function PersonalStatementsBlock({ s }: { s: PersonalStatements }) {
           </>
         )}
         <StackBar segments={[{ label: "支出", value: is.totalExpense, color: "#94a3b8" }, { label: "結餘", value: Math.max(0, is.surplus), color: "#10b981" }]} />
-        {is.passiveIncome > 0 && (
-          <>
-            <div className="hcr-stmt-note" style={{ marginTop: 8 }}>收入結構(主動 vs 被動)</div>
-            <StackBar segments={[{ label: "被動收入", value: is.passiveIncome, color: "#0ea5e9" }, { label: "其他收入", value: Math.max(0, is.totalIncome - is.passiveIncome), color: "#cbd5e1" }]} />
-          </>
-        )}
+        {/* 收入結構圓環:工作期間(全部)vs 退休後(僅被動 + 勞退) */}
+        <div className="hcr-stmt-note" style={{ marginTop: 10 }}>收入結構(工作期間 vs 退休後)</div>
+        <div className="hcr-income-donuts">
+          <IncomeDonutBlock title="工作期間" lines={is.income} total={is.totalIncome} />
+          <IncomeDonutBlock title="退休後" lines={is.retireIncome} total={is.retireIncomeTotal} />
+        </div>
+        <p className="hcr-note">
+          退休後主動收入(薪資 / 獎金 / 事業)停止,僅被動收入(租金 / 配息)與勞退月領持續;
+          被動收入會因市場波動或投資計劃調整而變動,非固定保證。
+        </p>
       </div>
 
       {/* ③ 現金流量表 */}
@@ -665,6 +704,13 @@ const css = `
 .hcr-stmt-future { display:flex; justify-content:space-between; font-size:18px; font-weight:600; color:#0369a1; background:#f0f9ff; border:1px solid #e0f2fe; border-radius:7px; padding:4px 9px; margin-top:4px; }
 .hcr-stmt-future-group { margin-top:4px; display:flex; flex-direction:column; gap:2px; }
 .hcr-stmt-future-group .hcr-stmt-future { margin-top:0; }
+.hcr-income-donuts { display:flex; gap:20px; flex-wrap:wrap; justify-content:center; margin-top:6px; }
+.hcr-income-donut { flex:1 1 240px; min-width:200px; text-align:center; }
+.hcr-income-donut-title { font-size:18px; font-weight:700; color:#334155; margin-bottom:4px; }
+.hcr-income-legend { list-style:none; margin:8px auto 0; padding:0; max-width:280px; display:flex; flex-direction:column; gap:3px; }
+.hcr-income-legend li { display:flex; align-items:center; gap:7px; font-size:16px; color:#444; }
+.hcr-income-legend-label { flex:1; text-align:left; }
+.hcr-income-legend li em { color:#999; font-style:normal; font-size:15px; }
 .hcr-advisor { background:#f4faf6; border-color:#cfe9dd; }
 .hcr-dims { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:14px; }
 .hcr-dim { padding:12px 14px; background:#fff; border:1px solid #dcece3; border-left:3px solid #10b981; border-radius:10px; break-inside:avoid; }

@@ -27,7 +27,9 @@ export interface PersonalStatements {
   };
   // 損益表(年):收入 − 支出 = 結餘
   incomeStatement: {
-    income: Line[];
+    income: Line[]; // 工作期間收入(主動 + 被動)
+    retireIncome: Line[]; // 退休後仍持續的收入(僅被動 + 勞退月領)
+    retireIncomeTotal: number;
     totalIncome: number;
     totalExpense: number;
     surplus: number;
@@ -118,6 +120,12 @@ export function personalStatements(data: QuestionnaireData, params?: CalcParams)
   const totalExpense = totalIncome - annualSurplus; // = 收入 − 結餘,恆 ≥ 0
   const passiveIncome = income.filter((l) => l.tag === "被動").reduce((s, l) => s + l.amount, 0);
 
+  // 退休後仍持續的收入:主動收入(薪資/獎金/事業)於退休後停止,僅保留被動收入 + 勞退月領
+  const pensionAnnual = (deep?.retire_pension_monthly ?? 0) * 12;
+  const retireIncome: Line[] = income.filter((l) => l.tag === "被動").map((l) => ({ ...l }));
+  if (pensionAnnual > 0) retireIncome.push({ label: "勞退月領", amount: r1(pensionAnnual), tag: "被動" });
+  const retireIncomeTotal = retireIncome.reduce((s, l) => s + l.amount, 0);
+
   // ── 現金流量表(月) ── 與損益表採同一份(已夾住)結餘,兩表一致
   const inflow = totalIncome / 12;
   const net = annualSurplus / 12; // 月結餘
@@ -181,6 +189,8 @@ export function personalStatements(data: QuestionnaireData, params?: CalcParams)
     },
     incomeStatement: {
       income,
+      retireIncome: retireIncome.map((l) => ({ ...l, amount: r1(l.amount) })),
+      retireIncomeTotal: r1(retireIncomeTotal),
       totalIncome: r1(totalIncome),
       totalExpense: r1(totalExpense),
       surplus: r1(annualSurplus),
