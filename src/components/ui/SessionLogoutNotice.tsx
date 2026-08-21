@@ -38,7 +38,9 @@ export function SessionLogoutNotice() {
     } catch {
       /* 即使清 session 失敗也硬導向 */
     }
-    // 硬導向(整頁重載),確保伺服器以「已清除的 cookie」重新渲染 → 確實登出
+    // 硬導向(整頁重載),確保伺服器以「已清除的 cookie」重新渲染 → 確實登出。
+    // 刻意不用 next/redirect:登出需整頁重載以清除記憶體中的 session 狀態。
+    // eslint-disable-next-line @next/next/no-location-assign-relative-destination
     window.location.href = "/";
   };
 

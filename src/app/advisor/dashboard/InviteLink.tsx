@@ -9,6 +9,8 @@ export function InviteLink({ code }: { code: string }) {
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
+    // window 僅存在於 client;於 effect 設定可避免 SSR/CSR hydration 不一致
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setUrl(`${window.location.origin}/join?ref=${code}`);
   }, [code]);
 

@@ -39,30 +39,29 @@ function Donut({ segments, centerLabel = "總資產", centerValue, size = 160, a
   const R = 60;
   const C = 2 * Math.PI * R;
   const GAP = 2; // 區段間細縫
-  let offset = 0;
+  // 各弧的長度與起始偏移(起始 = 前面各段長度和),以純計算取代 render 期間變數累加
+  const arcs = segments.map((s, i) => {
+    const len = (s.value / total) * C;
+    const start = segments.slice(0, i).reduce((sum, x) => sum + (x.value / total) * C, 0);
+    return { label: s.label, color: s.color, len, start };
+  });
   return (
     <svg viewBox="0 0 160 160" width={size} height={size} role="img" aria-label={ariaLabel}>
       <circle cx="80" cy="80" r={R} fill="none" stroke="#eef2f6" strokeWidth="26" />
       <g transform="rotate(-90 80 80)">
-        {segments.map((s) => {
-          const len = (s.value / total) * C;
-          const dash = `${Math.max(0, len - GAP)} ${C - len + GAP}`;
-          const el = (
-            <circle
-              key={s.label}
-              cx="80"
-              cy="80"
-              r={R}
-              fill="none"
-              stroke={s.color}
-              strokeWidth="26"
-              strokeDasharray={dash}
-              strokeDashoffset={-offset}
-            />
-          );
-          offset += len;
-          return el;
-        })}
+        {arcs.map((a) => (
+          <circle
+            key={a.label}
+            cx="80"
+            cy="80"
+            r={R}
+            fill="none"
+            stroke={a.color}
+            strokeWidth="26"
+            strokeDasharray={`${Math.max(0, a.len - GAP)} ${C - a.len + GAP}`}
+            strokeDashoffset={-a.start}
+          />
+        ))}
       </g>
       <text x="80" y="75" textAnchor="middle" fontSize="12" fill="#94a3b8">{centerLabel}</text>
       <text x="80" y="94" textAnchor="middle" fontSize="17" fontWeight="700" fill="#334155">{centerValue ?? fmtWan(total)}</text>

@@ -1,7 +1,7 @@
 "use client";
 
 // 互動報告 — ⚠️ 顧問專屬。報告頁上直接調整試算參數,報告即時重算;列印時參數面板自動隱藏。
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { BackLink } from "@/components/ui/BackLink";
 import type { QuestionnaireData } from "@/lib/domain/types";
 import { CalcParams } from "@/lib/domain/params";
@@ -149,10 +149,12 @@ function ReserveCard({ label, value, highlight, note }: { label: string; value: 
 function P({ label, suffix, value, step, onChange }: { label: string; suffix: string; value: number; step: number; onChange: (v: number) => void }) {
   const rounded = Math.round(value * 100) / 100;
   const [text, setText] = useState(String(rounded));
-  useEffect(() => {
+  // 外部值(如「重設為預設」)變動時同步輸入框:採 React 建議之 render 期間調整 state,取代 effect
+  const [prevRounded, setPrevRounded] = useState(rounded);
+  if (rounded !== prevRounded) {
+    setPrevRounded(rounded);
     if (Number(text) !== rounded) setText(String(rounded));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [rounded]);
+  }
   return (
     <label className="block">
       <span className="text-xs text-sky-800 dark:text-sky-200">{label}</span>

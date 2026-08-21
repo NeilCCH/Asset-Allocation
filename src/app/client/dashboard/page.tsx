@@ -132,6 +132,8 @@ export default function Dashboard() {
   useEffect(() => {
     if (!loggedIn || bound || !data || binding) return;
     const pending = loadPendingAdvisor();
+    // loadPendingAdvisor 讀 localStorage;登入回來後於 client effect 自動完成綁定
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (pending) bindAdvisor(pending, "pending");
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loggedIn, bound, data]);

@@ -17,8 +17,10 @@ export function PlanCard({
   const [requested, setRequested] = useState(featuredRequested);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
+  // 掛載當下捕捉一次時間,避免 render 期間呼叫 Date.now(不純)
+  const [now] = useState(() => Date.now());
 
-  const active = featured && !!featuredUntil && new Date(featuredUntil).getTime() > Date.now();
+  const active = featured && !!featuredUntil && new Date(featuredUntil).getTime() > now;
   const expired = featured && !!featuredUntil && !active;
   const untilStr = featuredUntil ? new Date(featuredUntil).toLocaleDateString("zh-TW", { year: "numeric", month: "2-digit", day: "2-digit" }) : "";
 

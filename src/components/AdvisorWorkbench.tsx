@@ -2,7 +2,7 @@
 
 // 顧問工作台 — ⚠️ 顧問專屬,此區內容不會、也不得呈現給客戶。
 // 配置面向採「顧問手動勾選」;缺口試算參數可由顧問覆寫(§7 可調參數)。
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import type { LeadScore } from "@/lib/domain/leads";
 import type { QuestionnaireData } from "@/lib/domain/types";
@@ -287,10 +287,12 @@ export function AdvisorWorkbench({
 function ParamInput({ label, suffix, value, onChange, step }: { label: string; suffix: string; value: number; onChange: (v: number) => void; step: number }) {
   const rounded = Math.round(value * 100) / 100;
   const [text, setText] = useState(String(rounded));
-  useEffect(() => {
+  // 外部值變動時同步輸入框:採 React 建議之 render 期間調整 state,取代 effect
+  const [prevRounded, setPrevRounded] = useState(rounded);
+  if (rounded !== prevRounded) {
+    setPrevRounded(rounded);
     if (Number(text) !== rounded) setText(String(rounded));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [rounded]);
+  }
   return (
     <label className="block">
       <span className="text-xs text-neutral-500 dark:text-neutral-400">{label}</span>

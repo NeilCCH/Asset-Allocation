@@ -233,6 +233,8 @@ export default function Assessment() {
     const done = !!loadDraft();
     if (p) {
       // 合併舊進度時,資產欄位以 emptyAssets 打底,確保新增欄位(外幣/黃金/加密/退休專戶等)不缺鍵而崩潰
+      // loadProgress 讀 localStorage,僅能於 client effect 還原
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setF({ ...initialForm, ...p.f, assets: { ...emptyAssets, ...(p.f?.assets ?? {}) } });
       setStep(p.step ?? 0);
       setMaxStep(done ? STEPS.length - 1 : p.maxStep ?? p.step ?? 0);
@@ -242,7 +244,8 @@ export default function Assessment() {
     setHydrated(true);
   }, []);
 
-  // 前進時更新最遠步驟
+  // 前進時更新最遠步驟(追蹤已到達的最遠步驟,供進度條可回跳)
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => setMaxStep((m) => Math.max(m, step)), [step]);
 
   // 自動存檔進度(還原完成後才寫,避免以預設覆蓋)

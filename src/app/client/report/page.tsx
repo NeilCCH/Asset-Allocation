@@ -18,6 +18,8 @@ export default function ClientReport() {
   useEffect(() => {
     const raw = loadDraft() as QuestionnaireData | null;
     const data = raw ? normalizeData(raw) : null;
+    // loadDraft 讀 localStorage,僅能於 client effect 執行
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setModel(data ? buildReport(data, { params: clientDefaultParams(data.basic.honorific) }) : null);
   }, []);
 

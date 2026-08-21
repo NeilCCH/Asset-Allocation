@@ -13,6 +13,8 @@ export default function Join() {
     const r = new URLSearchParams(window.location.search).get("ref");
     if (r) {
       saveReferral(r);
+      // window.location 僅存在於 client,需於 effect 讀取後設定
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setRef(r.toUpperCase());
     }
   }, []);
