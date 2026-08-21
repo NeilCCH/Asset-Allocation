@@ -154,8 +154,11 @@ export function HealthCheckReport({ model, variant = "full" }: { model: ReportMo
         </section>
       )}
 
-      {/* 家庭財務報表(參考公司三表結構) */}
+      {/* 家庭財務報表(現況三表;客戶 + 顧問皆呈現) */}
       <PersonalStatementsBlock s={model.statements} />
+
+      {/* 財務預估投影(至退休)— ⚠️ 顧問專屬,以分析格式呈現 */}
+      {full && model.statements.projection && <FinancialProjectionBlock s={model.statements} />}
 
       {/* 資產分布(固定 / 流動 / 風險 三類;保障獨立) */}
       <section className="hcr-card">
@@ -467,34 +470,6 @@ function StackBar({ segments }: { segments: { label: string; value: number; colo
         ))}
       </div>
     </div>
-  );
-}
-
-// 現金流量瀑布圖(流入 → 流出 → 結餘)
-function Waterfall({ inflow, outflow, net }: { inflow: number; outflow: number; net: number }) {
-  const maxV = Math.max(inflow, 0.01);
-  const W = 300, H = 118, top = 10, bottom = H - 26, plotH = bottom - top, barW = 56;
-  const xs = [24, 24 + barW + 40, 24 + (barW + 40) * 2];
-  const y = (v: number) => bottom - (Math.max(0, v) / maxV) * plotH;
-  const bars = [
-    { x: xs[0], y0: bottom, y1: y(inflow), color: "#10b981", label: "流入", val: inflow },
-    { x: xs[1], y0: y(inflow), y1: y(net), color: "#f59e0b", label: "流出", val: outflow },
-    { x: xs[2], y0: bottom, y1: y(net), color: net >= 0 ? "#0ea5e9" : "#ef4444", label: "結餘", val: net },
-  ];
-  return (
-    <svg viewBox={`0 0 ${W} ${H}`} width="100%" style={{ maxWidth: 320 }} role="img" aria-label="現金流量瀑布圖">
-      <line x1="12" y1={bottom} x2={W - 8} y2={bottom} stroke="#e5e7eb" strokeWidth="1" />
-      {/* 連接虛線 */}
-      <line x1={xs[0] + barW} y1={y(inflow)} x2={xs[1]} y2={y(inflow)} stroke="#cbd5e1" strokeWidth="1" strokeDasharray="3 3" />
-      <line x1={xs[1] + barW} y1={y(net)} x2={xs[2]} y2={y(net)} stroke="#cbd5e1" strokeWidth="1" strokeDasharray="3 3" />
-      {bars.map((b) => (
-        <g key={b.label}>
-          <rect x={b.x} y={Math.min(b.y0, b.y1)} width={barW} height={Math.abs(b.y1 - b.y0) || 1} rx="3" fill={b.color} />
-          <text x={b.x + barW / 2} y={bottom + 12} textAnchor="middle" fontSize="11" fill="#334155">{b.label}</text>
-          <text x={b.x + barW / 2} y={bottom + 23} textAnchor="middle" fontSize="10" fill="#64748b">{fmtWan(b.val)}</text>
-        </g>
-      ))}
-    </svg>
   );
 }
 
@@ -879,16 +854,10 @@ function PersonalStatementsBlock({ s }: { s: PersonalStatements }) {
   const bs = s.balanceSheet;
   const is = s.incomeStatement;
   const cf = s.cashFlow;
-  const proj = s.projection;
   return (
     <section className="hcr-card">
-      <h2>家庭財務報表</h2>
-      <p className="hcr-note" style={{ marginTop: 0, marginBottom: 10 }}>參考公司三表結構,依會計邏輯分列:資產負債表、損益表、現金流量表(以家庭為單位)。</p>
-      {proj && (
-        <p className="hcr-note" style={{ marginTop: 0, marginBottom: 10, color: "#0369a1", background: "#f0f9ff" }}>
-          <strong>未來值(退休時)</strong>以財務計算機概念投影 {proj.years} 年到 {proj.retireAge} 歲:資產以年報酬 {pctNum(proj.returnRate)} 複利、並持續投入年結餘(成長型年金);主動收入(薪資)自現況<strong>線性推估</strong>至「預估退休前薪資」{s.cashFlow.estRetireSalaryUsed != null ? `(${fmtWan(s.cashFlow.estRetireSalaryUsed)}/年)` : ""}、被動收入依通膨、支出依通膨 {pctNum(proj.inflationRate)}。屬試算,非保證。
-        </p>
-      )}
+      <h2>家庭財務報表(現況)</h2>
+      <p className="hcr-note" style={{ marginTop: 0, marginBottom: 10 }}>參考公司三表結構,依會計邏輯分列:資產負債表、損益表、現金流量表(以家庭為單位)。<strong>本表僅呈現目前狀況</strong>;未來各項預估與趨勢另見「財務預估投影」。</p>
 
       {/* ① 資產負債表 */}
       <div className="hcr-stmt">
@@ -911,25 +880,6 @@ function PersonalStatementsBlock({ s }: { s: PersonalStatements }) {
           </div>
         </div>
         <StackBar segments={[{ label: "負債", value: bs.totalLiabilities, color: "#f59e0b" }, { label: "淨值", value: Math.max(0, bs.netWorth), color: "#10b981" }]} />
-        {bs.futureNetWorth != null && (
-          <>
-            <div className="hcr-stmt-future-group">
-              <div className="hcr-stmt-future"><span>退休時 · 資產(未來值)</span><span style={{ color: AMT_IN }}>{fmtWan(bs.futureAssets ?? 0)}</span></div>
-              <div className="hcr-stmt-future"><span>退休時 · 負債(未來值,攤還後)</span><span style={{ color: AMT_OUT }}>−{fmtWan(bs.futureLiabilities ?? 0)}</span></div>
-              {bs.futurePlannedLoan != null && (
-                <div className="hcr-stmt-future" style={{ background: "#fef2f2", color: "#b91c1c", borderColor: "#fecaca" }}>
-                  <span>　其中新增貸款計劃剩餘</span><span>−{fmtWan(bs.futurePlannedLoan)}</span>
-                </div>
-              )}
-              <div className="hcr-stmt-future"><span>退休時 · 淨值(未來值)</span><span style={{ color: netColor(bs.futureNetWorth) }}>{fmtWan(bs.futureNetWorth)}</span></div>
-            </div>
-            <p className="hcr-note">
-              負債未來值依平均利率與月還款「本息攤還」逐年遞減;若有新增貸款計劃,以退休時剩餘本金計入負債。
-              ⚠️ 貨幣具時間價值,今日金額與退休時金額不可直接比較(已以報酬/通膨參數折算)。
-              {bs.futurePlannedLoan != null && "新增貸款若用於購置資產,該資產價值未納入本試算,實際淨值影響需另計。"}
-            </p>
-          </>
-        )}
       </div>
 
       {/* ② 損益表 */}
@@ -941,13 +891,6 @@ function PersonalStatementsBlock({ s }: { s: PersonalStatements }) {
         <div className="hcr-stmt-row total"><span>年收入合計</span><span style={{ color: AMT_IN }}>{fmtWan(is.totalIncome)}</span></div>
         <div className="hcr-stmt-row"><span>年支出(推估)</span><span style={{ color: AMT_OUT }}>−{fmtWan(is.totalExpense)}</span></div>
         <div className="hcr-stmt-row total"><span>年結餘</span><span style={{ color: netColor(is.surplus) }}>{fmtWan(is.surplus)}</span></div>
-        {is.futureSurplus != null && (
-          <div className="hcr-stmt-future-group">
-            <div className="hcr-stmt-future"><span>退休當年 · 年收入(未來值)</span><span style={{ color: AMT_IN }}>{fmtWan(is.futureIncome ?? 0)}</span></div>
-            <div className="hcr-stmt-future"><span>年支出(未來值)</span><span style={{ color: AMT_OUT }}>−{fmtWan(is.futureExpense ?? 0)}</span></div>
-            <div className="hcr-stmt-future"><span>年結餘(未來值)</span><span style={{ color: netColor(is.futureSurplus) }}>{fmtWan(is.futureSurplus)}</span></div>
-          </div>
-        )}
         {is.incomeTax != null && (
           <>
             <div className="hcr-stmt-row"><span>綜所稅(估)</span><span style={{ color: AMT_OUT }}>−{fmtWan(is.incomeTax)}</span></div>
@@ -956,16 +899,11 @@ function PersonalStatementsBlock({ s }: { s: PersonalStatements }) {
           </>
         )}
         <StackBar segments={[{ label: "支出", value: is.totalExpense, color: "#94a3b8" }, { label: "結餘", value: Math.max(0, is.surplus), color: "#10b981" }]} />
-        {/* 收入結構圓環:工作期間(全部)vs 退休後(僅被動 + 勞退) */}
-        <div className="hcr-stmt-note" style={{ marginTop: 10 }}>收入結構(工作期間 vs 退休後)</div>
+        {/* 收入結構圓環(現況:工作期間) */}
+        <div className="hcr-stmt-note" style={{ marginTop: 10 }}>收入結構(現況)</div>
         <div className="hcr-income-donuts">
           <IncomeDonutBlock title="工作期間" lines={is.income} total={is.totalIncome} />
-          <IncomeDonutBlock title="退休後" lines={is.retireIncome} total={is.retireIncomeTotal} />
         </div>
-        <p className="hcr-note">
-          退休後主動收入(薪資 / 獎金 / 事業)停止,僅被動收入(租金 / 配息)與勞退月領持續;
-          被動收入會因市場波動或投資計劃調整而變動,非固定保證。
-        </p>
       </div>
 
       {/* ③ 現金流量表 */}
@@ -974,24 +912,6 @@ function PersonalStatementsBlock({ s }: { s: PersonalStatements }) {
         <div className="hcr-stmt-row"><span>每月現金流入(收入)</span><span style={{ color: AMT_IN }}>{fmtWan(cf.inflow)}</span></div>
         <div className="hcr-stmt-row"><span>每月現金流出(支出,含還款 {fmtWan(cf.debtPayment)})</span><span style={{ color: AMT_OUT }}>−{fmtWan(cf.outflow)}</span></div>
         <div className="hcr-stmt-row total"><span>每月淨現金流</span><span style={{ color: netColor(cf.net) }}>{fmtWan(cf.net)}</span></div>
-        {cf.futureNet != null && (
-          <div className="hcr-stmt-future">
-            <span>退休前一年 · 每月淨現金流(未來值)</span>
-            <span style={{ color: netColor(cf.futureNet) }}>{fmtWan(cf.futureNet)}</span>
-          </div>
-        )}
-        {cf.series && cf.retireAge != null ? (
-          <>
-            <div className="hcr-stmt-note" style={{ marginTop: 10 }}>現金流趨勢(時間軸並進,萬/月)</div>
-            <div style={{ marginTop: 4 }}><CashFlowLines series={cf.series} retireAge={cf.retireAge} loanEndAge={cf.loanEndAge} /></div>
-            <p className="hcr-note">
-              主動收入自現況線性推估至「預估退休前薪資」,退休即停止(空心圈);被動收入依通膨率成長,退休後併入勞退月領(綠點起跳);
-              貸款還款隨本金餘額遞減,還清後歸零(實心點)。屬逐年試算,受市場與提前清償等因素影響,非保證。
-            </p>
-          </>
-        ) : (
-          <div style={{ marginTop: 8 }}><Waterfall inflow={cf.inflow} outflow={cf.outflow} net={cf.net} /></div>
-        )}
         {cf.fixedExpense && (
           <div style={{ marginTop: 10, borderTop: "1px solid #eaeef3", paddingTop: 8 }}>
             <div className="hcr-stmt-note">每月固定支出明細(萬/月)</div>
@@ -1012,6 +932,65 @@ function PersonalStatementsBlock({ s }: { s: PersonalStatements }) {
           </div>
         )}
       </div>
+    </section>
+  );
+}
+
+// 財務預估投影(至退休)— 顧問專屬。以分析/圖表格式呈現,不套用三表版面。
+function FinancialProjectionBlock({ s }: { s: PersonalStatements }) {
+  const proj = s.projection;
+  if (!proj) return null;
+  const bs = s.balanceSheet, is = s.incomeStatement, cf = s.cashFlow;
+  return (
+    <section className="hcr-card hcr-advisor">
+      <h2>財務預估投影(至退休 · 顧問參考)</h2>
+      <p className="hcr-note" style={{ marginTop: 0 }}>
+        以財務計算機概念投影 {proj.years} 年到 {proj.retireAge} 歲:資產以年報酬 {pctNum(proj.returnRate)} 複利、並持續投入年結餘(成長型年金);主動收入(薪資)自現況<strong>線性推估</strong>至「預估退休前薪資」{cf.estRetireSalaryUsed != null ? `(${fmtWan(cf.estRetireSalaryUsed)}/年)` : ""}、被動收入依通膨、支出依通膨 {pctNum(proj.inflationRate)}。屬試算假設、非保證;貨幣具時間價值,今日金額與退休時金額不可直接比較。
+      </p>
+
+      {/* 現金流三線趨勢圖(主圖) */}
+      {cf.series && cf.retireAge != null && (
+        <>
+          <div className="hcr-sub-label" style={{ marginTop: 4 }}>現金流趨勢(主動 / 被動含勞退 / 貸款,萬/月)</div>
+          <div style={{ marginTop: 4 }}><CashFlowLines series={cf.series} retireAge={cf.retireAge} loanEndAge={cf.loanEndAge} /></div>
+          <p className="hcr-note">主動收入自現況線性推估至預估退休前薪資,退休即停止(空心圈);被動收入依通膨成長,退休後併入勞退月領(綠點起跳);貸款還款隨本金餘額遞減至還清(實心點)。</p>
+        </>
+      )}
+
+      {/* 退休時淨值投影 */}
+      {bs.futureNetWorth != null && (
+        <>
+          <div className="hcr-sub-label" style={{ marginTop: 14 }}>退休時淨值投影</div>
+          <div className="hcr-stats">
+            <Stat label="退休時資產" value={fmtWan(bs.futureAssets ?? 0)} sub="現值複利 + 年結餘投入" />
+            <Stat label="退休時負債" value={fmtWan(bs.futureLiabilities ?? 0)} sub="本息攤還後餘額" />
+            <Stat label="退休時淨值" value={fmtWan(bs.futureNetWorth)} sub="資產 − 負債" />
+          </div>
+          {bs.futurePlannedLoan != null && bs.futurePlannedLoan > 0 && (
+            <p className="hcr-note" style={{ color: "#b91c1c", background: "#fef2f2" }}>其中含新增貸款計劃於退休時剩餘本金 {fmtWan(bs.futurePlannedLoan)};若用於購置資產,該資產價值未納入本試算。</p>
+          )}
+        </>
+      )}
+
+      {/* 退休當年收支投影 */}
+      {is.futureSurplus != null && (
+        <>
+          <div className="hcr-sub-label" style={{ marginTop: 14 }}>退休當年收支投影</div>
+          <div className="hcr-stats">
+            <Stat label="退休當年年收入" value={fmtWan(is.futureIncome ?? 0)} sub="薪資推估 + 被動(通膨)" />
+            <Stat label="退休當年年支出" value={fmtWan(is.futureExpense ?? 0)} sub="依通膨成長" />
+            <Stat label="退休當年年結餘" value={fmtWan(is.futureSurplus)} sub="收入 − 支出" />
+          </div>
+          {cf.futureNet != null && <div className="hcr-stmt-note" style={{ marginTop: 6 }}>退休前每月淨現金流(未來值):{fmtWan(cf.futureNet)}</div>}
+        </>
+      )}
+
+      {/* 退休後收入結構 */}
+      <div className="hcr-sub-label" style={{ marginTop: 14 }}>退休後收入結構</div>
+      <div className="hcr-income-donuts">
+        <IncomeDonutBlock title="退休後" lines={is.retireIncome} total={is.retireIncomeTotal} />
+      </div>
+      <p className="hcr-note">退休後主動收入(薪資 / 獎金 / 事業)停止,僅被動收入(租金 / 配息)與勞退月領持續;被動收入受市場波動與投資調整影響,非固定保證。</p>
     </section>
   );
 }
