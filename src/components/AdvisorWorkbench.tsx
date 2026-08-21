@@ -7,7 +7,7 @@ import Link from "next/link";
 import type { LeadScore } from "@/lib/domain/leads";
 import type { QuestionnaireData } from "@/lib/domain/types";
 import { CalcParams, clientDefaultParams } from "@/lib/domain/params";
-import { computeGaps, gapSolutions, retirementReserve, type GapResult } from "@/lib/domain/calc";
+import { computeGaps, gapSolutions, type GapResult } from "@/lib/domain/calc";
 import { assessRisk } from "@/lib/domain/risk";
 import { saveAdvisorWorkbench } from "@/lib/actions/advisor";
 
@@ -49,13 +49,8 @@ export function AdvisorWorkbench({
   const [saving, setSaving] = useState(false);
   const [savedMsg, setSavedMsg] = useState<string | null>(null);
   const [showAdvanced, setShowAdvanced] = useState(false);
-  const [targetMonthly, setTargetMonthly] = useState("");
 
   const gaps = useMemo(() => computeGaps(data, params), [data, params]);
-  const reserve = useMemo(
-    () => (targetMonthly ? retirementReserve(data, params, Number(targetMonthly)) : null),
-    [data, params, targetMonthly],
-  );
   const solutions = useMemo(() => gapSolutions(data, params), [data, params]);
   const risk = useMemo(() => assessRisk(data), [data]);
   const isDefault = JSON.stringify(params) === JSON.stringify(clientDefaults);
@@ -178,37 +173,7 @@ export function AdvisorWorkbench({
         </p>
       </section>
 
-      {/* 退休金回推試算(解決建議) */}
-      <section className="rounded-2xl border border-emerald-200 bg-emerald-50 p-5 dark:border-emerald-900 dark:bg-emerald-950/30">
-        <h2 className="text-base font-semibold text-emerald-900 dark:text-emerald-100">退休金回推試算</h2>
-        <p className="mt-1 text-xs text-emerald-700/80 dark:text-emerald-300/80">
-          輸入退休後每月想固定領取的金額,回推現在需準備多少(採上方試算參數)。
-        </p>
-        <div className="mt-3 flex items-center gap-2">
-          <span className="text-sm">退休後每月想領</span>
-          <input
-            type="number"
-            value={targetMonthly}
-            onChange={(e) => setTargetMonthly(e.target.value)}
-            placeholder="例如 5"
-            className="w-24 rounded-lg border border-emerald-300 bg-white px-2 py-1.5 text-right text-sm outline-none focus:border-emerald-500 dark:border-emerald-800 dark:bg-neutral-900"
-          />
-          <span className="text-sm">萬 / 月</span>
-        </div>
-        {reserve && (
-          <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
-            <ReserveCard label="退休時所需準備金" value={reserve.capitalAtRetirement} />
-            <ReserveCard label="今日一次準備(現值)" value={reserve.lumpSumToday} />
-            <ReserveCard label="現有資產成長至退休" value={reserve.currentAssetsGrown} />
-            <ReserveCard
-              label="從現在起每月需存"
-              value={reserve.requiredMonthlySaving}
-              highlight={!reserve.sufficient}
-              note={reserve.sufficient ? "現有資產已足夠" : undefined}
-            />
-          </div>
-        )}
-      </section>
+      {/* 退休金回推試算已移至「產出報告」頁的互動區,供顧問與客戶當面即時調整。 */}
 
       {/* 缺口補足建議 */}
       {solutions.length > 0 && (
@@ -362,17 +327,6 @@ function RiskGauge({ label, value, factors }: { label: string; value: number; fa
           </li>
         ))}
       </ul>
-    </div>
-  );
-}
-
-function ReserveCard({ label, value, highlight, note }: { label: string; value: number; highlight?: boolean; note?: string }) {
-  return (
-    <div className={`rounded-lg border p-3 text-center ${highlight ? "border-emerald-400 bg-white dark:border-emerald-600 dark:bg-neutral-900" : "border-emerald-200 bg-white/70 dark:border-emerald-900 dark:bg-neutral-900/60"}`}>
-      <div className="text-[11px] text-neutral-500 dark:text-neutral-400">{label}</div>
-      <div className={`mt-1 text-sm font-bold ${highlight ? "text-emerald-700 dark:text-emerald-300" : ""}`}>
-        {note ?? `${Math.round(value).toLocaleString("zh-TW")} 萬`}
-      </div>
     </div>
   );
 }

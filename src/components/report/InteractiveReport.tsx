@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { BackLink } from "@/components/ui/BackLink";
 import type { QuestionnaireData } from "@/lib/domain/types";
 import { CalcParams } from "@/lib/domain/params";
+import { retirementReserve } from "@/lib/domain/calc";
 import { buildReport } from "@/lib/domain/report";
 import { riskAllocationAnalysis } from "@/lib/domain/risk";
 import { HealthCheckReport } from "./HealthCheckReport";
@@ -27,8 +28,15 @@ export function InteractiveReport({
 }) {
   const [params, setParams] = useState<CalcParams>(initialParams);
   const [showAdvanced, setShowAdvanced] = useState(false);
+  const [targetMonthly, setTargetMonthly] = useState("");
   const setParam = (k: keyof CalcParams, v: number) => setParams((p) => ({ ...p, [k]: v }));
   const isDefault = JSON.stringify(params) === JSON.stringify(initialParams);
+
+  // 退休金回推試算(與客戶即時互動;採上方可調參數)
+  const reserve = useMemo(
+    () => (targetMonthly ? retirementReserve(data, params, Number(targetMonthly)) : null),
+    [data, params, targetMonthly],
+  );
 
   const riskAllocation = useMemo(() => riskAllocationAnalysis(data) ?? undefined, [data]);
   const model = useMemo(
@@ -77,11 +85,49 @@ export function InteractiveReport({
         </div>
       </div>
 
+      {/* 退休金回推試算(列印時隱藏;與客戶即時互動) */}
+      <div className="mx-auto max-w-3xl px-5 pt-3 print:hidden">
+        <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 dark:border-emerald-900 dark:bg-emerald-950/30">
+          <h3 className="text-sm font-semibold text-emerald-900 dark:text-emerald-100">退休金回推試算</h3>
+          <p className="mt-0.5 text-xs text-emerald-700/80 dark:text-emerald-300/80">輸入退休後每月想固定領取的金額,即時回推需準備多少(採上方試算參數)。</p>
+          <div className="mt-3 flex items-center gap-2">
+            <span className="text-sm">退休後每月想領</span>
+            <input
+              type="number"
+              value={targetMonthly}
+              onChange={(e) => setTargetMonthly(e.target.value)}
+              placeholder="例如 5"
+              className="w-24 rounded-lg border border-emerald-300 bg-white px-2 py-1.5 text-right text-sm outline-none focus:border-emerald-500 dark:border-emerald-800 dark:bg-neutral-900"
+            />
+            <span className="text-sm">萬 / 月</span>
+          </div>
+          {reserve && (
+            <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
+              <ReserveCard label="退休時所需準備金" value={reserve.capitalAtRetirement} />
+              <ReserveCard label="今日一次準備(現值)" value={reserve.lumpSumToday} />
+              <ReserveCard label="現有資產成長至退休" value={reserve.currentAssetsGrown} />
+              <ReserveCard label="從現在起每月需存" value={reserve.requiredMonthlySaving} highlight={!reserve.sufficient} note={reserve.sufficient ? "現有資產已足夠" : undefined} />
+            </div>
+          )}
+        </div>
+      </div>
+
       <div className="bg-neutral-100 px-3 py-6 dark:bg-neutral-900 sm:px-4 print:bg-white print:p-0">
         {/* 螢幕上呈現為 A4 直式頁面(與列印一致) */}
         <div className="mx-auto w-full max-w-[210mm] rounded-lg bg-white shadow-md ring-1 ring-black/5 print:max-w-none print:rounded-none print:shadow-none print:ring-0">
           <HealthCheckReport model={model} />
         </div>
+      </div>
+    </div>
+  );
+}
+
+function ReserveCard({ label, value, highlight, note }: { label: string; value: number; highlight?: boolean; note?: string }) {
+  return (
+    <div className={`rounded-lg border p-3 text-center ${highlight ? "border-emerald-400 bg-white dark:border-emerald-600 dark:bg-neutral-900" : "border-emerald-200 bg-white/70 dark:border-emerald-900 dark:bg-neutral-900/60"}`}>
+      <div className="text-[11px] text-neutral-500 dark:text-neutral-400">{label}</div>
+      <div className={`mt-1 text-sm font-bold ${highlight ? "text-emerald-700 dark:text-emerald-300" : ""}`}>
+        {note ?? `${Math.round(value).toLocaleString("zh-TW")} 萬`}
       </div>
     </div>
   );
