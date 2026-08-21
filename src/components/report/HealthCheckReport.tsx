@@ -1166,8 +1166,9 @@ const css = `
 .hcr-inh-cite { font-size:13px; color:#999; margin:10px 0 0; line-height:1.6; }
 /* 螢幕字級調整(僅螢幕;列印輸出不受影響,維持 A4 版式一致)。由外層 data-hcr-fs 控制。 */
 @media screen {
-  [data-hcr-fs="lg"] { zoom: 1.12; }
-  [data-hcr-fs="xl"] { zoom: 1.25; }
+  [data-hcr-fs="base"] { zoom: 0.9; }
+  [data-hcr-fs="lg"] { zoom: 1.008; }
+  [data-hcr-fs="xl"] { zoom: 1.125; }
 }
 @media print {
   /* 列印時整體縮為 65%(螢幕顯示不受影響),讓每頁容納更多、字級更合宜 */
