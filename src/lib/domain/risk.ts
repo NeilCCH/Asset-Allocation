@@ -1,17 +1,17 @@
-// 風險屬性評估 — 由系統依「行為題(承受意願)」+「客觀資料(承受能力)」計算,
-// 客戶不自評。承受能力與意願取其低(prudent),對應 RR1–RR5 / 保守~積極型。
+// 風險屬性評估 — 由系統依「行為題（承受意願）」+「客觀資料（承受能力）」計算，
+// 客戶不自評。承受能力與意願取其低（prudent)，對應 RR1–RR5 / 保守~積極型。
 import type { QuestionnaireData } from "./types";
 import { investableAssets, riskAssetBreakdown, sumAssets } from "./calc";
 
 export interface RiskAssessment {
   capacity: number; // 承受能力 0-100
   tolerance: number; // 承受意願 0-100
-  score: number; // 綜合(取低者)
+  score: number; // 綜合（取低者）
   profile: string; // 保守型 / 保守穩健型 / 穩健型 / 穩健積極型 / 積極型
   rr: 1 | 2 | 3 | 4 | 5;
   capacityFactors: { label: string; val: number }[];
   toleranceFactors: { label: string; val: number }[];
-  investableRatio: number; // 系統自算(可投資資產 / 總資產)
+  investableRatio: number; // 系統自算（可投資資產 / 總資產）
 }
 
 const avg = (arr: { val: number }[]) => (arr.length ? Math.round(arr.reduce((s, x) => s + x.val, 0) / arr.length) : 0);
@@ -30,7 +30,7 @@ export function assessRisk(data: QuestionnaireData): RiskAssessment | null {
   if (!kyc) return null;
   const core = data.core;
 
-  // ── 承受能力(客觀) ──
+  // ── 承受能力（客觀） ──
   const yearsToRetire = Math.max(0, core.retire_age - core.age);
   const ageScore = yearsToRetire >= 20 ? 100 : yearsToRetire >= 15 ? 80 : yearsToRetire >= 10 ? 60 : yearsToRetire >= 5 ? 40 : 20;
   const total = sumAssets(core.assets);
@@ -43,12 +43,12 @@ export function assessRisk(data: QuestionnaireData): RiskAssessment | null {
     { label: "距退休年數", val: ageScore },
     { label: "資金可用時間", val: HORIZON[core.horizon] ?? 50 },
     { label: "收入穩定度", val: INCOME_STABILITY[core.income_type] ?? 50 },
-    { label: "可投資資產占比(自算)", val: ratioScore },
+    { label: "可投資資產占比（自算）", val: ratioScore },
     { label: "緊急預備金", val: emScore },
   ];
   const capacity = avg(capacityFactors);
 
-  // ── 承受意願(行為題) ──
+  // ── 承受意願（行為題） ──
   const toleranceFactors = [
     { label: "投資知識", val: KNOWLEDGE[kyc.knowledge ?? ""] ?? 40 },
     { label: "投資經驗", val: EXP[kyc.exp_band ?? ""] ?? 40 },
@@ -59,15 +59,15 @@ export function assessRisk(data: QuestionnaireData): RiskAssessment | null {
   ];
   const tolerance = avg(toleranceFactors);
 
-  // 綜合:取低者(承受能力與意願取其低)
+  // 綜合：取低者（承受能力與意願取其低）
   const score = Math.min(capacity, tolerance);
   const { profile, rr } = classify(score);
 
   return { capacity, tolerance, score, profile, rr, capacityFactors, toleranceFactors, investableRatio };
 }
 
-// ── 風險資產配置分析(⚠️ 顧問專屬:含 RR 與目標配置,屬顧問決策輔助)──
-// 依風險屬性 RR 給「風險投資占風險資產」之參考目標區間,對照現況算落差(缺口)。
+// ── 風險資產配置分析（⚠️ 顧問專屬：含 RR 與目標配置，屬顧問決策輔助）──
+// 依風險屬性 RR 給「風險投資占風險資產」之參考目標區間，對照現況算落差（缺口）。
 const TARGET_RISKY_BY_RR: Record<1 | 2 | 3 | 4 | 5, number> = { 1: 20, 2: 35, 3: 50, 4: 65, 5: 80 };
 
 export interface RiskAllocationAnalysis {
@@ -75,9 +75,9 @@ export interface RiskAllocationAnalysis {
   profile: string;
   riskTotal: number;
   stablePct: number;
-  currentRiskyPct: number; // 現況:風險投資占風險資產
+  currentRiskyPct: number; // 現況：風險投資占風險資產
   targetRiskyPct: number; // 依 RR 之參考目標
-  gap: number; // 現況 − 目標(正=偏積極,負=偏保守)
+  gap: number; // 現況 − 目標（正=偏積極，負=偏保守）
   status: "偏積極" | "偏保守" | "相符";
 }
 

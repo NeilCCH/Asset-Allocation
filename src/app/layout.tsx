@@ -37,7 +37,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       <body className="min-h-full flex flex-col">
         {children}
         <footer className="mt-auto border-t border-neutral-200 px-5 py-3 text-center text-[11px] leading-relaxed text-neutral-400 print:hidden dark:border-neutral-800">
-          本工具之試算與資訊僅供參考,不構成投資、稅務或法律建議;實際情形以個案狀況及主管機關/國稅局核定為準。
+          本工具之試算與資訊僅供參考，不構成投資、稅務或法律建議；實際情形以個案狀況及主管機關/國稅局核定為準。
         </footer>
       </body>
     </html>

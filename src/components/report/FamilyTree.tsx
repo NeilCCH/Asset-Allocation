@@ -1,4 +1,4 @@
-// 家族關係圖 — 卡通人偶 genogram。依人數生成個別人偶,並依民法標註直系/旁系。
+// 家族關係圖 — 卡通人偶 genogram。依人數生成個別人偶，並依民法標註直系/旁系。
 import type { FamilyModel } from "@/lib/domain/report";
 
 const SKIN = "#f7d5b5";
@@ -59,7 +59,7 @@ export function FamilyTree({ family, selfIsFemale = false }: { family: FamilyMod
   const yChildren = 322;
   const yGrand = 440;
 
-  // 本人世代橫排:兄弟姊妹(左)+ 本人 + 配偶(右),整組置中於 0
+  // 本人世代橫排：兄弟姊妹（左）+ 本人 + 配偶（右），整組置中於 0
   const nSib = family.siblings.length;
   const genCount = nSib + 1 + (hasSpouse ? 1 : 0);
   const genStart = -((genCount - 1) * SP) / 2;
@@ -68,7 +68,7 @@ export function FamilyTree({ family, selfIsFemale = false }: { family: FamilyMod
   const selfCx = genX(nSib);
   const spouseCx = genX(nSib + 1);
   const coupleMid = hasSpouse ? (selfCx + spouseCx) / 2 : selfCx;
-  // 父母置中於「父母的子女(兄弟姊妹 + 本人)」上方
+  // 父母置中於「父母的子女（兄弟姊妹 + 本人）」上方
   const parentsMid = (genX(0) + selfCx) / 2;
 
   const kids = family.children;
@@ -79,7 +79,7 @@ export function FamilyTree({ family, selfIsFemale = false }: { family: FamilyMod
   const grandStart = coupleMid - ((nGrand - 1) * SP) / 2;
   const grandX = (i: number) => grandStart + i * SP;
 
-  // 祖父母(第四順位,父母上方一代)— 僅在有資料時才畫,無則版面完全不變
+  // 祖父母（第四順位，父母上方一代）— 僅在有資料時才畫，無則版面完全不變
   const gps = family.grandparents;
   const hasGp = gps.length > 0;
   const GP_GEN = 150;
@@ -91,7 +91,7 @@ export function FamilyTree({ family, selfIsFemale = false }: { family: FamilyMod
   const hasParents = family.parents.length > 0;
   if (hasGp) {
     const gpBar = yParents - 30;
-    const descentTop = yGp + 62; // 於祖父母標籤下方起線,避免壓字
+    const descentTop = yGp + 62; // 於祖父母標籤下方起線，避免壓字
     c.push(link(gpX(0), gpBar, gpX(gps.length - 1), gpBar, "gpbar"));
     for (let i = 0; i < gps.length; i++) c.push(link(gpX(i), descentTop, gpX(i), gpBar, `gpd${i}`));
     if (hasParents) c.push(link(parentsMid, gpBar, parentsMid, yParents - 14, "gp0"));
@@ -118,7 +118,7 @@ export function FamilyTree({ family, selfIsFemale = false }: { family: FamilyMod
     for (let i = 0; i < nGrand; i++) c.push(link(grandX(i), gBar, grandX(i), yGrand - 24, `gd${i}`));
   }
 
-  // 動態版面寬度:涵蓋所有節點
+  // 動態版面寬度：涵蓋所有節點
   const allX = [
     ...(hasParents ? [parentsMid - 52, parentsMid + 52] : []),
     ...(hasGp ? gps.map((_, i) => gpX(i)) : []),
@@ -131,21 +131,21 @@ export function FamilyTree({ family, selfIsFemale = false }: { family: FamilyMod
   const minX = Math.min(...allX) - 48;
   const maxX = Math.max(...allX) + 48;
   const width = Math.max(360, maxX - minX);
-  // 高度需容納最底列人偶下方的關係文字,避免裁切
+  // 高度需容納最底列人偶下方的關係文字，避免裁切
   const height = nGrand > 0 && kids.length > 0 ? 504 : kids.length > 0 ? 392 : 262;
-  // 有祖父母時向上擴充版面(無則自 0 起,版面不變)
+  // 有祖父母時向上擴充版面（無則自 0 起，版面不變）
   const topY = hasGp ? yGp - 44 : 0;
 
   return (
     <svg viewBox={`${minX} ${topY} ${width} ${height - topY}`} width="100%" style={{ maxWidth: Math.min(720, width) }} role="img" aria-label="家族關係圖">
       {c}
 
-      {/* 祖父母(直系尊親屬 · 第四順位)*/}
+      {/* 祖父母（直系尊親屬 · 第四順位）*/}
       {hasGp && gps.map((g, i) => (
         <Person key={`gp${i}`} cx={gpX(i)} cy={yGp} variant={g.isFemale ? "elder-f" : "elder-m"} color={ROLE_COLOR.grandparent} label={g.relation} kin="祖輩" />
       ))}
 
-      {/* 父母(直系尊親屬) */}
+      {/* 父母（直系尊親屬） */}
       {hasParents &&
         (family.parents.length === 1 ? (
           <Person
@@ -170,7 +170,7 @@ export function FamilyTree({ family, selfIsFemale = false }: { family: FamilyMod
           })()
         ))}
 
-      {/* 兄弟姊妹(旁系血親)— 逐位關係 + 性別 */}
+      {/* 兄弟姊妹（旁系血親）— 逐位關係 + 性別 */}
       {family.siblings.map((s, i) => (
         <Person key={`sib${i}`} cx={sibX(i)} cy={ySelf} variant={s.isFemale ? "female" : "male"} color={ROLE_COLOR.sibling} label={s.relation} kin="旁系血親" />
       ))}
@@ -179,12 +179,12 @@ export function FamilyTree({ family, selfIsFemale = false }: { family: FamilyMod
       <Person cx={selfCx} cy={ySelf} variant={selfIsFemale ? "female" : "male"} color={ROLE_COLOR.self} label={family.self.label} sub={`${family.self.age} 歲`} kin="本人" />
       {hasSpouse && <Person cx={spouseCx} cy={ySelf} variant={selfIsFemale ? "male" : "female"} color={ROLE_COLOR.spouse} label="配偶" sub={family.spouseAge ? `${family.spouseAge} 歲` : undefined} kin="配偶" />}
 
-      {/* 子女(直系卑親屬) */}
+      {/* 子女（直系卑親屬） */}
       {kids.map((k, i) => (
         <Person key={`kid${i}`} cx={kidX(i)} cy={yChildren} variant="child" color={ROLE_COLOR.child} label={`子女${i + 1}`} sub={`${k.stage}${k.age ? ` · ${k.age}歲` : ""}`} kin="直系卑親屬" scale={0.85} />
       ))}
 
-      {/* 孫子女(直系卑親屬)— 依人數個別人偶 */}
+      {/* 孫子女（直系卑親屬）— 依人數個別人偶 */}
       {Array.from({ length: nGrand }, (_, i) => (
         <Person key={`gc${i}`} cx={grandX(i)} cy={yGrand} variant="baby" color={ROLE_COLOR.grand} label={`孫${i + 1}`} kin="直系卑親屬" scale={0.72} />
       ))}

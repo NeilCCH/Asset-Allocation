@@ -1,5 +1,5 @@
-// 缺口試算引擎 — PRD §7。純函式、規則式、可調參數,輸出屬客觀試算,不含投資意見。
-// 所有金額單位:萬元 TWD。
+// 缺口試算引擎 — PRD §7。純函式、規則式、可調參數，輸出屬客觀試算，不含投資意見。
+// 所有金額單位：萬元 TWD。
 
 import type { Assets, QuestionnaireData } from "./types";
 import {
@@ -9,18 +9,18 @@ import {
   SURPLUS_BAND_VALUE,
 } from "./params";
 
-// ── 資產彙整(現況全貌圖來源) ─────────────────────────
+// ── 資產彙整（現況全貌圖來源） ─────────────────────────
 
-// 資產三分類(固定 / 流動 / 風險);保障型保單不計入資產,獨立顯示。
+// 資產三分類（固定 / 流動 / 風險）；保障型保單不計入資產，獨立顯示。
 export type AssetClass = "流動" | "固定" | "風險" | "保障";
-// 風險資產再分:穩定(收租/配息等穩定收益)vs 風險(高波動)
+// 風險資產再分：穩定（收租/配息等穩定收益）vs 風險（高波動）
 export type RiskType = "穩定" | "風險";
 
 export interface AssetBreakdown {
   label: string;
   key: keyof Assets;
   amount: number;
-  category: "流動" | "投資" | "保障" | "不動產" | "其他"; // 舊分類(保留給既有計算)
+  category: "流動" | "投資" | "保障" | "不動產" | "其他"; // 舊分類（保留給既有計算）
   assetClass: AssetClass;
   riskType?: RiskType;
 }
@@ -34,15 +34,15 @@ const ASSET_META: Record<
   stock_tw: { label: "台股", category: "投資", assetClass: "風險", riskType: "風險", liquid: true, investable: true },
   stock_overseas: { label: "海外股票", category: "投資", assetClass: "風險", riskType: "風險", liquid: true, investable: true },
   fund_etf: { label: "基金/ETF", category: "投資", assetClass: "風險", riskType: "風險", liquid: true, investable: true },
-  insurance_protection: { label: "保單(保障型)", category: "保障", assetClass: "保障", liquid: false, investable: false },
+  insurance_protection: { label: "保單（保障型）", category: "保障", assetClass: "保障", liquid: false, investable: false },
   insurance_invest: { label: "投資型保單", category: "投資", assetClass: "風險", riskType: "風險", liquid: false, investable: true },
   insurance_savings: { label: "儲蓄保單", category: "其他", assetClass: "固定", liquid: false, investable: false },
   gold: { label: "黃金/貴金屬", category: "投資", assetClass: "風險", riskType: "穩定", liquid: true, investable: true },
   crypto: { label: "加密貨幣", category: "投資", assetClass: "風險", riskType: "風險", liquid: true, investable: true },
-  real_estate_own: { label: "不動產(自住)", category: "不動產", assetClass: "固定", liquid: false, investable: false },
-  real_estate_invest: { label: "不動產(投資)", category: "不動產", assetClass: "風險", riskType: "穩定", liquid: false, investable: false },
+  real_estate_own: { label: "不動產（自住）", category: "不動產", assetClass: "固定", liquid: false, investable: false },
+  real_estate_invest: { label: "不動產（投資）", category: "不動產", assetClass: "風險", riskType: "穩定", liquid: false, investable: false },
   retire_account: { label: "退休專戶累積金", category: "其他", assetClass: "固定", liquid: false, investable: false },
-  other: { label: "其他(藝術品/收藏等)", category: "其他", assetClass: "固定", liquid: false, investable: false },
+  other: { label: "其他（藝術品/收藏等）", category: "其他", assetClass: "固定", liquid: false, investable: false },
 };
 
 export function assetBreakdown(assets: Assets): AssetBreakdown[] {
@@ -56,17 +56,17 @@ export function assetBreakdown(assets: Assets): AssetBreakdown[] {
   }));
 }
 
-/** 資產總額 — ⚠️ 不含保障型保單(保障不視為可運用資產,獨立顯示)。 */
+/** 資產總額 — ⚠️ 不含保障型保單（保障不視為可運用資產，獨立顯示）。 */
 export function sumAssets(assets: Assets): number {
   return assetBreakdown(assets)
     .filter((a) => a.assetClass !== "保障")
     .reduce((s, a) => s + a.amount, 0);
 }
 
-/** 保障型保單金額(獨立於資產總額) */
+/** 保障型保單金額（獨立於資產總額） */
 export const protectionAssets = (assets: Assets) => sumBy(assets, (m) => m.assetClass === "保障");
 
-// 資產三分類分布(固定 / 流動 / 風險),另附獨立的保障金額
+// 資產三分類分布（固定 / 流動 / 風險），另附獨立的保障金額
 export interface ClassSlice {
   assetClass: "流動" | "固定" | "風險";
   amount: number;
@@ -84,7 +84,7 @@ export function assetClassBreakdown(assets: Assets): { slices: ClassSlice[]; tot
   return { slices, total, protection: protectionAssets(assets) };
 }
 
-// 風險資產:穩定 vs 風險 兩組明細與比重
+// 風險資產：穩定 vs 風險 兩組明細與比重
 export interface RiskAssetGroup {
   items: { key: keyof Assets; label: string; amount: number; pct: number }[];
   total: number;
@@ -124,14 +124,14 @@ function sumBy(assets: Assets, pick: (m: (typeof ASSET_META)[keyof Assets]) => b
 export const liquidAssets = (assets: Assets) => sumBy(assets, (m) => m.liquid);
 export const investableAssets = (assets: Assets) => sumBy(assets, (m) => m.investable);
 
-/** 保障型資產(壽險保障) vs 投資型資產 的比重 — 本工具差異化指標 */
+/** 保障型資產（壽險保障） vs 投資型資產 的比重 — 本工具差異化指標 */
 export function protectionVsInvestment(assets: Assets) {
   const protection = sumBy(assets, (m) => m.category === "保障");
   const investment = sumBy(assets, (m) => m.category === "投資");
   return { protection, investment };
 }
 
-/** 投資組合明細 — 只納入「投資」類資產。投資型保單以帳戶價值計入,身故保額不列入投資統計。 */
+/** 投資組合明細 — 只納入「投資」類資產。投資型保單以帳戶價值計入，身故保額不列入投資統計。 */
 export interface InvestmentBreakdown {
   items: { key: keyof Assets; label: string; amount: number; pct: number }[];
   total: number;
@@ -154,8 +154,8 @@ export function investmentBreakdown(assets: Assets): InvestmentBreakdown {
 
 const grow = (pv: number, rate: number, years: number) => pv * Math.pow(1 + rate, years);
 
-/** 期末年金終值:每年投入 pmt,rate 報酬,years 年 */
-/** 貸款每月攤還金額(本息平均攤還法)。 */
+/** 期末年金終值：每年投入 pmt,rate 報酬，years 年 */
+/** 貸款每月攤還金額（本息平均攤還法）。 */
 export function loanMonthlyPayment(principal: number, annualRatePct: number, years: number): number {
   if (principal <= 0 || years <= 0) return 0;
   const i = annualRatePct / 100 / 12;
@@ -164,7 +164,7 @@ export function loanMonthlyPayment(principal: number, annualRatePct: number, yea
   return (principal * i) / (1 - Math.pow(1 + i, -months));
 }
 
-/** 貸款經過 years 年後的剩餘本金(已知月還款與年利率);無還款資訊則視為不變。 */
+/** 貸款經過 years 年後的剩餘本金（已知月還款與年利率）；無還款資訊則視為不變。 */
 export function remainingLoanBalance(balance: number, monthlyPayment: number, annualRatePct: number, years: number): number {
   if (balance <= 0) return 0;
   if (years <= 0) return balance;
@@ -176,14 +176,14 @@ export function remainingLoanBalance(balance: number, monthlyPayment: number, an
   return Math.max(0, bal);
 }
 
-/** 成長型年金終值:首年投入 pmt,之後每年以 growth 成長,期間以 rate 複利。 */
+/** 成長型年金終值：首年投入 pmt，之後每年以 growth 成長，期間以 rate 複利。 */
 export function fvGrowingAnnuity(pmt: number, rate: number, growth: number, years: number): number {
   if (years <= 0) return 0;
   if (Math.abs(rate - growth) < 1e-9) return pmt * years * Math.pow(1 + rate, years - 1);
   return (pmt * (Math.pow(1 + rate, years) - Math.pow(1 + growth, years))) / (rate - growth);
 }
 
-/** 目前年支出估計 = 年收入 − 年結餘(透明推導,無另問開銷) */
+/** 目前年支出估計 = 年收入 − 年結餘（透明推導，無另問開銷） */
 function estimateAnnualExpense(data: QuestionnaireData): number {
   const annualIncome = INCOME_BAND_VALUE[data.core.income_band] ?? 0;
   const monthlySurplus = SURPLUS_BAND_VALUE[data.core.surplus_band] ?? 0;
@@ -197,14 +197,14 @@ export type GapStatus = "computed" | "needs_deep_data" | "not_planned";
 
 export interface GapResult {
   status: GapStatus;
-  /** 缺口金額(萬元)。正值 = 短缺、需補足;負值/0 = 已足夠 */
+  /** 缺口金額（萬元）。正值 = 短缺、需補足；負值/0 = 已足夠 */
   gap: number;
   breakdown: { label: string; amount: number }[];
-  /** 缺哪些深化題才能算(status = needs_deep_data 時填) */
+  /** 缺哪些深化題才能算（status = needs_deep_data 時填） */
   missing?: string[];
 }
 
-// ── ① 退休金缺口(基本層即可試算) ───────────────────
+// ── ① 退休金缺口（基本層即可試算） ───────────────────
 
 export function retirementGap(
   data: QuestionnaireData,
@@ -214,21 +214,21 @@ export function retirementGap(
   const yearsToRetire = Math.max(0, core.retire_age - core.age);
   const retireYears = Math.max(0, params.lifeExpectancy - core.retire_age);
 
-  // 退休當年的年支出需求:優先用「退休後每月支出」;否則以目前開銷 × 生活水準%
+  // 退休當年的年支出需求：優先用「退休後每月支出」；否則以目前開銷 × 生活水準%
   const lifestylePct =
     (data.deep?.retire_lifestyle_pct ?? params.defaultRetireLifestylePct) / 100;
   const annualNeedNow =
     data.deep?.retire_monthly_expense != null
       ? data.deep.retire_monthly_expense * 12
       : estimateAnnualExpense(data) * lifestylePct;
-  // 無退休生活需求依據(未填退休後每月支出,且無收入/結餘級距可推估)→ 尚未規劃,不可顯示「已足夠」
+  // 無退休生活需求依據（未填退休後每月支出，且無收入/結餘級距可推估）→ 尚未規劃，不可顯示「已足夠」
   if (annualNeedNow <= 0) {
-    return { status: "not_planned", gap: 0, breakdown: [], missing: ["退休後每月支出(或收支級距)"] };
+    return { status: "not_planned", gap: 0, breakdown: [], missing: ["退休後每月支出（或收支級距）"] };
   }
   const annualNeedAtRetire = annualNeedNow * Math.pow(1 + params.inflationRate, yearsToRetire);
   const totalNeed = annualNeedAtRetire * retireYears;
 
-  // 退休後退休金收入(勞退/月退)可抵需求
+  // 退休後退休金收入（勞退/月退）可抵需求
   const pensionTotal = (data.deep?.retire_pension_monthly ?? 0) * 12 * retireYears;
 
   // 退休時可累積資產 = 現有可投資資產成長 + 未來持續投入終值
@@ -246,12 +246,12 @@ export function retirementGap(
       { label: "退休後總支出需求", amount: round(totalNeed) },
       { label: "現有資產成長估計", amount: round(grownCurrent) },
       { label: "未來持續投入估計", amount: round(contributions) },
-      ...(pensionTotal > 0 ? [{ label: "退休金收入(勞退/月退)", amount: -round(pensionTotal) }] : []),
+      ...(pensionTotal > 0 ? [{ label: "退休金收入（勞退/月退）", amount: -round(pensionTotal) }] : []),
     ],
   };
 }
 
-// ── ② 保障缺口(需深化資料:負債、壽險保額) ──────────
+// ── ② 保障缺口（需深化資料：負債、壽險保額） ──────────
 
 export function protectionGap(
   data: QuestionnaireData,
@@ -259,7 +259,7 @@ export function protectionGap(
 ): GapResult {
   const missing: string[] = [];
   if (!data.deep?.liabilities) missing.push("負債明細");
-  if (!data.deep?.insurance_detail) missing.push("現有保障明細(壽險保額)");
+  if (!data.deep?.insurance_detail) missing.push("現有保障明細（壽險保額）");
   if (missing.length > 0) {
     return { status: "needs_deep_data", gap: 0, breakdown: [], missing };
   }
@@ -269,14 +269,14 @@ export function protectionGap(
   const unpaidLiabilities =
     liabilities.mortgage_balance + liabilities.loan_balance + (liabilities.credit_card_balance ?? 0);
 
-  // 扶養支出現值 — 子女:至經濟獨立年齡的年數 × 每年扶養
+  // 扶養支出現值 — 子女：至經濟獨立年齡的年數 × 每年扶養
   const perChildYears = core.dependents.children.reduce(
     (s, c) => s + Math.max(0, params.childIndependentAge - (c.age ?? 0)),
     0,
   );
   const childSupport = perChildYears * params.dependentSupportAnnual;
 
-  // 父母:各自(平均餘命 − 目前年齡)年數 × 每年奉養;無年齡時用後備總額 × 人數
+  // 父母：各自（平均餘命 − 目前年齡）年數 × 每年奉養；無年齡時用後備總額 × 人數
   const parents = core.dependents.parents;
   const parentsWithAge = parents.filter((p) => p.age > 0);
   const parentSupport =
@@ -284,7 +284,7 @@ export function protectionGap(
       ? parentsWithAge.reduce((s, p) => s + Math.max(0, params.parentLifeExpectancy - p.age) * params.parentSupportAnnual, 0)
       : parents.length * params.parentSupportTotal;
 
-  // 子女教育金(取教育缺口的總需求)
+  // 子女教育金（取教育缺口的總需求）
   const eduNeed = educationTotalNeed(data, params);
 
   const lifeCoverage = deep!.insurance_detail!.life.coverage;
@@ -307,11 +307,11 @@ export function protectionGap(
   };
 }
 
-// ── ③ 教育金缺口(需深化資料:edu_goal) ─────────────
+// ── ③ 教育金缺口（需深化資料:edu_goal) ─────────────
 
-/** 子女高階教育總花費現值(不扣已準備),供保障缺口引用。
- *  每位子女:(每年教育預算 + 每年生活預算)× 就讀年數;就學時程由年齡推算(18 歲起)。
- *  未填預算時,以參數 eduCostOverseas/Domestic 作後備總額估計。 */
+/** 子女高階教育總花費現值（不扣已準備），供保障缺口引用。
+ *  每位子女:（每年教育預算 + 每年生活預算）× 就讀年數；就學時程由年齡推算（18 歲起）。
+ *  未填預算時，以參數 eduCostOverseas/Domestic 作後備總額估計。 */
 function educationTotalNeed(data: QuestionnaireData, params: CalcParams): number {
   const goals = data.deep?.edu_goals ?? [];
   const children = data.core.dependents.children;
@@ -337,15 +337,15 @@ export function educationGap(
       status: "needs_deep_data",
       gap: 0,
       breakdown: [],
-      missing: hasChildren ? ["子女高階教育規劃(出國/預算)"] : ["(無子女,不適用)"],
+      missing: hasChildren ? ["子女高階教育規劃（出國/預算）"] : ["（無子女，不適用）"],
     };
   }
   const need = educationTotalNeed(data, params);
-  const gap = round(need); // 已準備金額目前無對應欄位,預設 0
+  const gap = round(need); // 已準備金額目前無對應欄位，預設 0
   return {
     status: "computed",
     gap,
-    breakdown: [{ label: "子女教育總花費(現值)", amount: round(need) }],
+    breakdown: [{ label: "子女教育總花費（現值）", amount: round(need) }],
   };
 }
 
@@ -372,25 +372,25 @@ function round(n: number): number {
   return Math.round(n * 10) / 10;
 }
 
-// ── 退休金回推試算(解決建議)──────────────────────────
-// 輸入:退休後每月想固定領取金額(萬)。回推現在需準備多少。
+// ── 退休金回推試算（解決建議）──────────────────────────
+// 輸入：退休後每月想固定領取金額（萬）。回推現在需準備多少。
 
 export interface ReserveResult {
-  targetMonthly: number; // 目標每月領取(萬)
-  annualNeed: number; // 每年領取(萬)
-  capitalAtRetirement: number; // 退休時所需準備金(萬)
-  lumpSumToday: number; // 今日一次準備(現值,萬)
-  currentAssetsGrown: number; // 現有可投資資產成長至退休(萬)
-  requiredMonthlySaving: number; // 從現在起每月需儲蓄(萬)
+  targetMonthly: number; // 目標每月領取（萬）
+  annualNeed: number; // 每年領取（萬）
+  capitalAtRetirement: number; // 退休時所需準備金（萬）
+  lumpSumToday: number; // 今日一次準備（現值，萬）
+  currentAssetsGrown: number; // 現有可投資資產成長至退休（萬）
+  requiredMonthlySaving: number; // 從現在起每月需儲蓄（萬）
   sufficient: boolean; // 現有資產是否已足夠
 }
 
 export interface GapSolution {
   name: string;
-  gap: number; // 缺口(萬)
+  gap: number; // 缺口（萬）
   action: string; // 建議做法
-  monthly?: number; // 建議每月儲蓄(萬),適用時
-  lump?: number; // 建議補足金額(萬),適用時
+  monthly?: number; // 建議每月儲蓄（萬），適用時
+  lump?: number; // 建議補足金額（萬），適用時
 }
 
 /** 缺口補足建議 — 各缺口對應的解決方向與每月儲蓄估計 */
@@ -405,7 +405,7 @@ export function gapSolutions(data: QuestionnaireData, params: CalcParams = DEFAU
     out.push({ name: "退休金", gap: gaps.retirement.gap, action: "退休前每月增加儲蓄", monthly: round(gaps.retirement.gap / (fv(yearsToRetire) || 1) / 12) });
   }
   if (gaps.protection.status === "computed" && gaps.protection.gap > 0) {
-    out.push({ name: "保障", gap: gaps.protection.gap, action: "補足保障保額(如壽險)", lump: round(gaps.protection.gap) });
+    out.push({ name: "保障", gap: gaps.protection.gap, action: "補足保障保額（如壽險）", lump: round(gaps.protection.gap) });
   }
   if (gaps.education.status === "computed" && gaps.education.gap > 0) {
     const ages = data.core.dependents.children.map((c) => c.age ?? 0);
@@ -426,7 +426,7 @@ export function retirementReserve(
   const r = params.returnRate;
   const annualNeed = targetMonthly * 12;
 
-  // 退休時所需準備金 = 年領取 × 年金現值因子(退休期間本金以 r 成長)
+  // 退休時所需準備金 = 年領取 × 年金現值因子（退休期間本金以 r 成長）
   const annuityPV = r === 0 ? retireYears : (1 - Math.pow(1 + r, -retireYears)) / r;
   const capitalAtRetirement = annualNeed * annuityPV;
 
@@ -434,7 +434,7 @@ export function retirementReserve(
   const currentAssetsGrown = grow(investableAssets(core.assets), r, yearsToRetire);
   const shortfall = Math.max(0, capitalAtRetirement - currentAssetsGrown);
 
-  // 首年需存金額(之後每年依薪資成長率成長):以成長型年金因子回推
+  // 首年需存金額（之後每年依薪資成長率成長）：以成長型年金因子回推
   const fvFactor = fvGrowingAnnuity(1, r, params.salaryGrowthRate, yearsToRetire);
   const requiredAnnualSaving = fvFactor > 0 ? shortfall / fvFactor : shortfall;
 

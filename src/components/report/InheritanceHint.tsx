@@ -1,5 +1,5 @@
 // 民法繼承順位提示 — 置於家族關係圖右側。依實際家庭成員標出實際繼承順位與應繼分。
-// 樣式沿用 HealthCheckReport 的 hcr 類別(見該檔 css 區塊)。
+// 樣式沿用 HealthCheckReport 的 hcr 類別（見該檔 css 區塊）。
 import type { InheritanceResult } from "@/lib/domain/inheritance";
 
 export function InheritanceHint({ result }: { result: InheritanceResult }) {
@@ -18,7 +18,7 @@ export function InheritanceHint({ result }: { result: InheritanceResult }) {
 
       <div className="hcr-inh-share">
         <div className="hcr-inh-headline">
-          {result.hasSpouse ? "配偶為當然繼承人;" : ""}
+          {result.hasSpouse ? "配偶為當然繼承人；" : ""}
           {result.headline}
         </div>
         {result.shares.length > 0 && (
@@ -28,7 +28,7 @@ export function InheritanceHint({ result }: { result: InheritanceResult }) {
                 <tr key={i}>
                   <td>
                     {s.role}
-                    {s.count ? `(${s.count} 位)` : ""}
+                    {s.count ? `（${s.count} 位）` : ""}
                   </td>
                   <td>每人 {s.each}</td>
                   <td>合計 {s.total}</td>
@@ -41,7 +41,7 @@ export function InheritanceHint({ result }: { result: InheritanceResult }) {
       </div>
 
       <p className="hcr-inh-cite">
-        依民法 §1138(順位)、§1140(代位繼承)、§1144(配偶應繼分)。應繼分為法定分配比例,實際仍以個案事實與法律專業意見為準。
+        依民法 §1138（順位）、§1140（代位繼承）、§1144（配偶應繼分）。應繼分為法定分配比例，實際仍以個案事實與法律專業意見為準。
       </p>
     </div>
   );

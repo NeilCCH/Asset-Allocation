@@ -1,6 +1,6 @@
-// 民法繼承篇 §1138(順位)/ §1140(代位)/ §1144(配偶應繼分)
-// 被繼承人 = 客戶本人。配偶為當然繼承人;血親繼承人由近而遠,前順位存在則後順位不繼承。
-// 依問卷實際填入的家庭成員推算「繼承順位」與「應繼分」,供傳承規劃參考。
+// 民法繼承篇 §1138（順位）/ §1140（代位）/ §1144（配偶應繼分）
+// 被繼承人 = 客戶本人。配偶為當然繼承人；血親繼承人由近而遠，前順位存在則後順位不繼承。
+// 依問卷實際填入的家庭成員推算「繼承順位」與「應繼分」，供傳承規劃參考。
 import type { FamilyModel } from "./report";
 
 export interface ShareRow {
@@ -42,7 +42,7 @@ export function computeInheritance(f: FamilyModel): InheritanceResult {
   const kids = f.children.length;
   const grand = f.grandchildren;
   const firstPresent = kids > 0 || grand > 0;
-  const firstCount = kids > 0 ? kids : grand; // 無子女時,孫子女以代位/次親等繼承
+  const firstCount = kids > 0 ? kids : grand; // 無子女時，孫子女以代位/次親等繼承
   const parents = f.parents.length;
   const sibs = f.siblings.length;
   const grandpa = f.grandparents.length;
@@ -52,7 +52,7 @@ export function computeInheritance(f: FamilyModel): InheritanceResult {
       order: 1,
       rank: "第一順位",
       title: "直系血親卑親屬",
-      note: kids > 0 ? `子女 ${kids} 位${grand > 0 ? `、孫子女 ${grand} 位` : ""}` : grand > 0 ? `孫子女 ${grand} 位(代位/次親等)` : "無",
+      note: kids > 0 ? `子女 ${kids} 位${grand > 0 ? `、孫子女 ${grand} 位` : ""}` : grand > 0 ? `孫子女 ${grand} 位（代位/次親等）` : "無",
       present: firstPresent,
       active: false,
     },
@@ -61,7 +61,7 @@ export function computeInheritance(f: FamilyModel): InheritanceResult {
     { order: 4, rank: "第四順位", title: "祖父母", note: grandpa > 0 ? `祖父母 ${grandpa} 位` : "無", present: grandpa > 0, active: false },
   ];
 
-  // 決定實際繼承順位:血親由近而遠,取第一個存在者
+  // 決定實際繼承順位：血親由近而遠，取第一個存在者
   let activeOrder: 1 | 2 | 3 | 4 | null = null;
   if (firstPresent) activeOrder = 1;
   else if (parents > 0) activeOrder = 2;
@@ -80,12 +80,12 @@ export function computeInheritance(f: FamilyModel): InheritanceResult {
     const label = kids > 0 ? "子女" : "孫子女";
     if (hasSpouse) shares.push({ role: "配偶", each: frac(1, heads), total: frac(1, heads) });
     shares.push({ role: label, count: firstCount, each: frac(1, heads), total: frac(firstCount, heads) });
-    headline = hasSpouse ? `配偶與${label}共同繼承,人人均分` : `由${label}均分`;
+    headline = hasSpouse ? `配偶與${label}共同繼承，人人均分` : `由${label}均分`;
   } else if (activeOrder === 2) {
     if (hasSpouse) {
       shares.push({ role: "配偶", each: frac(1, 2), total: frac(1, 2) });
       shares.push({ role: "父母", count: parents, each: frac(1, 2 * parents), total: frac(1, 2) });
-      headline = "配偶 1/2,父母均分另 1/2";
+      headline = "配偶 1/2，父母均分另 1/2";
     } else {
       shares.push({ role: "父母", count: parents, each: frac(1, parents), total: "1" });
       headline = "由父母均分";
@@ -94,17 +94,17 @@ export function computeInheritance(f: FamilyModel): InheritanceResult {
     if (hasSpouse) {
       shares.push({ role: "配偶", each: frac(1, 2), total: frac(1, 2) });
       shares.push({ role: "兄弟姊妹", count: sibs, each: frac(1, 2 * sibs), total: frac(1, 2) });
-      headline = "配偶 1/2,兄弟姊妹均分另 1/2";
+      headline = "配偶 1/2，兄弟姊妹均分另 1/2";
     } else {
       shares.push({ role: "兄弟姊妹", count: sibs, each: frac(1, sibs), total: "1" });
       headline = "由兄弟姊妹均分";
     }
   } else if (activeOrder === 4) {
-    // 第四順位祖父母(民法 §1144 第三款):配偶 2/3、祖父母均分 1/3;無配偶則祖父母均分全部
+    // 第四順位祖父母（民法 §1144 第三款）：配偶 2/3、祖父母均分 1/3；無配偶則祖父母均分全部
     if (hasSpouse) {
       shares.push({ role: "配偶", each: frac(2, 3), total: frac(2, 3) });
       shares.push({ role: "祖父母", count: grandpa, each: frac(1, 3 * grandpa), total: frac(1, 3) });
-      headline = "配偶 2/3,祖父母均分另 1/3";
+      headline = "配偶 2/3，祖父母均分另 1/3";
     } else {
       shares.push({ role: "祖父母", count: grandpa, each: frac(1, grandpa), total: "1" });
       headline = "由祖父母均分";
@@ -116,7 +116,7 @@ export function computeInheritance(f: FamilyModel): InheritanceResult {
       headline = "配偶單獨繼承全部遺產";
     } else {
       headline = "依問卷資料查無法定繼承人";
-      caveat = "※ 若確無任何順位血親與配偶,遺產於清償債務後歸屬國庫(民法 §1185)。";
+      caveat = "※ 若確無任何順位血親與配偶，遺產於清償債務後歸屬國庫（民法 §1185）。";
     }
   }
 

@@ -1,8 +1,8 @@
-// 配置面向參考框架 — ⚠️ 顧問專屬。PRD §11 決策:採「顧問手動勾選、系統只提供參考框架」,
-// 不做規則庫自動產生(降低自動化投顧疑慮)。此處只定義「面向清單」與中性提示,
-// 由顧問本人(具專業資格)判斷後勾選並對客戶開口。
+// 配置面向參考框架 — ⚠️ 顧問專屬。PRD §11 決策：採「顧問手動勾選、系統只提供參考框架」,
+// 不做規則庫自動產生（降低自動化投顧疑慮）。此處只定義「面向清單」與中性提示，
+// 由顧問本人（具專業資格）判斷後勾選並對客戶開口。
 //
-// 面向皆為「資產類別 / 規劃方向」層級,絕不含個股、代號、商品名稱或買賣指示。
+// 面向皆為「資產類別 / 規劃方向」層級，絕不含個股、代號、商品名稱或買賣指示。
 
 import type { QuestionnaireData } from "./types";
 import { computeGaps, liquidAssets, protectionVsInvestment, sumAssets } from "./calc";
@@ -14,18 +14,18 @@ export interface AllocationDimension {
   desc: string;
 }
 
-/** 可供顧問勾選的配置面向(參考框架,非建議) */
+/** 可供顧問勾選的配置面向（參考框架，非建議） */
 export const ALLOCATION_DIMENSIONS: AllocationDimension[] = [
-  { key: "liquidity", title: "流動性緩衝", desc: "建立或補強緊急預備金,確保短期支出無虞" },
+  { key: "liquidity", title: "流動性緩衝", desc: "建立或補強緊急預備金，確保短期支出無虞" },
   { key: "retirement", title: "退休準備", desc: "檢視長期退休資產累積是否足以支應退休後年支出" },
   { key: "protection", title: "保障缺口", desc: "檢視壽險 / 醫療 / 意外等保障是否足以覆蓋家庭責任" },
-  { key: "education", title: "教育金專款", desc: "為子女教育設立專款,依時程與國內外規劃" },
+  { key: "education", title: "教育金專款", desc: "為子女教育設立專款，依時程與國內外規劃" },
   { key: "diversification", title: "投資偏好", desc: "檢視投資部位是否符合風險屬性與個人投資偏好" },
   { key: "real_estate", title: "不動產占比", desc: "檢視不動產占總資產比重是否偏高、影響流動性" },
-  { key: "succession", title: "傳承與稅務", desc: "資產傳承、信託等規劃面向(依需求)" },
+  { key: "succession", title: "傳承與稅務", desc: "資產傳承、信託等規劃面向（依需求）" },
 ];
 
-/** 中性提示:僅標示「事實層」觀察到的現象,不下建議、不決定要不要處理。 */
+/** 中性提示：僅標示「事實層」觀察到的現象，不下建議、不決定要不要處理。 */
 export interface DimensionHint {
   key: string;
   flagged: boolean;
