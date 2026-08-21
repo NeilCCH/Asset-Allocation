@@ -305,21 +305,8 @@ export function HealthCheckReport({ model, variant = "full" }: { model: ReportMo
         </section>
       )}
 
-      {/* 遺產稅預估(達課稅標準才有,完整版) */}
-      {full && model.estateTax && (
-        <section className="hcr-card">
-          <h2>遺產稅預估</h2>
-          <div className="hcr-stats">
-            <Stat label="遺產總額" value={fmtWan(model.estateTax.grossEstate)} />
-            <Stat label="課稅遺產淨額" value={fmtWan(model.estateTax.netTaxable)} sub={`扣除額 ${fmtWan(model.estateTax.totalDeductions)}`} />
-            <Stat label="預估遺產稅" value={fmtWan(model.estateTax.tax)} sub={`稅率 ${Math.round(model.estateTax.rate * 100)}%`} />
-          </div>
-          <p className="hcr-note">
-            依台灣現行遺產稅概數試算(免稅額 1,333 萬、配偶 493 萬、每位子女 56 萬、每位父母 138 萬、喪葬 138 萬等),
-            未計入保單指定受益人等規劃;實際以國稅局核定為準。
-          </p>
-        </section>
-      )}
+      {/* 遺產稅預估與傳承(達課稅標準才有,完整版) */}
+      {full && model.estateTax && <EstateTaxBlock model={model} />}
 
       {/* 試算計算明細(供驗證,完整版) */}
       {full && (
@@ -810,6 +797,79 @@ function RetirementReadinessBlock({ model }: { model: ReportModel }) {
         總支出需求 = 退休首年年支出 ×(1+通膨 {pctNum(model.params.inflationRate)})<sup>{yearsToRetire}</sup> × 退休年數 {retireYears};
         退休首年年支出依{model.params.defaultRetireLifestylePct}% 所得替代率(或填報之退休後月支出)估算。
         可累積資產 = 現有可投資資產以年報酬 {pctNum(model.params.returnRate)} 複利 + 年結餘持續投入(成長型年金)+ 勞退/月退累積。屬客觀試算,不構成投資建議。
+      </p>
+    </section>
+  );
+}
+
+// 應繼分分數字串("1/2"、"1")→ 數值
+function parseFrac(s: string): number {
+  if (!s) return 0;
+  const [n, d] = s.split("/");
+  const num = Number(n), den = d ? Number(d) : 1;
+  return den ? num / den : 0;
+}
+
+// 遺產稅預估與傳承:稅 vs 淨傳承視覺化、扣除額明細、法定應繼分金額試算
+function EstateTaxBlock({ model }: { model: ReportModel }) {
+  const et = model.estateTax!;
+  const netInherit = Math.max(0, et.grossEstate - et.tax);
+  const taxPct = et.grossEstate > 0 ? Math.round((et.tax / et.grossEstate) * 100) : 0;
+  const inh = computeInheritance(model.family);
+  const bracketLabel = et.rate <= 0.1 ? "5,000 萬以下 10%" : et.rate <= 0.15 ? "5,000 萬–1 億 15%(累進差額 250 萬)" : "1 億以上 20%(累進差額 750 萬)";
+  const w = (v: number) => `${et.grossEstate > 0 ? Math.max(0, (v / et.grossEstate) * 100) : 0}%`;
+  return (
+    <section className="hcr-card">
+      <h2>遺產稅預估與傳承</h2>
+      <div className="hcr-stats">
+        <Stat label="遺產總額" value={fmtWan(et.grossEstate)} />
+        <Stat label="課稅遺產淨額" value={fmtWan(et.netTaxable)} sub={`扣除額 ${fmtWan(et.totalDeductions)}`} />
+        <Stat label="預估遺產稅" value={fmtWan(et.tax)} sub={`稅率 ${Math.round(et.rate * 100)}%`} />
+        <Stat label="淨傳承(給繼承人)" value={fmtWan(netInherit)} sub={`占遺產 ${100 - taxPct}%`} />
+      </div>
+
+      {/* 稅 vs 淨傳承 */}
+      <div className="hcr-cmp-row" style={{ marginTop: 12 }}>
+        <span className="hcr-cmp-tag">遺產分配</span>
+        <div className="hcr-cmp-track">
+          <div style={{ width: w(netInherit), background: "#10b981" }} title="淨傳承" />
+          <div style={{ width: w(et.tax), background: "#ef4444" }} title="遺產稅" />
+        </div>
+        <span className="hcr-cmp-num">{fmtWan(et.grossEstate)}</span>
+      </div>
+      <div className="hcr-bar-legend" style={{ marginTop: 8 }}>
+        <span><i className="hcr-ldot" style={{ background: "#10b981" }} />淨傳承 {fmtWan(netInherit)}({100 - taxPct}%)</span>
+        <span>遺產稅 {fmtWan(et.tax)}({taxPct}%)<i className="hcr-ldot" style={{ background: "#ef4444" }} /></span>
+      </div>
+
+      {/* 扣除額明細 */}
+      <div className="hcr-sub-label" style={{ marginTop: 14 }}>扣除額明細</div>
+      <div className="hcr-ins">
+        {et.deductions.map((d) => (
+          <div key={d.label} className="hcr-ins-row on"><span>{d.label}</span><span>{fmtWan(d.amount)}</span></div>
+        ))}
+      </div>
+
+      {/* 法定應繼分預估分配 */}
+      {inh.shares.length > 0 && netInherit > 0 && (
+        <>
+          <div className="hcr-sub-label" style={{ marginTop: 14 }}>法定應繼分 · 淨傳承預估分配</div>
+          {inh.shares.map((s) => (
+            <div key={s.role} className="hcr-gap ok">
+              <span className="hcr-gap-name">
+                {s.role}{s.count ? ` ×${s.count}` : ""}
+                <span style={{ fontWeight: 400, color: "#888", marginLeft: 8, fontSize: 16 }}>應繼分 {s.total}{s.count && s.count > 1 ? `(每人 ${s.each})` : ""}</span>
+              </span>
+              <span className="hcr-gap-val">{fmtWan(netInherit * parseFrac(s.total))}</span>
+            </div>
+          ))}
+          <p className="hcr-note">{inh.headline}{inh.caveat ? `;${inh.caveat}` : ""}。分配金額以「淨傳承」× 應繼分估計,未計特留分、遺囑指定或指定受益人之保單(身故保險金可跳脫遺產分配)。</p>
+        </>
+      )}
+
+      <p className="hcr-note">
+        依台灣現行遺產稅概數試算:免稅額 1,333 萬、喪葬 138 萬、配偶 493 萬、每位子女 56 萬、每位父母 138 萬、未償債務可扣除;適用級距:{bracketLabel}。
+        傳承規劃方向:善用<strong>保單指定受益人</strong>、<strong>生前贈與</strong>(每年免稅贈與額)、<strong>預留稅源</strong>等,由顧問依家庭狀況規劃。實際以國稅局核定為準。
       </p>
     </section>
   );
