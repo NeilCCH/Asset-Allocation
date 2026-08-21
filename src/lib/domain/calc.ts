@@ -429,17 +429,16 @@ export function retirementReserve(
   const r = params.returnRate;
   const annualNeed = targetMonthly * 12;
 
-  // 退休時所需準備金 = 年領取 × 年金現值因子（退休期間本金以 r 成長）
-  const annuityPV = r === 0 ? retireYears : (1 - Math.pow(1 + r, -retireYears)) / r;
-  const capitalAtRetirement = annualNeed * annuityPV;
+  // 退休時所需準備金 = 固定領取額 × 退休年數（保守：與缺口同基礎，不假設退休後本金再成長而折現）
+  const capitalAtRetirement = annualNeed * retireYears;
 
   const lumpSumToday = capitalAtRetirement / Math.pow(1 + r, yearsToRetire);
   const currentAssetsGrown = grow(investableAssets(core.assets), r, yearsToRetire);
   const shortfall = Math.max(0, capitalAtRetirement - currentAssetsGrown);
 
-  // 首年需存金額（之後每年依薪資成長率成長）：以成長型年金因子回推
-  const fvFactor = fvGrowingAnnuity(1, r, params.salaryGrowthRate, yearsToRetire);
-  const requiredAnnualSaving = fvFactor > 0 ? shortfall / fvFactor : shortfall;
+  // 首年需存金額：以「平投」期末年金因子回推（與缺口同基礎，不假設每年投入隨薪資成長放大）
+  const contribFactor = r < 1e-9 ? yearsToRetire : (Math.pow(1 + r, yearsToRetire) - 1) / r;
+  const requiredAnnualSaving = contribFactor > 0 ? shortfall / contribFactor : shortfall;
 
   return {
     targetMonthly,
