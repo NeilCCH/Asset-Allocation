@@ -495,10 +495,23 @@ function PersonalStatementsBlock({ s }: { s: PersonalStatements }) {
         </div>
         <StackBar segments={[{ label: "負債", value: bs.totalLiabilities, color: "#f59e0b" }, { label: "淨值", value: Math.max(0, bs.netWorth), color: "#10b981" }]} />
         {bs.futureNetWorth != null && (
-          <div className="hcr-stmt-future">
-            <span>退休時預估淨值(未來值)</span>
-            <span>{fmtWan(bs.futureNetWorth)}</span>
-          </div>
+          <>
+            <div className="hcr-stmt-future-group">
+              <div className="hcr-stmt-future"><span>退休時 · 資產(未來值)</span><span>{fmtWan(bs.futureAssets ?? 0)}</span></div>
+              <div className="hcr-stmt-future"><span>退休時 · 負債(未來值,攤還後)</span><span>−{fmtWan(bs.futureLiabilities ?? 0)}</span></div>
+              {bs.futurePlannedLoan != null && (
+                <div className="hcr-stmt-future" style={{ background: "#fef2f2", color: "#b91c1c", borderColor: "#fecaca" }}>
+                  <span>　其中新增貸款計劃剩餘</span><span>−{fmtWan(bs.futurePlannedLoan)}</span>
+                </div>
+              )}
+              <div className="hcr-stmt-future"><span>退休時 · 淨值(未來值)</span><span>{fmtWan(bs.futureNetWorth)}</span></div>
+            </div>
+            <p className="hcr-note">
+              負債未來值依平均利率與月還款「本息攤還」逐年遞減;若有新增貸款計劃,以退休時剩餘本金計入負債。
+              ⚠️ 貨幣具時間價值,今日金額與退休時金額不可直接比較(已以報酬/通膨參數折算)。
+              {bs.futurePlannedLoan != null && "新增貸款若用於購置資產,該資產價值未納入本試算,實際淨值影響需另計。"}
+            </p>
+          </>
         )}
       </div>
 

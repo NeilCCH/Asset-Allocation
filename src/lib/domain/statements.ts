@@ -1,7 +1,7 @@
 // 家庭財務報表 — 參考公司三表(資產負債表 / 損益表 / 現金流量表)之結構與會計邏輯。
 // 單位:資產負債表為萬元;損益/現金流為年或月(萬元)。
 import type { QuestionnaireData } from "./types";
-import { assetBreakdown, fvGrowingAnnuity } from "./calc";
+import { assetBreakdown, fvGrowingAnnuity, loanMonthlyPayment, remainingLoanBalance } from "./calc";
 import { INCOME_BAND_VALUE, SURPLUS_BAND_VALUE, type CalcParams } from "./params";
 import { estimateIncomeTax } from "./incomeTax";
 
@@ -23,6 +23,7 @@ export interface PersonalStatements {
     futureAssets?: number;
     futureLiabilities?: number;
     futureNetWorth?: number;
+    futurePlannedLoan?: number; // 新增貸款計劃在退休時的剩餘本金(已含於 futureLiabilities)
   };
   // 損益表(年):收入 − 支出 = 結餘
   incomeStatement: {
@@ -135,7 +136,7 @@ export function personalStatements(data: QuestionnaireData, params?: CalcParams)
   // 收入:依薪資成長率;支出:依通膨率(退休前一年之估計)
   const n = Math.max(0, core.retire_age - core.age);
   type FutureVals = {
-    futureAssets: number; futureLiabilities: number; futureNetWorth: number;
+    futureAssets: number; futureLiabilities: number; futureNetWorth: number; futurePlannedLoan: number;
     futureIncome: number; futureExpense: number; futureSurplus: number;
     futureInflow: number; futureOutflow: number; futureNet: number;
   };
@@ -144,13 +145,23 @@ export function personalStatements(data: QuestionnaireData, params?: CalcParams)
     const { returnRate: r, inflationRate: inf, salaryGrowthRate: g } = params;
     const fv = (pv: number, rate: number) => pv * Math.pow(1 + rate, n);
     const futureAssets = fv(totalAssets, r) + fvGrowingAnnuity(Math.max(0, annualSurplus), r, g, n);
-    const futureLiabilities = Math.max(0, totalLiabilities - debtPayment * 12 * n); // 簡化:以每月還款累計抵減本金
+    // 負債未來值:現有貸款依「平均利率 + 月還款」正確攤還;加計新增貸款計劃在退休時的剩餘本金
+    const liabRate = deep?.liabilities?.interest_rate ?? 0;
+    const existingFutureLiab = remainingLoanBalance(totalLiabilities, debtPayment, liabRate, n);
+    let plannedFutureLiab = 0;
+    const pl = deep?.planned_loan;
+    if (pl && pl.amount > 0 && pl.years_until < n) {
+      const rate = deep?.liabilities?.interest_rate ?? 2; // 沿用平均利率,無則預設 2%
+      const pmt = loanMonthlyPayment(pl.amount, rate, pl.term_years);
+      plannedFutureLiab = remainingLoanBalance(pl.amount, pmt, rate, n - pl.years_until);
+    }
+    const futureLiabilities = existingFutureLiab + plannedFutureLiab;
     const futureIncome = fv(totalIncome, g);
     const futureExpense = fv(totalExpense, inf);
     const futureInflow = fv(inflow, g);
     const futureOutflow = fv(outflow, inf);
     future = {
-      futureAssets, futureLiabilities, futureNetWorth: futureAssets - futureLiabilities,
+      futureAssets, futureLiabilities, futureNetWorth: futureAssets - futureLiabilities, futurePlannedLoan: plannedFutureLiab,
       futureIncome, futureExpense, futureSurplus: futureIncome - futureExpense,
       futureInflow, futureOutflow, futureNet: futureInflow - futureOutflow,
     };
@@ -166,6 +177,7 @@ export function personalStatements(data: QuestionnaireData, params?: CalcParams)
       futureAssets: future ? r1(future.futureAssets) : undefined,
       futureLiabilities: future ? r1(future.futureLiabilities) : undefined,
       futureNetWorth: future ? r1(future.futureNetWorth) : undefined,
+      futurePlannedLoan: future && future.futurePlannedLoan > 0 ? r1(future.futurePlannedLoan) : undefined,
     },
     incomeStatement: {
       income,

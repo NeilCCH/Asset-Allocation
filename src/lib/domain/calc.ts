@@ -155,6 +155,27 @@ export function investmentBreakdown(assets: Assets): InvestmentBreakdown {
 const grow = (pv: number, rate: number, years: number) => pv * Math.pow(1 + rate, years);
 
 /** 期末年金終值:每年投入 pmt,rate 報酬,years 年 */
+/** 貸款每月攤還金額(本息平均攤還法)。 */
+export function loanMonthlyPayment(principal: number, annualRatePct: number, years: number): number {
+  if (principal <= 0 || years <= 0) return 0;
+  const i = annualRatePct / 100 / 12;
+  const months = years * 12;
+  if (i === 0) return principal / months;
+  return (principal * i) / (1 - Math.pow(1 + i, -months));
+}
+
+/** 貸款經過 years 年後的剩餘本金(已知月還款與年利率);無還款資訊則視為不變。 */
+export function remainingLoanBalance(balance: number, monthlyPayment: number, annualRatePct: number, years: number): number {
+  if (balance <= 0) return 0;
+  if (years <= 0) return balance;
+  if (monthlyPayment <= 0) return balance;
+  const i = annualRatePct / 100 / 12;
+  const months = years * 12;
+  if (i === 0) return Math.max(0, balance - monthlyPayment * months);
+  const bal = balance * Math.pow(1 + i, months) - monthlyPayment * ((Math.pow(1 + i, months) - 1) / i);
+  return Math.max(0, bal);
+}
+
 /** 成長型年金終值:首年投入 pmt,之後每年以 growth 成長,期間以 rate 複利。 */
 export function fvGrowingAnnuity(pmt: number, rate: number, growth: number, years: number): number {
   if (years <= 0) return 0;

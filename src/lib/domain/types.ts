@@ -155,6 +155,7 @@ export interface DeepProfile {
   edu_goals?: EduGoal[]; // 每位子女
   major_expense?: { amount: number; years_until: number }; // 近期大額支出
   liabilities?: Liabilities;
+  planned_loan?: { amount: number; years_until: number; term_years: number }; // 新增貸款計劃(選填):金額(萬)/幾年後/年限
   emergency_months?: number; // 緊急預備金(幾個月生活費)
   insurance_detail?: InsuranceDetail; // 本人保障
   spouse_insurance?: InsuranceDetail; // 配偶保障(家戶計算)

@@ -110,6 +110,9 @@ interface Form {
   liabMonthly: string;
   liabRate: string;
   liabYears: string;
+  plannedLoanAmount: string;
+  plannedLoanYearsUntil: string;
+  plannedLoanTerm: string;
   // 深化:退休後需求 / 緊急金 / 大額支出
   retireMonthlyExpense: string;
   retirePensionMonthly: string;
@@ -160,6 +163,9 @@ const initialForm: Form = {
   liabMonthly: "",
   liabRate: "",
   liabYears: "",
+  plannedLoanAmount: "",
+  plannedLoanYearsUntil: "",
+  plannedLoanTerm: "",
   retireMonthlyExpense: "",
   retirePensionMonthly: "",
   emergencyMonths: "",
@@ -391,6 +397,9 @@ export default function Assessment() {
           interest_rate: f.liabRate ? Number(f.liabRate) : undefined,
           remaining_years: f.liabYears ? Number(f.liabYears) : undefined,
         },
+        planned_loan: Number(f.plannedLoanAmount) > 0
+          ? { amount: Number(f.plannedLoanAmount), years_until: Number(f.plannedLoanYearsUntil) || 0, term_years: Number(f.plannedLoanTerm) || 20 }
+          : undefined,
         emergency_months: f.emergencyMonths ? Number(f.emergencyMonths) : undefined,
         major_expense: f.majorExpenseAmount
           ? { amount: Number(f.majorExpenseAmount) || 0, years_until: 0 }
@@ -728,6 +737,23 @@ export default function Assessment() {
               <Field label="剩餘年限">
                 <Input value={f.liabYears} onChange={(v) => set("liabYears", v)} type="number" placeholder="選填" />
               </Field>
+            </div>
+
+            {/* 新增貸款計劃(選填):未來預計新增的貸款(如購屋/換車),用於資產負債表未來值試算 */}
+            <div>
+              <span className="text-sm font-medium">新增貸款計劃(選填)</span>
+              <p className="text-xs text-neutral-400">未來預計新增的貸款(如購屋、換車),會納入資產負債表的未來負債試算。</p>
+              <div className="mt-1.5 grid grid-cols-3 gap-3">
+                <Field label="金額(萬)">
+                  <Input value={f.plannedLoanAmount} onChange={(v) => set("plannedLoanAmount", v)} type="number" placeholder="0" />
+                </Field>
+                <Field label="幾年後">
+                  <Input value={f.plannedLoanYearsUntil} onChange={(v) => set("plannedLoanYearsUntil", v)} type="number" placeholder="選填" />
+                </Field>
+                <Field label="貸款年限">
+                  <Input value={f.plannedLoanTerm} onChange={(v) => set("plannedLoanTerm", v)} type="number" placeholder="選填" />
+                </Field>
+              </div>
             </div>
             <div className="rounded-lg bg-neutral-50 p-3 dark:bg-neutral-900">
               <span className="text-sm font-medium">退休後需求</span>
