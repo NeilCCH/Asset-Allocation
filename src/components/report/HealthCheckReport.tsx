@@ -260,6 +260,9 @@ export function HealthCheckReport({ model, variant = "full" }: { model: ReportMo
         </p>
       </section>
 
+      {/* 退休金準備分析(⚠️ 顧問參考,僅完整版) */}
+      {full && <RetirementReadinessBlock model={model} />}
+
       {/* 簡易版:提示完整報告洽顧問 */}
       {!full && (
         <section className="hcr-card hcr-advisor">
@@ -620,6 +623,91 @@ const AMT_IN = "#059669";
 const AMT_OUT = "#dc2626";
 const netColor = (v: number) => (v >= 0 ? AMT_IN : AMT_OUT);
 
+// 退休金準備分析:需求 vs 可累積(現有資產成長 + 未來投入 + 勞退)比較
+function RetirementReadinessBlock({ model }: { model: ReportModel }) {
+  const gr = model.gaps.find((x) => x.name === "退休金缺口")?.result;
+  if (!gr || gr.status !== "computed") return null;
+  const bd: Record<string, number> = {};
+  gr.breakdown.forEach((b) => { bd[b.label] = b.amount; });
+  const totalNeed = bd["退休後總支出需求"] ?? 0;
+  const grown = Math.max(0, bd["現有資產成長估計"] ?? 0);
+  const contrib = Math.max(0, bd["未來持續投入估計"] ?? 0);
+  const pension = Math.abs(bd["退休金收入(勞退/月退)"] ?? 0);
+  const accumulable = grown + contrib + pension;
+  const gap = gr.gap; // = 總需求 − 可累積
+  const covered = gap <= 0;
+  const maxV = Math.max(totalNeed, accumulable, 1);
+  const w = (v: number) => `${Math.max(0, (v / maxV) * 100)}%`;
+  const monthly = model.solutions.find((s) => s.name === "退休金")?.monthly;
+  const retireYears = Math.max(0, model.params.lifeExpectancy - model.profile.retireAge);
+  const yearsToRetire = Math.max(0, model.profile.retireAge - model.profile.age);
+  const COV = { grown: "#0ea5e9", contrib: "#10b981", pension: "#8b5cf6", gap: "#ef4444" };
+  const segs = [
+    { label: "現有資產成長", value: grown, color: COV.grown },
+    { label: "未來持續投入", value: contrib, color: COV.contrib },
+    { label: "勞退 / 月退", value: pension, color: COV.pension },
+  ].filter((s) => s.value > 0);
+  return (
+    <section className="hcr-card hcr-advisor">
+      <h2>退休金準備分析(顧問參考)</h2>
+      <div className="hcr-stats">
+        <Stat label="退休後總支出需求" value={fmtWan(totalNeed)} sub={`${model.profile.retireAge}→${model.params.lifeExpectancy} 歲 · 退休 ${retireYears} 年`} />
+        <Stat label="退休可累積資產" value={fmtWan(accumulable)} sub="現有成長 + 未來投入 + 勞退" />
+        <Stat label={covered ? "預估盈餘" : "退休金缺口"} value={fmtWan(Math.abs(gap))} sub={covered ? "已達標" : "尚需補足"} />
+      </div>
+
+      {/* 需求 vs 可累積 比較條(同一比例尺) */}
+      <div style={{ marginTop: 14 }}>
+        <div className="hcr-cmp-row">
+          <span className="hcr-cmp-tag">總支出需求</span>
+          <div className="hcr-cmp-track"><div style={{ width: w(totalNeed), background: "#f59e0b" }} /></div>
+          <span className="hcr-cmp-num">{fmtWan(totalNeed)}</span>
+        </div>
+        <div className="hcr-cmp-row">
+          <span className="hcr-cmp-tag">可累積資產</span>
+          <div className="hcr-cmp-track">
+            {segs.map((s) => <div key={s.label} style={{ width: w(s.value), background: s.color }} title={s.label} />)}
+            {!covered && <div style={{ width: w(gap), background: `repeating-linear-gradient(45deg, ${COV.gap}, ${COV.gap} 4px, #fca5a5 4px, #fca5a5 8px)` }} title="缺口" />}
+          </div>
+          <span className="hcr-cmp-num">{fmtWan(accumulable)}</span>
+        </div>
+      </div>
+
+      {/* 圖例 */}
+      <div className="hcr-bar-legend" style={{ marginTop: 8, flexWrap: "wrap", gap: 14 }}>
+        {segs.map((s) => <span key={s.label}><i className="hcr-ldot" style={{ background: s.color }} />{s.label} {fmtWan(s.value)}</span>)}
+        {!covered && <span><i className="hcr-ldot" style={{ background: COV.gap }} />缺口 {fmtWan(gap)}</span>}
+      </div>
+
+      {/* 結論 */}
+      {covered ? (
+        <div className="hcr-gap ok" style={{ marginTop: 12 }}>
+          <span className="hcr-gap-name">退休準備評估</span>
+          <span className="hcr-gap-val">預估已達標(盈餘 {fmtWan(Math.abs(gap))})</span>
+        </div>
+      ) : (
+        <>
+          <div className="hcr-gap short" style={{ marginTop: 12 }}>
+            <span className="hcr-gap-name">退休準備評估</span>
+            <span className="hcr-gap-val">不足 {fmtWan(gap)}</span>
+          </div>
+          {monthly != null && monthly > 0 && (
+            <p className="hcr-alert">
+              ⚠ 距退休 {yearsToRetire} 年,建議自現在起每月增加儲蓄約 <strong>{monthly.toLocaleString("zh-TW")} 萬</strong>(以年報酬 {pctNum(model.params.returnRate)} 複利、成長型年金回推),即可補足退休金缺口。
+            </p>
+          )}
+        </>
+      )}
+
+      <p className="hcr-note">
+        總支出需求 = 退休首年年支出 ×(1+通膨 {pctNum(model.params.inflationRate)})<sup>{yearsToRetire}</sup> × 退休年數 {retireYears};
+        退休首年年支出依{model.params.defaultRetireLifestylePct}% 所得替代率(或填報之退休後月支出)估算。
+        可累積資產 = 現有可投資資產以年報酬 {pctNum(model.params.returnRate)} 複利 + 年結餘持續投入(成長型年金)+ 勞退/月退累積。屬客觀試算,不構成投資建議。
+      </p>
+    </section>
+  );
+}
+
 function PersonalStatementsBlock({ s }: { s: PersonalStatements }) {
   const bs = s.balanceSheet;
   const is = s.incomeStatement;
@@ -812,6 +900,10 @@ const css = `
 .hcr-legend-label { flex:1; color:#444; }
 .hcr-legend-val { font-weight:600; } .hcr-legend-val em { color:#999; font-style:normal; margin-left:6px; font-size:17px; }
 .hcr-bar { display:flex; height:22px; border-radius:11px; overflow:hidden; background:#f1f5f9; }
+.hcr-cmp-row { display:flex; align-items:center; gap:10px; margin:6px 0; }
+.hcr-cmp-tag { flex:0 0 88px; font-size:16px; color:#555; }
+.hcr-cmp-track { flex:1; display:flex; height:20px; border-radius:10px; overflow:hidden; background:#f1f5f9; }
+.hcr-cmp-num { flex:0 0 auto; min-width:70px; text-align:right; font-size:16px; font-weight:700; color:#334155; }
 .hcr-bar-legend { display:flex; justify-content:space-between; align-items:center; font-size:18px; color:#555; margin-top:8px; }
 .hcr-ldot { display:inline-block; width:10px; height:10px; border-radius:50%; vertical-align:middle; margin:0 6px; }
 .hcr-gap { display:flex; justify-content:space-between; align-items:center; padding:10px 14px;
