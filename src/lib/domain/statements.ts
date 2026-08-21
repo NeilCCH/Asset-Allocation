@@ -152,7 +152,7 @@ export function personalStatements(data: QuestionnaireData, params?: CalcParams)
 
   // ── 未來值投影(TVM,以財務計算機概念投影到退休年) ──
   // 資產:現值以報酬率複利成長 + 年結餘持續投入(成長型年金,依薪資成長率)
-  // 收入:依薪資成長率;支出:依通膨率(退休前一年之估計)
+  // 收入:主動(薪資)依成長率「單利」、被動依通膨;支出:依通膨率(退休當年之估計)
   const n = Math.max(0, core.retire_age - core.age);
   type FutureVals = {
     futureAssets: number; futureLiabilities: number; futureNetWorth: number; futurePlannedLoan: number;
@@ -175,9 +175,13 @@ export function personalStatements(data: QuestionnaireData, params?: CalcParams)
       plannedFutureLiab = remainingLoanBalance(pl.amount, pmt, rate, n - pl.years_until);
     }
     const futureLiabilities = existingFutureLiab + plannedFutureLiab;
-    const futureIncome = fv(totalIncome, g);
+    // 退休當年收入:主動(薪資)依成長率單利成長、被動依通膨複利;兩者相加
+    const activeAnnualNow = Math.max(0, totalIncome - passiveIncome);
+    const futureActiveIncome = activeAnnualNow * (1 + g * n); // 單利:退休當年薪資 = 現在薪資 ×(1 + g × n)
+    const futurePassiveIncome = passiveIncome * Math.pow(1 + inf, n);
+    const futureIncome = futureActiveIncome + futurePassiveIncome;
     const futureExpense = fv(totalExpense, inf);
-    const futureInflow = fv(inflow, g);
+    const futureInflow = futureIncome / 12;
     const futureOutflow = fv(outflow, inf);
     future = {
       futureAssets, futureLiabilities, futureNetWorth: futureAssets - futureLiabilities, futurePlannedLoan: plannedFutureLiab,
@@ -205,7 +209,8 @@ export function personalStatements(data: QuestionnaireData, params?: CalcParams)
     const series: NonNullable<PersonalStatements["cashFlow"]["series"]> = [];
     for (let age = startAge; age <= life; age++) {
       const t = age - startAge;
-      const active = age <= retAge ? activeMonthNow * Math.pow(1 + g, t) : 0;
+      // 主動收入(薪資):依成長率「單利」逐年估計,退休即停止。退休當年薪資 = 現在薪資 ×(1 + g × n)
+      const active = age <= retAge ? activeMonthNow * (1 + g * t) : 0;
       const passive = passiveMonthNow * Math.pow(1 + inf, t) + (age >= retAge ? pensionMonth : 0);
       let debt = 0;
       if (totalLiabilities > 0 && debtPayment > 0) {
