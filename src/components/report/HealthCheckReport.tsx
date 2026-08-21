@@ -572,6 +572,16 @@ function CashFlowLines({ series, retireAge, loanEndAge }: { series: NonNullable<
       {debtEnd && <circle cx={x(debtEnd.age)} cy={y(debtEnd.v)} r="4" fill={COL.debt} stroke="#fff" strokeWidth="1.5" />}
       {passiveAtRetire && <circle cx={x(retireAge)} cy={y(passiveAtRetire.passive)} r="3.5" fill={COL.passive} stroke="#fff" strokeWidth="1.5" />}
       {activeEnd && <circle cx={x(activeEnd.age)} cy={y(activeEnd.v)} r="4.5" fill="#fff" stroke={COL.active} strokeWidth="2.2" />}
+      {/* 退休當年主動收入(推估終點)數值標註;靠右時翻到左側避免出界 */}
+      {activeEnd && (() => {
+        const flip = x(activeEnd.age) > ml + plotW * 0.55;
+        const ly = Math.max(mt + 9, y(activeEnd.v) - 8);
+        return (
+          <text x={x(activeEnd.age) + (flip ? -9 : 9)} y={ly} textAnchor={flip ? "end" : "start"} fontSize="10.5" fontWeight="700" fill={COL.active}>
+            退休 {activeEnd.v} 萬/月
+          </text>
+        );
+      })()}
       {/* 圖例(右側) */}
       <g fontSize="10">
         <rect x={ml + plotW + 12} y={mt + 4} width="9" height="9" rx="2" fill={COL.active} />
