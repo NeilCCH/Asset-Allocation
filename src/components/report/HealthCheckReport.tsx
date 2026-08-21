@@ -582,6 +582,16 @@ function CashFlowLines({ series, retireAge, loanEndAge }: { series: NonNullable<
           </text>
         );
       })()}
+      {/* 退休後被動收入(含勞退)水準數值標註;置於端點下方避免與主動標籤重疊 */}
+      {passiveAtRetire && (() => {
+        const flip = x(retireAge) > ml + plotW * 0.55;
+        const ly = Math.min(mt + plotH - 4, y(passiveAtRetire.passive) + 18);
+        return (
+          <text x={x(retireAge) + (flip ? -9 : 9)} y={ly} textAnchor={flip ? "end" : "start"} fontSize="10.5" fontWeight="700" fill={COL.passive}>
+            退休後 {passiveAtRetire.passive} 萬/月
+          </text>
+        );
+      })()}
       {/* 圖例(右側) */}
       <g fontSize="10">
         <rect x={ml + plotW + 12} y={mt + 4} width="9" height="9" rx="2" fill={COL.active} />
