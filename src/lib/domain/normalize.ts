@@ -56,6 +56,7 @@ export function normalizeData(data: QuestionnaireData): QuestionnaireData {
         parents: normParents(dep.parents),
         siblings: asArray(dep.siblings),
         grandchildren: normGrand(dep.grandchildren),
+        grandparents: asArray(dep.grandparents),
       },
     },
   } as QuestionnaireData;

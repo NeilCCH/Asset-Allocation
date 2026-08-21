@@ -77,6 +77,9 @@ export interface Child {
 /** 兄弟姊妹關係(隱含性別與長幼):兄/弟=男,姊/妹=女 */
 export type SiblingRelation = "兄" | "弟" | "姊" | "妹";
 
+/** 祖父母關係(遺產第四順位繼承人):父系=祖父/祖母,母系=外祖父/外祖母 */
+export type GrandparentRelation = "祖父" | "祖母" | "外祖父" | "外祖母";
+
 /** 家庭 / 扶養結構(§6.2)。含遺產繼承順位相關成員。 */
 export interface Dependents {
   children: Child[];
@@ -86,6 +89,8 @@ export interface Dependents {
   siblings: { relation: SiblingRelation }[];
   /** 孫子女(代位繼承 / 傳承規劃,直系卑親屬):人數 */
   grandchildren: { count: number };
+  /** 祖父母(遺產第四順位繼承人):逐位關係 */
+  grandparents: { relation: GrandparentRelation }[];
 }
 
 // ── 必填核心(§6.2) ──────────────────────────────────

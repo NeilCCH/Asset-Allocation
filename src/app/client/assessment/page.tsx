@@ -12,6 +12,7 @@ import type {
   IncomeType,
   InsuranceDetail,
   LossReaction,
+  GrandparentRelation,
   PlanningScope,
   QuestionnaireData,
   SiblingRelation,
@@ -98,6 +99,7 @@ interface Form {
   parents: { relation: "父" | "母"; age: string }[];
   siblings: { relation: string }[];
   grandchildrenCount: string;
+  grandparents: { relation: string }[];
   income_type: IncomeType;
   income_band: IncomeBand | "";
   surplus_band: SurplusBand | "";
@@ -153,6 +155,7 @@ const initialForm: Form = {
   parents: [],
   siblings: [],
   grandchildrenCount: "0",
+  grandparents: [],
   income_type: "固定薪",
   income_band: "",
   surplus_band: "",
@@ -320,6 +323,20 @@ export default function Assessment() {
       siblings[i] = { relation };
       return { ...p, siblings };
     });
+  const setGrandparentsCount = (n: number) =>
+    setF((p) => {
+      const count = Math.max(0, Math.min(4, n || 0));
+      const grandparents = [...p.grandparents];
+      grandparents.length = count;
+      for (let i = 0; i < count; i++) if (grandparents[i] == null) grandparents[i] = { relation: "祖父" };
+      return { ...p, grandparents };
+    });
+  const setGrandparentRelation = (i: number, relation: string) =>
+    setF((p) => {
+      const grandparents = [...p.grandparents];
+      grandparents[i] = { relation };
+      return { ...p, grandparents };
+    });
 
   const setAsset = (key: keyof Assets, patch: Partial<{ has: boolean; amount: string }>) =>
     setF((p) => ({ ...p, assets: { ...p.assets, [key]: { ...p.assets[key], ...patch } } }));
@@ -382,6 +399,7 @@ export default function Assessment() {
           parents: f.parents.map((p) => ({ relation: p.relation, age: Number(p.age) || 0 })),
           siblings: f.siblings.map((s) => ({ relation: (s.relation || "弟") as SiblingRelation })),
           grandchildren: { count: Number(f.grandchildrenCount) || 0 },
+          grandparents: f.grandparents.map((g) => ({ relation: (g.relation || "祖父") as GrandparentRelation })),
         },
         income_type: f.income_type,
         income_band: f.income_band as IncomeBand,
@@ -576,34 +594,71 @@ export default function Assessment() {
               </div>
             )}
 
-            {/* 遺產繼承順位相關成員 */}
+            {/* 遺產繼承順位相關成員(預設隱藏,勾選身份後展開人數與稱謂) */}
             <div>
               <span className="text-sm font-medium">其他家庭成員(遺產規劃用)</span>
-              <p className="text-xs text-neutral-400">影響遺產繼承順位與傳承規劃。兄弟姊妹請逐位註明關係。</p>
-              <div className="mt-1.5 grid grid-cols-2 gap-3">
-                <Field label="兄弟姊妹人數">
-                  <Input value={String(f.siblings.length)} onChange={(v) => setSiblingsCount(Number(v))} type="number" placeholder="0" />
-                </Field>
-                <Field label="孫子女人數">
-                  <Input value={f.grandchildrenCount} onChange={(v) => set("grandchildrenCount", v)} type="number" placeholder="0" />
-                </Field>
+              <p className="text-xs text-neutral-400">影響遺產繼承順位與傳承規劃。勾選家中有的身份,再填人數與稱謂。</p>
+              <div className="mt-2 flex flex-wrap gap-2">
+                <KinToggle label="兄弟姊妹" checked={f.siblings.length > 0} onChange={(on) => setSiblingsCount(on ? 1 : 0)} />
+                <KinToggle label="孫子女" checked={Number(f.grandchildrenCount) > 0} onChange={(on) => set("grandchildrenCount", on ? "1" : "0")} />
+                <KinToggle label="祖父母" checked={f.grandparents.length > 0} onChange={(on) => setGrandparentsCount(on ? 1 : 0)} />
               </div>
+
               {f.siblings.length > 0 && (
-                <div className="mt-2 grid grid-cols-3 gap-2">
-                  {f.siblings.map((s, i) => (
-                    <Field key={i} label={`第 ${i + 1} 位`}>
-                      <Select
-                        value={s.relation}
-                        onChange={(v) => setSiblingRelation(i, v)}
-                        options={[
-                          { value: "兄", label: "兄(哥哥)" },
-                          { value: "弟", label: "弟(弟弟)" },
-                          { value: "姊", label: "姊(姊姊)" },
-                          { value: "妹", label: "妹(妹妹)" },
-                        ]}
-                      />
-                    </Field>
-                  ))}
+                <div className="mt-3">
+                  <Field label="兄弟姊妹人數">
+                    <Input value={String(f.siblings.length)} onChange={(v) => setSiblingsCount(Number(v))} type="number" placeholder="0" />
+                  </Field>
+                  <div className="mt-2 grid grid-cols-3 gap-2">
+                    {f.siblings.map((s, i) => (
+                      <Field key={i} label={`第 ${i + 1} 位`}>
+                        <Select
+                          value={s.relation}
+                          onChange={(v) => setSiblingRelation(i, v)}
+                          options={[
+                            { value: "兄", label: "兄(哥哥)" },
+                            { value: "弟", label: "弟(弟弟)" },
+                            { value: "姊", label: "姊(姊姊)" },
+                            { value: "妹", label: "妹(妹妹)" },
+                          ]}
+                        />
+                      </Field>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {Number(f.grandchildrenCount) > 0 && (
+                <div className="mt-3">
+                  <Field label="孫子女人數">
+                    <Input value={f.grandchildrenCount} onChange={(v) => set("grandchildrenCount", v)} type="number" placeholder="0" />
+                  </Field>
+                  <p className="mt-1 text-xs text-neutral-400">孫子女於子女均已不在時,依代位/次親等繼承(第一順位)。</p>
+                </div>
+              )}
+
+              {f.grandparents.length > 0 && (
+                <div className="mt-3">
+                  <Field label="祖父母人數">
+                    <Input value={String(f.grandparents.length)} onChange={(v) => setGrandparentsCount(Number(v))} type="number" placeholder="0" />
+                  </Field>
+                  <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-4">
+                    {f.grandparents.map((g, i) => (
+                      <Field key={i} label={`第 ${i + 1} 位`}>
+                        <Select
+                          value={g.relation}
+                          onChange={(v) => setGrandparentRelation(i, v)}
+                          options={[
+                            { value: "祖父", label: "祖父(父之父)" },
+                            { value: "祖母", label: "祖母(父之母)" },
+                            { value: "外祖父", label: "外祖父(母之父)" },
+                            { value: "外祖母", label: "外祖母(母之母)" },
+                          ]}
+                        />
+                      </Field>
+                    ))}
+                  </div>
+                  <p className="mt-1 text-xs text-neutral-400">祖父母為遺產第四順位繼承人(前三順位與配偶均無時始繼承)。</p>
                 </div>
               )}
             </div>
@@ -986,6 +1041,23 @@ function Section({ title, children }: { title: string; children: React.ReactNode
       <h1 className="text-xl font-bold">{title}</h1>
       {children}
     </section>
+  );
+}
+
+function KinToggle({ label, checked, onChange }: { label: string; checked: boolean; onChange: (on: boolean) => void }) {
+  return (
+    <button
+      type="button"
+      onClick={() => onChange(!checked)}
+      className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm font-medium transition-colors ${
+        checked
+          ? "border-emerald-500 bg-emerald-50 text-emerald-700 dark:border-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-300"
+          : "border-neutral-300 text-neutral-600 hover:border-emerald-400 dark:border-neutral-700 dark:text-neutral-300"
+      }`}
+    >
+      <span aria-hidden>{checked ? "✓" : "+"}</span>
+      {label}
+    </button>
   );
 }
 

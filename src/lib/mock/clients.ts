@@ -17,7 +17,7 @@ export const MOCK_CLIENTS: MockClient[] = [
       core: {
         age: 42, retire_age: 60,
         planning_scope: "含配偶", spouse_age: 40,
-        dependents: { children: [{ stage: "國小", age: 8 }, { stage: "幼兒園", age: 5 }], parents: [{ relation: "父", age: 70 }, { relation: "母", age: 68 }], siblings: [{ relation: "兄" }, { relation: "妹" }], grandchildren: { count: 0 } },
+        dependents: { children: [{ stage: "國小", age: 8 }, { stage: "幼兒園", age: 5 }], parents: [{ relation: "父", age: 70 }, { relation: "母", age: 68 }], siblings: [{ relation: "兄" }, { relation: "妹" }], grandchildren: { count: 0 }, grandparents: [] },
         income_type: "自營", income_band: "500-1000", surplus_band: ">10",
         horizon: "5-10年", urgency: "3個月內",
         assets: {
@@ -68,7 +68,7 @@ export const MOCK_CLIENTS: MockClient[] = [
       core: {
         age: 35, retire_age: 65,
         planning_scope: "個人",
-        dependents: { children: [{ stage: "學前", age: 2, years_until_school: 4 }], parents: [{ relation: "父", age: 65 }, { relation: "母", age: 63 }], siblings: [{ relation: "姊" }], grandchildren: { count: 0 } },
+        dependents: { children: [{ stage: "學前", age: 2, years_until_school: 4 }], parents: [{ relation: "父", age: 65 }, { relation: "母", age: 63 }], siblings: [{ relation: "姊" }], grandchildren: { count: 0 }, grandparents: [] },
         income_type: "固定薪", income_band: "150-300", surplus_band: "3-6",
         horizon: "3-5年", urgency: "半年內",
         assets: {
@@ -91,7 +91,7 @@ export const MOCK_CLIENTS: MockClient[] = [
       core: {
         age: 28, retire_age: 65,
         planning_scope: "個人",
-        dependents: { children: [], parents: [], siblings: [{ relation: "兄" }, { relation: "弟" }, { relation: "妹" }], grandchildren: { count: 0 } },
+        dependents: { children: [], parents: [], siblings: [{ relation: "兄" }, { relation: "弟" }, { relation: "妹" }], grandchildren: { count: 0 }, grandparents: [] },
         income_type: "業務浮動", income_band: "80-150", surplus_band: "1-3",
         horizon: ">10年", urgency: "先看看",
         assets: {
