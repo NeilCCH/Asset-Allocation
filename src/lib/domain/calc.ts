@@ -225,17 +225,20 @@ export function retirementGap(
   if (annualNeedNow <= 0) {
     return { status: "not_planned", gap: 0, breakdown: [], missing: ["退休後每月支出（或收支級距）"] };
   }
-  const annualNeedAtRetire = annualNeedNow * Math.pow(1 + params.inflationRate, yearsToRetire);
-  const totalNeed = annualNeedAtRetire * retireYears;
+  const r = params.returnRate, inf = params.inflationRate;
+  const annualNeedAtRetire = annualNeedNow * Math.pow(1 + inf, yearsToRetire);
+  // 退休期間支出「逐年通膨」之名目總額（保守：不假設退休後本金再高成長）
+  const needSumFactor = inf < 1e-9 ? retireYears : (Math.pow(1 + inf, retireYears) - 1) / inf;
+  const totalNeed = annualNeedAtRetire * needSumFactor;
 
-  // 退休後退休金收入（勞退/月退）可抵需求
+  // 退休後退休金收入（勞退/月退）名目總額，可抵需求（固定名目，不隨通膨調整）
   const pensionTotal = (data.deep?.retire_pension_monthly ?? 0) * 12 * retireYears;
 
-  // 退休時可累積資產 = 現有可投資資產成長 + 未來持續投入終值
-  const grownCurrent = grow(investableAssets(core.assets), params.returnRate, yearsToRetire);
+  // 退休時可累積資產 = 現有可投資資產成長 + 未來「平投」終值（移除薪資成長之樂觀假設）
+  const grownCurrent = grow(investableAssets(core.assets), r, yearsToRetire);
   const annualContribution = Math.max(0, (SURPLUS_BAND_VALUE[core.surplus_band] ?? 0) * 12);
-  // 未來每年可投入金額依「期望薪資成長率」逐年成長
-  const contributions = fvGrowingAnnuity(annualContribution, params.returnRate, params.salaryGrowthRate, yearsToRetire);
+  const contribFactor = r < 1e-9 ? yearsToRetire : (Math.pow(1 + r, yearsToRetire) - 1) / r; // 期末年金 FV
+  const contributions = annualContribution * contribFactor;
   const accumulable = grownCurrent + contributions + pensionTotal;
 
   const gap = round(totalNeed - accumulable);
