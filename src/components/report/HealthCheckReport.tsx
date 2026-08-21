@@ -224,6 +224,7 @@ export function HealthCheckReport({ model, variant = "full" }: { model: ReportMo
             <Stat label="現況風險投資" value={`${model.riskAllocation.currentRiskyPct}%`} sub="占風險資產" />
             <Stat label="參考目標" value={`${model.riskAllocation.targetRiskyPct}%`} sub={`落差 ${model.riskAllocation.gap > 0 ? "+" : ""}${model.riskAllocation.gap}%`} />
           </div>
+          <RiskAllocGauge current={model.riskAllocation.currentRiskyPct} target={model.riskAllocation.targetRiskyPct} />
           <div className={`hcr-gap ${model.riskAllocation.status === "相符" ? "ok" : "short"}`} style={{ marginTop: 12 }}>
             <span className="hcr-gap-name">配置落差</span>
             <span className="hcr-gap-val">
@@ -231,13 +232,19 @@ export function HealthCheckReport({ model, variant = "full" }: { model: ReportMo
               {model.riskAllocation.status !== "相符" ? `(${model.riskAllocation.gap > 0 ? "+" : ""}${model.riskAllocation.gap}%)` : ""}
             </span>
           </div>
-          {model.riskAllocation.status !== "相符" && (
-            <p className="hcr-alert">
-              ⚠ 現況投資配置與風險屬性 RR{model.riskAllocation.rr} 之參考目標落差達 {model.riskAllocation.gap > 0 ? "+" : ""}{model.riskAllocation.gap}%
-              ({model.riskAllocation.status}){model.riskAllocation.gap > 0 ? ",承擔風險高於屬性建議" : ",配置偏保守、可能不利長期報酬"};
-              建議由顧問檢視是否需要調整,或重新評估風險承受度。
-            </p>
-          )}
+          {model.riskAllocation.status !== "相符" && (() => {
+            const ra = model.riskAllocation!;
+            const shiftAmt = Math.round((Math.abs(ra.gap) / 100) * ra.riskTotal);
+            const dir = ra.gap > 0 ? "由「風險報酬」移向「穩定收益」" : "由「穩定收益」移向「風險報酬」";
+            return (
+              <p className="hcr-alert">
+                ⚠ 現況投資配置與風險屬性 RR{ra.rr} 之參考目標落差達 {ra.gap > 0 ? "+" : ""}{ra.gap}%
+                ({ra.status}){ra.gap > 0 ? ",承擔風險高於屬性建議" : ",配置偏保守、可能不利長期報酬"};
+                若要回到參考目標,約需將 <strong>{shiftAmt.toLocaleString("zh-TW")} 萬</strong> {dir}(現況風險資產 {fmtWan(ra.riskTotal)})。
+                實際調整由顧問依專業判斷,或重新評估風險承受度。
+              </p>
+            );
+          })()}
           <p className="hcr-note">
             依風險屬性 RR{model.riskAllocation.rr} 之參考目標「風險投資占風險資產約 {model.riskAllocation.targetRiskyPct}%」對照現況 {model.riskAllocation.currentRiskyPct}%,
             落差 {model.riskAllocation.gap > 0 ? "+" : ""}{model.riskAllocation.gap}%({model.riskAllocation.status})。此為客觀規則參考,實際配置由顧問依專業判斷提供。
@@ -622,6 +629,28 @@ function CashFlowLines({ series, retireAge, loanEndAge }: { series: NonNullable<
 const AMT_IN = "#059669";
 const AMT_OUT = "#dc2626";
 const netColor = (v: number) => (v >= 0 ? AMT_IN : AMT_OUT);
+
+// 風險投資占比量尺:相符區間(目標±10%)綠帶 + 目標刻度 + 現況標記
+function RiskAllocGauge({ current, target }: { current: number; target: number }) {
+  const lo = Math.max(0, target - 10), hi = Math.min(100, target + 10);
+  const c = Math.max(0, Math.min(100, current));
+  const labelLeft = Math.max(8, Math.min(92, c));
+  return (
+    <div style={{ margin: "22px 0 4px" }}>
+      <div style={{ position: "relative", height: 24, background: "#f1f5f9", borderRadius: 12 }}>
+        <div style={{ position: "absolute", left: `${lo}%`, width: `${hi - lo}%`, top: 0, bottom: 0, background: "#d1fae5", borderRadius: 12 }} />
+        <div style={{ position: "absolute", left: `${target}%`, top: -3, bottom: -3, width: 2, background: "#10b981" }} />
+        <div style={{ position: "absolute", left: `${c}%`, top: -5, bottom: -5, width: 3, background: "#0f172a", transform: "translateX(-1.5px)" }} />
+        <div style={{ position: "absolute", left: `${labelLeft}%`, top: -19, transform: "translateX(-50%)", fontSize: 14, fontWeight: 700, color: "#0f172a", whiteSpace: "nowrap" }}>現況 {current}%</div>
+      </div>
+      <div style={{ display: "flex", justifyContent: "space-between", fontSize: 14, color: "#94a3b8", marginTop: 6 }}>
+        <span>0%</span>
+        <span style={{ color: "#059669", fontWeight: 700 }}>相符區間 {lo}–{hi}%(目標 {target}%)</span>
+        <span>100%</span>
+      </div>
+    </div>
+  );
+}
 
 // 退休金準備分析:需求 vs 可累積(現有資產成長 + 未來投入 + 勞退)比較
 function RetirementReadinessBlock({ model }: { model: ReportModel }) {
