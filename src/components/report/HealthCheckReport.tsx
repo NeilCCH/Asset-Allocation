@@ -597,7 +597,7 @@ function gapText(g: ReportModel["gaps"][number]["result"]): string {
 }
 
 const css = `
-.hcr { max-width: 720px; margin: 0 auto; padding: 32px 28px; color: #171717;
+.hcr { max-width: 210mm; margin: 0 auto; padding: 30px 26px; color: #171717;
   font-family: -apple-system, "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", sans-serif; background:#fff;
   -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 .hcr h2 { font-size: 23px; font-weight: 700; margin: 0 0 13px; padding-left: 11px; border-left: 4px solid #10b981; line-height: 1.15; }

@@ -77,8 +77,9 @@ export function InteractiveReport({
         </div>
       </div>
 
-      <div className="bg-neutral-100 py-6 dark:bg-neutral-900 print:bg-white print:py-0">
-        <div className="mx-auto max-w-3xl rounded-xl bg-white shadow-sm print:shadow-none">
+      <div className="bg-neutral-100 px-3 py-6 dark:bg-neutral-900 sm:px-4 print:bg-white print:p-0">
+        {/* 螢幕上呈現為 A4 直式頁面(與列印一致) */}
+        <div className="mx-auto w-full max-w-[210mm] rounded-lg bg-white shadow-md ring-1 ring-black/5 print:max-w-none print:rounded-none print:shadow-none print:ring-0">
           <HealthCheckReport model={model} />
         </div>
       </div>
