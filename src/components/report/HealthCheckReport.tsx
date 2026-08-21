@@ -1165,6 +1165,11 @@ const css = `
 .hcr-inh-tbl td:nth-child(2), .hcr-inh-tbl td:nth-child(3) { text-align:right; color:#555; white-space:nowrap; }
 .hcr-inh-caveat { font-size:14px; color:#b45309; margin:8px 0 0; line-height:1.6; }
 .hcr-inh-cite { font-size:13px; color:#999; margin:10px 0 0; line-height:1.6; }
+/* 螢幕字級調整(僅螢幕;列印輸出不受影響,維持 A4 版式一致)。由外層 data-hcr-fs 控制。 */
+@media screen {
+  [data-hcr-fs="lg"] { zoom: 1.12; }
+  [data-hcr-fs="xl"] { zoom: 1.25; }
+}
 @media print {
   /* 列印時整體縮為 65%(螢幕顯示不受影響),讓每頁容納更多、字級更合宜 */
   .hcr { max-width:none; padding:0; zoom:0.65; }

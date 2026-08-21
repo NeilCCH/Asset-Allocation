@@ -7,11 +7,13 @@ import type { QuestionnaireData } from "@/lib/domain/types";
 import { buildReport, type ReportModel } from "@/lib/domain/report";
 import { clientDefaultParams } from "@/lib/domain/params";
 import { HealthCheckReport } from "@/components/report/HealthCheckReport";
+import { FontSizeControl, type FontScale } from "@/components/report/FontSizeControl";
 import { loadDraft } from "@/lib/draft";
 import { normalizeData } from "@/lib/domain/normalize";
 
 export default function ClientReport() {
   const [model, setModel] = useState<ReportModel | null | undefined>(undefined);
+  const [fs, setFs] = useState<FontScale>("base");
 
   useEffect(() => {
     const raw = loadDraft() as QuestionnaireData | null;
@@ -33,19 +35,22 @@ export default function ClientReport() {
   return (
     <div className="flex-1">
       {/* 工具列(列印時隱藏) */}
-      <div className="sticky top-0 z-10 flex items-center justify-between border-b border-neutral-200 bg-white/90 px-5 py-3 backdrop-blur print:hidden dark:border-neutral-800 dark:bg-neutral-950/90">
+      <div className="sticky top-0 z-10 flex items-center justify-between gap-2 border-b border-neutral-200 bg-white/90 px-5 py-3 backdrop-blur print:hidden dark:border-neutral-800 dark:bg-neutral-950/90">
         <BackLink href="/client/dashboard" label="返回儀表板" accent="emerald" />
-        <button
-          onClick={() => window.print()}
-          className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700"
-        >
-          列印 / 儲存為 PDF
-        </button>
+        <div className="flex items-center gap-2">
+          <FontSizeControl value={fs} onChange={setFs} />
+          <button
+            onClick={() => window.print()}
+            className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700"
+          >
+            列印 / 儲存為 PDF
+          </button>
+        </div>
       </div>
 
-      <div className="bg-neutral-100 px-3 py-6 dark:bg-neutral-900 sm:px-4 print:bg-white print:p-0">
+      <div className="overflow-x-auto bg-neutral-100 px-3 py-6 dark:bg-neutral-900 sm:px-4 print:overflow-visible print:bg-white print:p-0">
         {/* 螢幕上呈現為文件頁面(較寬,易讀);列印時強制 A4 直式 */}
-        <div className="mx-auto w-full max-w-4xl rounded-lg bg-white shadow-md ring-1 ring-black/5 print:max-w-none print:rounded-none print:shadow-none print:ring-0">
+        <div data-hcr-fs={fs} className="mx-auto w-full max-w-4xl rounded-lg bg-white shadow-md ring-1 ring-black/5 print:max-w-none print:rounded-none print:shadow-none print:ring-0">
           <HealthCheckReport model={model} variant="simple" />
         </div>
       </div>

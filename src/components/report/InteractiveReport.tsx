@@ -9,6 +9,7 @@ import { retirementReserve } from "@/lib/domain/calc";
 import { buildReport } from "@/lib/domain/report";
 import { riskAllocationAnalysis } from "@/lib/domain/risk";
 import { HealthCheckReport } from "./HealthCheckReport";
+import { FontSizeControl, type FontScale } from "./FontSizeControl";
 import { PrintButton } from "./PrintButton";
 
 export function InteractiveReport({
@@ -27,6 +28,7 @@ export function InteractiveReport({
   advisorSignature?: { name: string; company?: string; title?: string; licenses: { type: string; number?: string }[] };
 }) {
   const [params, setParams] = useState<CalcParams>(initialParams);
+  const [fs, setFs] = useState<FontScale>("base");
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [targetMonthly, setTargetMonthly] = useState("");
   const setParam = (k: keyof CalcParams, v: number) => setParams((p) => ({ ...p, [k]: v }));
@@ -52,7 +54,10 @@ export function InteractiveReport({
       {/* 工具列(列印時隱藏) */}
       <div className="sticky top-0 z-10 flex items-center justify-between border-b border-neutral-200 bg-white/90 px-5 py-3 backdrop-blur print:hidden dark:border-neutral-800 dark:bg-neutral-950/90">
         <BackLink href={`/advisor/clients/${clientId}`} label="返回客戶" accent="sky" />
-        <PrintButton />
+        <div className="flex items-center gap-2">
+          <FontSizeControl value={fs} onChange={setFs} />
+          <PrintButton />
+        </div>
       </div>
 
       {/* 可調參數面板(⚠️ 列印時不呈現) */}
@@ -120,9 +125,9 @@ export function InteractiveReport({
         </div>
       </div>
 
-      <div className="bg-neutral-100 px-3 py-6 dark:bg-neutral-900 sm:px-4 print:bg-white print:p-0">
+      <div className="overflow-x-auto bg-neutral-100 px-3 py-6 dark:bg-neutral-900 sm:px-4 print:overflow-visible print:bg-white print:p-0">
         {/* 螢幕上呈現為文件頁面(較寬,易讀);列印時強制 A4 直式 */}
-        <div className="mx-auto w-full max-w-4xl rounded-lg bg-white shadow-md ring-1 ring-black/5 print:max-w-none print:rounded-none print:shadow-none print:ring-0">
+        <div data-hcr-fs={fs} className="mx-auto w-full max-w-4xl rounded-lg bg-white shadow-md ring-1 ring-black/5 print:max-w-none print:rounded-none print:shadow-none print:ring-0">
           <HealthCheckReport model={model} />
         </div>
       </div>
