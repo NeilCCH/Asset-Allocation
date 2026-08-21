@@ -115,7 +115,7 @@ export function HealthCheckReport({ model, variant = "full" }: { model: ReportMo
   const pendingGaps = model.gaps.filter((g) => g.result.status === "needs_deep_data").length;
   const highlights: string[] = [];
   if (topCls) highlights.push(`資產以「${topCls.assetClass}資產」為主,約占 ${topCls.pct}%;流動資產占 ${model.summary.liquidPct}%、風險資產占 ${model.summary.riskPct}%。`);
-  if (model.summary.protection > 0) highlights.push(`另有保障型保單 ${fmtWan(model.summary.protection)}(獨立於資產,不計入總額)。`);
+  if (model.summary.protection > 0) highlights.push(`另有保險保障 ${fmtWan(model.summary.protection)}(個別顯示,不計入資產總額;若有保單價值準備金,可併入儲蓄保單計算)。`);
   if (shortfalls.length) highlights.push(`試算顯示 ${shortfalls.join("、")} 有缺口(詳見下方明細)。`);
   else if (computedGaps.length) highlights.push(`已試算之缺口項目均達標。`);
   if (pendingGaps > 0) highlights.push(`另有 ${pendingGaps} 項缺口待補充深化資料後試算。`);
@@ -138,7 +138,7 @@ export function HealthCheckReport({ model, variant = "full" }: { model: ReportMo
 
       {/* 關鍵數字(資產總額不含保障型保單) */}
       <section className="hcr-stats">
-        <Stat label="資產總額" value={fmtWan(model.summary.total)} sub="不含保障型保單" />
+        <Stat label="資產總額" value={fmtWan(model.summary.total)} sub="不含保險保障" />
         <Stat label="流動資產占比" value={`${model.summary.liquidPct}%`} sub={fmtWan(model.summary.liquid)} />
         <Stat label="風險資產占比" value={`${model.summary.riskPct}%`} sub={fmtWan(model.summary.riskTotal)} />
       </section>
@@ -174,10 +174,13 @@ export function HealthCheckReport({ model, variant = "full" }: { model: ReportMo
           </ul>
         </div>
         {model.summary.protection > 0 && (
-          <div className="hcr-gap short" style={{ marginTop: 12 }}>
-            <span className="hcr-gap-name">保障型保單(獨立顯示,不計入資產總額)</span>
-            <span className="hcr-gap-val">{fmtWan(model.summary.protection)}</span>
-          </div>
+          <>
+            <div className="hcr-gap short" style={{ marginTop: 12 }}>
+              <span className="hcr-gap-name">保險保障(個別顯示,不計入資產總額)</span>
+              <span className="hcr-gap-val">{fmtWan(model.summary.protection)}</span>
+            </div>
+            <p className="hcr-note">保障型保單以「保障」性質列示,不視為可運用資產,故不計入資產總額;若該保單另有<strong>保單價值準備金(解約金)</strong>,其現金價值可另計入「儲蓄保單」納入資產評估。</p>
+          </>
         )}
       </section>
 
@@ -228,6 +231,13 @@ export function HealthCheckReport({ model, variant = "full" }: { model: ReportMo
               {model.riskAllocation.status !== "相符" ? `(${model.riskAllocation.gap > 0 ? "+" : ""}${model.riskAllocation.gap}%)` : ""}
             </span>
           </div>
+          {model.riskAllocation.status !== "相符" && (
+            <p className="hcr-alert">
+              ⚠ 現況投資配置與風險屬性 RR{model.riskAllocation.rr} 之參考目標落差達 {model.riskAllocation.gap > 0 ? "+" : ""}{model.riskAllocation.gap}%
+              ({model.riskAllocation.status}){model.riskAllocation.gap > 0 ? ",承擔風險高於屬性建議" : ",配置偏保守、可能不利長期報酬"};
+              建議由顧問檢視是否需要調整,或重新評估風險承受度。
+            </p>
+          )}
           <p className="hcr-note">
             依風險屬性 RR{model.riskAllocation.rr} 之參考目標「風險投資占風險資產約 {model.riskAllocation.targetRiskyPct}%」對照現況 {model.riskAllocation.currentRiskyPct}%,
             落差 {model.riskAllocation.gap > 0 ? "+" : ""}{model.riskAllocation.gap}%({model.riskAllocation.status})。此為客觀規則參考,實際配置由顧問依專業判斷提供。
@@ -437,6 +447,23 @@ export function HealthCheckReport({ model, variant = "full" }: { model: ReportMo
         </section>
       )}
 
+      {/* 計算公式與法源依據(揭露於報告最後,供顧問驗算) */}
+      <section className="hcr-card">
+        <h2>計算公式與法源依據(供驗算)</h2>
+        <p className="hcr-note" style={{ marginTop: 0 }}>以下揭露報告各項試算所採用之公式與法令/理論依據,供顧問覆核。稅率、免稅額與扣除額等金額,均以主管機關/財政部最新公告為準。</p>
+        <ul className="hcr-src">
+          <li><b>資產負債表</b>:資產總額 − 負債總額 = 淨值(會計恆等式)。保障型保單不計入資產總額。</li>
+          <li><b>未來值(複利終值)</b>:FV = PV × (1 + r)<sup>n</sup>,r 為年報酬率、n 為年數(財務管理 Time Value of Money)。</li>
+          <li><b>年結餘持續投入(成長型年金終值)</b>:FV = PMT × [ (1+r)<sup>n</sup> − (1+g)<sup>n</sup> ] / (r − g),g 為年成長率(r = g 時以 n×PMT×(1+r)<sup>n−1</sup> 計)。</li>
+          <li><b>貸款攤還</b>:月付金 = P × i / [ 1 − (1+i)<sup>−N</sup> ];剩餘本金 = P × (1+i)<sup>m</sup> − PMT × [ (1+i)<sup>m</sup> − 1 ] / i(i 為月利率、N 為總期數、m 為已繳期數)。</li>
+          <li><b>現金流趨勢三線</b>:主動收入依薪資成長率逐年複利、退休即停止;被動收入依通膨率逐年複利;退休後併入勞退月領(《勞工退休金條例》新制個人專戶);貸款還款隨本金餘額遞減至還清。</li>
+          <li><b>綜合所得稅</b>:依《所得稅法》綜合所得淨額累進級距計算應納稅額與邊際稅率;免稅額、扣除額依財政部每年度公告。</li>
+          <li><b>遺產稅</b>:依《遺產及贈與稅法》,(遺產總額 − 免稅額 − 各項扣除額) × 累進稅率 − 累進差額;免稅額與扣除額以國稅局公告為準。</li>
+          <li><b>保險保障之計入</b>:保障型保單以風險移轉性質列示、不視為可運用資產,故不計入資產總額;其保單價值準備金(解約金)之現金價值可另計入「儲蓄保單」納入資產評估。</li>
+          <li><b>投資配置與風險屬性落差</b>:以 KYC 風險屬性 RR 對應之參考目標比較現況風險投資占比,落差絕對值逾 10% 視為偏離並提示;為客觀規則參考,實際配置由顧問專業判斷。</li>
+        </ul>
+      </section>
+
       <footer className="hcr-foot">
         本報告為資產配置檢視與缺口試算,採透明公式與假設參數,<strong>僅供參考,以實際狀況及主管機關/國稅局核定為準</strong>;
         系統不推介任何金融商品,對客戶之規劃建議由具專業資格之顧問提供。
@@ -557,6 +584,11 @@ function CashFlowLines({ series, retireAge, loanEndAge }: { series: NonNullable<
   );
 }
 
+// 三表金額配色:流入 / 正值=綠,流出 / 負值=紅(依使用者要求「正數綠、負數紅」)
+const AMT_IN = "#059669";
+const AMT_OUT = "#dc2626";
+const netColor = (v: number) => (v >= 0 ? AMT_IN : AMT_OUT);
+
 function PersonalStatementsBlock({ s }: { s: PersonalStatements }) {
   const bs = s.balanceSheet;
   const is = s.incomeStatement;
@@ -579,31 +611,31 @@ function PersonalStatementsBlock({ s }: { s: PersonalStatements }) {
           <div>
             <div className="hcr-stmt-sub">資產</div>
             {bs.assets.map((a) => (
-              <div key={a.label} className="hcr-stmt-row"><span>{a.label}</span><span>{fmtWan(a.amount)}</span></div>
+              <div key={a.label} className="hcr-stmt-row"><span>{a.label}</span><span style={{ color: AMT_IN }}>{fmtWan(a.amount)}</span></div>
             ))}
-            <div className="hcr-stmt-row total"><span>資產總額</span><span>{fmtWan(bs.totalAssets)}</span></div>
+            <div className="hcr-stmt-row total"><span>資產總額</span><span style={{ color: AMT_IN }}>{fmtWan(bs.totalAssets)}</span></div>
           </div>
           <div>
             <div className="hcr-stmt-sub">負債</div>
             {bs.liabilities.length ? bs.liabilities.map((l) => (
-              <div key={l.label} className="hcr-stmt-row"><span>{l.label}</span><span>{fmtWan(l.amount)}</span></div>
-            )) : <div className="hcr-stmt-row"><span>無負債</span><span>0</span></div>}
-            <div className="hcr-stmt-row total"><span>負債總額</span><span>{fmtWan(bs.totalLiabilities)}</span></div>
-            <div className="hcr-stmt-row total" style={{ color: "#059669" }}><span>淨值</span><span>{fmtWan(bs.netWorth)}</span></div>
+              <div key={l.label} className="hcr-stmt-row"><span>{l.label}</span><span style={{ color: AMT_OUT }}>{fmtWan(l.amount)}</span></div>
+            )) : <div className="hcr-stmt-row"><span>無負債</span><span style={{ color: AMT_IN }}>0</span></div>}
+            <div className="hcr-stmt-row total"><span>負債總額</span><span style={{ color: AMT_OUT }}>{fmtWan(bs.totalLiabilities)}</span></div>
+            <div className="hcr-stmt-row total"><span>淨值</span><span style={{ color: netColor(bs.netWorth) }}>{fmtWan(bs.netWorth)}</span></div>
           </div>
         </div>
         <StackBar segments={[{ label: "負債", value: bs.totalLiabilities, color: "#f59e0b" }, { label: "淨值", value: Math.max(0, bs.netWorth), color: "#10b981" }]} />
         {bs.futureNetWorth != null && (
           <>
             <div className="hcr-stmt-future-group">
-              <div className="hcr-stmt-future"><span>退休時 · 資產(未來值)</span><span>{fmtWan(bs.futureAssets ?? 0)}</span></div>
-              <div className="hcr-stmt-future"><span>退休時 · 負債(未來值,攤還後)</span><span>−{fmtWan(bs.futureLiabilities ?? 0)}</span></div>
+              <div className="hcr-stmt-future"><span>退休時 · 資產(未來值)</span><span style={{ color: AMT_IN }}>{fmtWan(bs.futureAssets ?? 0)}</span></div>
+              <div className="hcr-stmt-future"><span>退休時 · 負債(未來值,攤還後)</span><span style={{ color: AMT_OUT }}>−{fmtWan(bs.futureLiabilities ?? 0)}</span></div>
               {bs.futurePlannedLoan != null && (
                 <div className="hcr-stmt-future" style={{ background: "#fef2f2", color: "#b91c1c", borderColor: "#fecaca" }}>
                   <span>　其中新增貸款計劃剩餘</span><span>−{fmtWan(bs.futurePlannedLoan)}</span>
                 </div>
               )}
-              <div className="hcr-stmt-future"><span>退休時 · 淨值(未來值)</span><span>{fmtWan(bs.futureNetWorth)}</span></div>
+              <div className="hcr-stmt-future"><span>退休時 · 淨值(未來值)</span><span style={{ color: netColor(bs.futureNetWorth) }}>{fmtWan(bs.futureNetWorth)}</span></div>
             </div>
             <p className="hcr-note">
               負債未來值依平均利率與月還款「本息攤還」逐年遞減;若有新增貸款計劃,以退休時剩餘本金計入負債。
@@ -618,22 +650,22 @@ function PersonalStatementsBlock({ s }: { s: PersonalStatements }) {
       <div className="hcr-stmt">
         <div className="hcr-stmt-title">② 損益表 · 年(收入 − 支出 = 結餘)</div>
         {is.income.map((l) => (
-          <div key={l.label} className="hcr-stmt-row"><span>{l.label}{l.tag ? ` (${l.tag})` : ""}</span><span>{fmtWan(l.amount)}</span></div>
+          <div key={l.label} className="hcr-stmt-row"><span>{l.label}{l.tag ? ` (${l.tag})` : ""}</span><span style={{ color: AMT_IN }}>{fmtWan(l.amount)}</span></div>
         ))}
-        <div className="hcr-stmt-row total"><span>年收入合計</span><span>{fmtWan(is.totalIncome)}</span></div>
-        <div className="hcr-stmt-row"><span>年支出(推估)</span><span>−{fmtWan(is.totalExpense)}</span></div>
-        <div className="hcr-stmt-row total" style={{ color: "#059669" }}><span>年結餘</span><span>{fmtWan(is.surplus)}</span></div>
+        <div className="hcr-stmt-row total"><span>年收入合計</span><span style={{ color: AMT_IN }}>{fmtWan(is.totalIncome)}</span></div>
+        <div className="hcr-stmt-row"><span>年支出(推估)</span><span style={{ color: AMT_OUT }}>−{fmtWan(is.totalExpense)}</span></div>
+        <div className="hcr-stmt-row total"><span>年結餘</span><span style={{ color: netColor(is.surplus) }}>{fmtWan(is.surplus)}</span></div>
         {is.futureSurplus != null && (
           <div className="hcr-stmt-future-group">
-            <div className="hcr-stmt-future"><span>退休前一年 · 年收入(未來值)</span><span>{fmtWan(is.futureIncome ?? 0)}</span></div>
-            <div className="hcr-stmt-future"><span>年支出(未來值)</span><span>−{fmtWan(is.futureExpense ?? 0)}</span></div>
-            <div className="hcr-stmt-future"><span>年結餘(未來值)</span><span>{fmtWan(is.futureSurplus)}</span></div>
+            <div className="hcr-stmt-future"><span>退休前一年 · 年收入(未來值)</span><span style={{ color: AMT_IN }}>{fmtWan(is.futureIncome ?? 0)}</span></div>
+            <div className="hcr-stmt-future"><span>年支出(未來值)</span><span style={{ color: AMT_OUT }}>−{fmtWan(is.futureExpense ?? 0)}</span></div>
+            <div className="hcr-stmt-future"><span>年結餘(未來值)</span><span style={{ color: netColor(is.futureSurplus) }}>{fmtWan(is.futureSurplus)}</span></div>
           </div>
         )}
         {is.incomeTax != null && (
           <>
-            <div className="hcr-stmt-row"><span>綜所稅(估)</span><span>−{fmtWan(is.incomeTax)}</span></div>
-            <div className="hcr-stmt-row"><span>稅後所得</span><span>{fmtWan(is.afterTaxIncome ?? 0)}</span></div>
+            <div className="hcr-stmt-row"><span>綜所稅(估)</span><span style={{ color: AMT_OUT }}>−{fmtWan(is.incomeTax)}</span></div>
+            <div className="hcr-stmt-row"><span>稅後所得</span><span style={{ color: AMT_IN }}>{fmtWan(is.afterTaxIncome ?? 0)}</span></div>
             <div className="hcr-stmt-note">邊際稅率 {Math.round((is.marginalRate ?? 0) * 100)}%</div>
           </>
         )}
@@ -653,13 +685,13 @@ function PersonalStatementsBlock({ s }: { s: PersonalStatements }) {
       {/* ③ 現金流量表 */}
       <div className="hcr-stmt">
         <div className="hcr-stmt-title">③ 現金流量表 · 月(流入 − 流出 = 淨現金流)</div>
-        <div className="hcr-stmt-row"><span>每月現金流入(收入)</span><span>{fmtWan(cf.inflow)}</span></div>
-        <div className="hcr-stmt-row"><span>每月現金流出(支出,含還款 {fmtWan(cf.debtPayment)})</span><span>−{fmtWan(cf.outflow)}</span></div>
-        <div className="hcr-stmt-row total" style={{ color: cf.net >= 0 ? "#059669" : "#b45309" }}><span>每月淨現金流</span><span>{fmtWan(cf.net)}</span></div>
+        <div className="hcr-stmt-row"><span>每月現金流入(收入)</span><span style={{ color: AMT_IN }}>{fmtWan(cf.inflow)}</span></div>
+        <div className="hcr-stmt-row"><span>每月現金流出(支出,含還款 {fmtWan(cf.debtPayment)})</span><span style={{ color: AMT_OUT }}>−{fmtWan(cf.outflow)}</span></div>
+        <div className="hcr-stmt-row total"><span>每月淨現金流</span><span style={{ color: netColor(cf.net) }}>{fmtWan(cf.net)}</span></div>
         {cf.futureNet != null && (
           <div className="hcr-stmt-future">
             <span>退休前一年 · 每月淨現金流(未來值)</span>
-            <span>{fmtWan(cf.futureNet)}</span>
+            <span style={{ color: netColor(cf.futureNet) }}>{fmtWan(cf.futureNet)}</span>
           </div>
         )}
         {cf.series && cf.retireAge != null ? (
@@ -678,18 +710,18 @@ function PersonalStatementsBlock({ s }: { s: PersonalStatements }) {
           <div style={{ marginTop: 10, borderTop: "1px solid #eaeef3", paddingTop: 8 }}>
             <div className="hcr-stmt-note">每月固定支出明細(萬/月)</div>
             {cf.fixedExpense.map((l) => (
-              <div key={l.label} className="hcr-stmt-row"><span>{l.label}</span><span>−{fmtWan(l.amount)}</span></div>
+              <div key={l.label} className="hcr-stmt-row"><span>{l.label}</span><span style={{ color: AMT_OUT }}>−{fmtWan(l.amount)}</span></div>
             ))}
-            <div className="hcr-stmt-row total"><span>每月固定支出合計</span><span>−{fmtWan(cf.fixedExpenseTotal ?? 0)}</span></div>
+            <div className="hcr-stmt-row total"><span>每月固定支出合計</span><span style={{ color: AMT_OUT }}>−{fmtWan(cf.fixedExpenseTotal ?? 0)}</span></div>
           </div>
         )}
         {cf.annualSpecial && (
           <div style={{ marginTop: 10, borderTop: "1px solid #eaeef3", paddingTop: 8 }}>
             <div className="hcr-stmt-note">年度特別預算明細(萬/年 · 與每月支出分開計算)</div>
             {cf.annualSpecial.map((l) => (
-              <div key={l.label} className="hcr-stmt-row"><span>{l.label}</span><span>−{fmtWan(l.amount)}</span></div>
+              <div key={l.label} className="hcr-stmt-row"><span>{l.label}</span><span style={{ color: AMT_OUT }}>−{fmtWan(l.amount)}</span></div>
             ))}
-            <div className="hcr-stmt-row total"><span>年度特別預算合計</span><span>−{fmtWan(cf.annualSpecialTotal ?? 0)} / 年</span></div>
+            <div className="hcr-stmt-row total"><span>年度特別預算合計</span><span style={{ color: AMT_OUT }}>−{fmtWan(cf.annualSpecialTotal ?? 0)} / 年</span></div>
             <div className="hcr-stmt-note" style={{ marginTop: 4 }}>折合每月約 {fmtWan(cf.annualSpecialMonthly ?? 0)}(僅供比較;此為年度支出,已與每月固定支出分列,未重複計入)。</div>
           </div>
         )}
@@ -761,6 +793,11 @@ const css = `
 .hcr-gap.ok .hcr-gap-val { color:#059669; font-weight:700; }
 .hcr-gap.pending .hcr-gap-val { color:#999; font-size:18px; }
 .hcr-note { font-size:17px; color:#888; line-height:1.6; margin:10px 0 0; background:#fafafa; padding:10px; border-radius:8px; }
+.hcr-alert { font-size:17px; color:#b91c1c; font-weight:600; line-height:1.6; margin:10px 0 0; background:#fef2f2; border:1px solid #fecaca; padding:10px 12px; border-radius:8px; }
+.hcr-src { margin:8px 0 0; padding-left:20px; font-size:16px; color:#475569; line-height:1.7; }
+.hcr-src li { margin-bottom:6px; break-inside:avoid; }
+.hcr-src b { color:#0f172a; }
+.hcr-src sup { font-size:0.7em; }
 .hcr-invest { list-style:none; margin:0; padding:0; }
 .hcr-invest li { margin-bottom:9px; }
 .hcr-invest-row { display:flex; justify-content:space-between; font-size:19px; }
