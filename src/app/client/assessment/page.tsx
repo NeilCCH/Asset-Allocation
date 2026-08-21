@@ -248,6 +248,11 @@ export default function Assessment() {
   // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => setMaxStep((m) => Math.max(m, step)), [step]);
 
+  // 換頁時捲回頂端(避免停在上一頁的捲動位置)
+  useEffect(() => {
+    if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: "auto" });
+  }, [step]);
+
   // 自動存檔進度(還原完成後才寫,避免以預設覆蓋)
   useEffect(() => {
     if (hydrated && typeof window !== "undefined") {
