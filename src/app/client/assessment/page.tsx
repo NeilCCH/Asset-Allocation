@@ -123,6 +123,7 @@ interface Form {
   // 深化:每月固定收支明細(選填,label -> 萬/月)
   monthlyIncome: Record<string, string>;
   monthlyExpense: Record<string, string>;
+  annualExpense: Record<string, string>; // 年度特別預算(萬/年)
   // 深化:現有保障明細(家戶:依成員 self / spouse / child0...)
   insByMember: Record<string, InsForm>;
   // 深化:子女高階教育規劃(每位子女一筆)
@@ -174,6 +175,7 @@ const initialForm: Form = {
   taxableIncome: "",
   monthlyIncome: {},
   monthlyExpense: {},
+  annualExpense: {},
   insByMember: { self: emptyInsurance },
   eduGoals: [],
   kycExpBand: "",
@@ -187,7 +189,9 @@ const initialForm: Form = {
 
 // 每月固定收支的建議項目(選填,萬/月)。使用者只需填有的項目。
 const FIXED_INCOME_ITEMS = ["薪資", "租金收入", "股利 / 利息", "年金 / 退休金", "其他固定收入"];
-const FIXED_EXPENSE_ITEMS = ["租金支出", "生活費", "保險費", "子女教育 / 托育", "孝親費", "消費性貸款(非房貸)", "訂閱 / 會費", "其他固定支出"];
+const FIXED_EXPENSE_ITEMS = ["租金支出", "生活費", "子女教育 / 托育", "孝親費", "消費性貸款(非房貸)", "訂閱 / 會費", "其他固定支出"];
+// 年度特別預算(選填,萬/年):以「年」計,勿與每月固定支出混用。保險費多為年繳,列於此。
+const ANNUAL_EXPENSE_ITEMS = ["保險費", "旅遊金", "所得稅 / 房屋稅 / 地價稅", "年節紅包 / 禮金", "其他年度預算"];
 
 const STEPS = ["個資同意", "基本 · 家庭", "收支 · 時間", "資產盤點", "負債 · 退休", "保障 · 教育", "風險屬性"];
 const FAMILIAR_OPTIONS = ["存款", "保險", "股票", "基金/ETF", "債券", "外幣", "期貨/選擇權", "不動產"];
@@ -253,7 +257,7 @@ export default function Assessment() {
 
   // 保險家戶成員(本人 / 配偶 / 各子女)
   const [insMember, setInsMember] = useState("self");
-  const setMonthly = (kind: "monthlyIncome" | "monthlyExpense", label: string, v: string) =>
+  const setMonthly = (kind: "monthlyIncome" | "monthlyExpense" | "annualExpense", label: string, v: string) =>
     setF((p) => ({ ...p, [kind]: { ...p[kind], [label]: v } }));
   const insMembers = [
     { id: "self", label: "本人" },
@@ -411,6 +415,10 @@ export default function Assessment() {
         })(),
         monthly_fixed_expense: (() => {
           const a = FIXED_EXPENSE_ITEMS.map((label) => ({ label, amount: num(f.monthlyExpense[label]) })).filter((i) => i.amount > 0);
+          return a.length ? a : undefined;
+        })(),
+        annual_special_expense: (() => {
+          const a = ANNUAL_EXPENSE_ITEMS.map((label) => ({ label, amount: num(f.annualExpense[label]) })).filter((i) => i.amount > 0);
           return a.length ? a : undefined;
         })(),
         insurance_detail: insFormToDetail(f.insByMember.self ?? emptyInsurance),
@@ -657,12 +665,25 @@ export default function Assessment() {
               </div>
               <div className="mt-3">
                 <p className="text-xs font-semibold text-amber-700 dark:text-amber-400">
-                  固定支出 <span className="font-bold text-red-500">(萬 / 月)</span>
+                  每月固定支出 <span className="font-bold text-red-500">(萬 / 月)</span>
                 </p>
                 <div className="mt-1 grid grid-cols-2 gap-2 sm:grid-cols-3">
                   {FIXED_EXPENSE_ITEMS.map((label) => (
                     <Field key={label} label={label}>
                       <Input value={f.monthlyExpense[label] ?? ""} onChange={(v) => setMonthly("monthlyExpense", label, v)} type="number" placeholder="0" />
+                    </Field>
+                  ))}
+                </div>
+              </div>
+              <div className="mt-3">
+                <p className="text-xs font-semibold text-orange-700 dark:text-orange-400">
+                  年度特別預算 <span className="font-bold text-red-500">(萬 / 年)</span>
+                </p>
+                <p className="text-xs text-neutral-400">保險費、旅遊、年度稅金、年節紅包等「一年一次或整年」的支出,以年計 —— 請勿與上方每月固定支出重複填寫。</p>
+                <div className="mt-1 grid grid-cols-2 gap-2 sm:grid-cols-3">
+                  {ANNUAL_EXPENSE_ITEMS.map((label) => (
+                    <Field key={label} label={label}>
+                      <Input value={f.annualExpense[label] ?? ""} onChange={(v) => setMonthly("annualExpense", label, v)} type="number" placeholder="0" />
                     </Field>
                   ))}
                 </div>

@@ -147,7 +147,8 @@ export interface IncomeSources {
 export interface DeepProfile {
   income_sources?: IncomeSources; // 收入來源拆解(含被動收入)
   annual_fixed_income?: { label: string; amount: number }[]; // 固定收入明細(選填,萬/年)
-  monthly_fixed_expense?: { label: string; amount: number }[]; // 每月固定支出明細(選填,萬/月;如租金支出)
+  monthly_fixed_expense?: { label: string; amount: number }[]; // 每月固定支出明細(選填,萬/月;如租金、生活費、孝親費。保險費已移至年度預算)
+  annual_special_expense?: { label: string; amount: number }[]; // 年度特別預算(選填,萬/年;旅遊金、年度稅金、年節紅包、保險費等,以「年」計,勿與每月固定支出混用)
   taxable_income?: number; // 綜合所得淨額(報稅用,萬);用於所得稅與稅後試算
   retire_lifestyle_pct?: number; // 退休後想維持目前開銷的幾成 (0-100+)
   retire_monthly_expense?: number; // 退休後每月預計支出(萬);有填則優先於生活水準%

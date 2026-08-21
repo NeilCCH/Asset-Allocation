@@ -52,6 +52,10 @@ export interface PersonalStatements {
     // 每月固定支出明細(選填,萬/月)
     fixedExpense?: Line[];
     fixedExpenseTotal?: number;
+    // 年度特別預算明細(選填,萬/年):旅遊、年度稅金、紅包、保險費等,以「年」計
+    annualSpecial?: Line[];
+    annualSpecialTotal?: number; // 萬/年
+    annualSpecialMonthly?: number; // 折合每月(萬)= 年額 / 12
     // 退休前一年預估未來值(月)
     futureInflow?: number;
     futureOutflow?: number;
@@ -139,6 +143,9 @@ export function personalStatements(data: QuestionnaireData, params?: CalcParams)
   // ── 每月固定支出明細(選填,月)──(固定收入為年,已計入上方損益表)
   const fixedExpenseItems = deep?.monthly_fixed_expense ?? [];
   const fixedExpenseTotal = fixedExpenseItems.reduce((s, i) => s + i.amount, 0);
+  // ── 年度特別預算明細(選填,年)── 保險費 / 旅遊 / 年度稅金 / 紅包等,以「年」計
+  const annualSpecialItems = deep?.annual_special_expense ?? [];
+  const annualSpecialTotal = annualSpecialItems.reduce((s, i) => s + i.amount, 0);
 
   // ── 所得稅(有填綜合所得淨額時) ──
   const tax = deep?.taxable_income != null ? estimateIncomeTax(deep.taxable_income) : null;
@@ -250,6 +257,9 @@ export function personalStatements(data: QuestionnaireData, params?: CalcParams)
       net: r1(net),
       fixedExpense: fixedExpenseItems.length ? fixedExpenseItems.map((i) => ({ label: i.label, amount: r1(i.amount) })) : undefined,
       fixedExpenseTotal: fixedExpenseItems.length ? r1(fixedExpenseTotal) : undefined,
+      annualSpecial: annualSpecialItems.length ? annualSpecialItems.map((i) => ({ label: i.label, amount: r1(i.amount) })) : undefined,
+      annualSpecialTotal: annualSpecialItems.length ? r1(annualSpecialTotal) : undefined,
+      annualSpecialMonthly: annualSpecialItems.length ? r1(annualSpecialTotal / 12) : undefined,
       futureInflow: future ? r1(future.futureInflow) : undefined,
       futureOutflow: future ? r1(future.futureOutflow) : undefined,
       futureNet: future ? r1(future.futureNet) : undefined,

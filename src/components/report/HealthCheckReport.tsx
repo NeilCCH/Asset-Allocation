@@ -676,11 +676,21 @@ function PersonalStatementsBlock({ s }: { s: PersonalStatements }) {
         )}
         {cf.fixedExpense && (
           <div style={{ marginTop: 10, borderTop: "1px solid #eaeef3", paddingTop: 8 }}>
-            <div className="hcr-stmt-note">每月固定支出明細</div>
+            <div className="hcr-stmt-note">每月固定支出明細(萬/月)</div>
             {cf.fixedExpense.map((l) => (
               <div key={l.label} className="hcr-stmt-row"><span>{l.label}</span><span>−{fmtWan(l.amount)}</span></div>
             ))}
-            <div className="hcr-stmt-row total"><span>固定支出合計</span><span>−{fmtWan(cf.fixedExpenseTotal ?? 0)}</span></div>
+            <div className="hcr-stmt-row total"><span>每月固定支出合計</span><span>−{fmtWan(cf.fixedExpenseTotal ?? 0)}</span></div>
+          </div>
+        )}
+        {cf.annualSpecial && (
+          <div style={{ marginTop: 10, borderTop: "1px solid #eaeef3", paddingTop: 8 }}>
+            <div className="hcr-stmt-note">年度特別預算明細(萬/年 · 與每月支出分開計算)</div>
+            {cf.annualSpecial.map((l) => (
+              <div key={l.label} className="hcr-stmt-row"><span>{l.label}</span><span>−{fmtWan(l.amount)}</span></div>
+            ))}
+            <div className="hcr-stmt-row total"><span>年度特別預算合計</span><span>−{fmtWan(cf.annualSpecialTotal ?? 0)} / 年</span></div>
+            <div className="hcr-stmt-note" style={{ marginTop: 4 }}>折合每月約 {fmtWan(cf.annualSpecialMonthly ?? 0)}(僅供比較;此為年度支出,已與每月固定支出分列,未重複計入)。</div>
           </div>
         )}
       </div>
