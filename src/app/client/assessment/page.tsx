@@ -599,7 +599,7 @@ export default function Assessment() {
 
             {/* 遺產繼承順位相關成員(預設隱藏,勾選身份後展開人數與稱謂) */}
             <div>
-              <span className="text-sm font-medium">其他家庭成員(遺產規劃用)</span>
+              <span className="text-sm font-medium">其他家庭成員(依民法繼承順位)</span>
               <p className="text-xs text-neutral-400">影響遺產繼承順位與傳承規劃。勾選家中有的身份,再填人數與稱謂。</p>
               <div className="mt-2 flex flex-wrap gap-2">
                 <KinToggle label="兄弟姊妹" checked={f.siblings.length > 0} onChange={(on) => setSiblingsCount(on ? 1 : 0)} />
