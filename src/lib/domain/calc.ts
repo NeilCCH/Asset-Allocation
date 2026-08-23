@@ -226,20 +226,22 @@ export function retirementGap(
     return { status: "not_planned", gap: 0, breakdown: [], missing: ["退休後每月支出（或收支級距）"] };
   }
   const r = params.returnRate, inf = params.inflationRate;
-  const annualNeedAtRetire = annualNeedNow * Math.pow(1 + inf, yearsToRetire);
-  // 退休期間支出「逐年通膨」之名目總額（保守：不假設退休後本金再高成長）
-  const needSumFactor = inf < 1e-9 ? retireYears : (Math.pow(1 + inf, retireYears) - 1) / inf;
-  const totalNeed = annualNeedAtRetire * needSumFactor;
+  // 統一框架：單一報酬 r + 單一通膨 inf。退休期以「實質報酬」年金折現（支出逐年通膨、本金持續以 r 成長，兩段同基礎）。
+  const rr = (1 + r) / (1 + inf) - 1; // 實質報酬率
+  const annualNeedAtRetire = annualNeedNow * Math.pow(1 + inf, yearsToRetire); // 退休首年名目支出（維持今日購買力）
+  const realAnnuityFactor = Math.abs(rr) < 1e-9 ? retireYears : (1 - Math.pow(1 + rr, -retireYears)) / rr;
+  const totalNeed = annualNeedAtRetire * realAnnuityFactor; // 退休時點所需資本
 
-  // 退休後退休金收入（勞退/月退）名目總額，可抵需求（固定名目，不隨通膨調整）
-  const pensionTotal = (data.deep?.retire_pension_monthly ?? 0) * 12 * retireYears;
+  // 退休金收入（勞退/月退）：固定名目月領，以名目 r 折現回退休時點現值後抵減需求
+  const annualPension = (data.deep?.retire_pension_monthly ?? 0) * 12;
+  const pensionPV = annualPension * (r < 1e-9 ? retireYears : (1 - Math.pow(1 + r, -retireYears)) / r);
 
-  // 退休時可累積資產 = 現有可投資資產成長 + 未來「平投」終值（移除薪資成長之樂觀假設）
+  // 退休時可累積資產 = 現有可投資資產成長 + 未來「平投」終值（每年固定投入、r 複利；不假設隨薪資成長放大）
   const grownCurrent = grow(investableAssets(core.assets), r, yearsToRetire);
   const annualContribution = Math.max(0, (SURPLUS_BAND_VALUE[core.surplus_band] ?? 0) * 12);
   const contribFactor = r < 1e-9 ? yearsToRetire : (Math.pow(1 + r, yearsToRetire) - 1) / r; // 期末年金 FV
   const contributions = annualContribution * contribFactor;
-  const accumulable = grownCurrent + contributions + pensionTotal;
+  const accumulable = grownCurrent + contributions + pensionPV;
 
   const gap = round(totalNeed - accumulable);
   return {
@@ -249,7 +251,7 @@ export function retirementGap(
       { label: "退休後總支出需求", amount: round(totalNeed) },
       { label: "現有資產成長估計", amount: round(grownCurrent) },
       { label: "未來持續投入估計", amount: round(contributions) },
-      ...(pensionTotal > 0 ? [{ label: "退休金收入（勞退/月退）", amount: -round(pensionTotal) }] : []),
+      ...(pensionPV > 0 ? [{ label: "退休金收入（勞退/月退）", amount: -round(pensionPV) }] : []),
     ],
   };
 }
@@ -426,11 +428,13 @@ export function retirementReserve(
   const { core } = data;
   const yearsToRetire = Math.max(0, core.retire_age - core.age);
   const retireYears = Math.max(1, params.lifeExpectancy - core.retire_age);
-  const r = params.returnRate;
-  const annualNeed = targetMonthly * 12;
+  const r = params.returnRate, inf = params.inflationRate;
+  const annualNeed = targetMonthly * 12; // 退休後每月想維持之生活費（退休時幣值，之後隨物價調整維持購買力）
 
-  // 退休時所需準備金 = 固定領取額 × 退休年數（保守：與缺口同基礎，不假設退休後本金再成長而折現）
-  const capitalAtRetirement = annualNeed * retireYears;
+  // 退休時所需準備金 = 年提領 × 實質報酬年金現值因子（與退休金缺口同一框架：支出隨通膨、本金持續以 r 成長）
+  const rr = (1 + r) / (1 + inf) - 1;
+  const realAnnuityFactor = Math.abs(rr) < 1e-9 ? retireYears : (1 - Math.pow(1 + rr, -retireYears)) / rr;
+  const capitalAtRetirement = annualNeed * realAnnuityFactor;
 
   const lumpSumToday = capitalAtRetirement / Math.pow(1 + r, yearsToRetire);
   const currentAssetsGrown = grow(investableAssets(core.assets), r, yearsToRetire);

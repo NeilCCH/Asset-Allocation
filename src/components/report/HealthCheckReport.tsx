@@ -10,7 +10,7 @@ import { groupLicensesByCategory, type AdvisorLicense } from "@/lib/domain/licen
 
 const GAP_FORMULA: Record<string, string> = {
   退休金缺口:
-    "退休後總支出需求 −（現有可投資資產成長 + 未來平準投入 + 勞退/月退）。支出需求 = 退休首年支出（今日支出 ×(1+通膨)^距退休年數）後，退休期間再逐年通膨累加之名目總額；資產成長以年報酬複利；未來投入採每年固定金額（平投）以年報酬複利累積（保守，不假設退休後本金再成長）",
+    "退休時點所需資本 −（現有可投資資產成長 + 未來平準投入 + 勞退/月退現值）。所需資本 = 退休首年支出（今日支出 ×(1+通膨)^距退休年數）× 實質報酬年金現值因子〔實質報酬 =(1+年報酬)/(1+通膨)−1〕，同步反映退休期間支出逐年通膨、退休本金仍以年報酬成長；資產成長以年報酬複利；未來投入採每年固定金額（平投）以年報酬複利累積；勞退/月退以年報酬折現至退休時點抵減",
   保障缺口: "（未償負債 + 未來扶養支出 + 子女教育金） − （現有壽險保額 + 流動資產）",
   教育金缺口: "Σ 每位子女（每年教育+生活預算 × 就讀年數），依距就學年數以報酬率折現",
 };
@@ -769,10 +769,10 @@ function RetirementReadinessBlock({ model }: { model: ReportModel }) {
       )}
 
       <p className="hcr-note">
-        總支出需求 = 退休首年支出（今日支出 ×(1+通膨 {pctNum(model.params.inflationRate)})<sup>{yearsToRetire}</sup>）後，退休期間 {retireYears} 年<strong>逐年再通膨累加</strong>之名目總額；
+        退休時點所需資本 = 退休首年支出（今日支出 ×(1+通膨 {pctNum(model.params.inflationRate)})<sup>{yearsToRetire}</sup>）× <strong>實質報酬年金現值因子</strong>，退休期間 {retireYears} 年支出逐年通膨、退休本金仍以年報酬成長，兩效果同時反映（實質報酬 =(1+年報酬)/(1+通膨)−1）；
         退休首年支出依 {model.params.defaultRetireLifestylePct}% 所得替代率（或填報之退休後月支出）估算。
-        可累積資產 = 現有可投資資產以年報酬 {pctNum(model.params.returnRate)} 複利 + 年結餘每年<strong>固定投入（平投）</strong>以年報酬複利 + 勞退/月退累積。
-        <strong>保守估計</strong>：不假設退休後本金再成長。屬客觀試算，不構成投資建議。
+        可累積資產 = 現有可投資資產以年報酬 {pctNum(model.params.returnRate)} 複利 + 年結餘每年<strong>固定投入（平投）</strong>以年報酬複利 + 勞退/月退以年報酬折現至退休時點之現值。
+        累積期與退休期採<strong>同一年報酬假設</strong>，內部一致；未來投入不隨薪資成長放大（保守）。屬客觀試算，不構成投資建議。
       </p>
     </section>
   );

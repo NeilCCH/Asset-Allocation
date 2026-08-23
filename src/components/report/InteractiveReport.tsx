@@ -102,7 +102,7 @@ export function InteractiveReport({
       <div className="mx-auto max-w-4xl px-4 pt-3 print:hidden">
         <div className="rounded-2xl border border-emerald-200 bg-white p-5 shadow-sm dark:border-emerald-900 dark:bg-neutral-950">
           <h3 className="text-sm font-semibold text-emerald-900 dark:text-emerald-100">退休金回推試算</h3>
-          <p className="mt-0.5 text-xs text-emerald-700/80 dark:text-emerald-300/80">輸入退休後每月想固定領取的金額,即時回推需準備多少(採上方試算參數;與退休金缺口同基礎:平準投入、退休後本金不再折現成長之保守估計)。</p>
+          <p className="mt-0.5 text-xs text-emerald-700/80 dark:text-emerald-300/80">輸入退休後每月想維持的生活費(退休時幣值,之後隨物價調整維持購買力),即時回推需準備多少(採上方試算參數;與退休金缺口同框架:實質報酬年金、平準投入)。</p>
           <div className="mt-3 flex items-center gap-2">
             <span className="text-sm">退休後每月想領</span>
             <input
