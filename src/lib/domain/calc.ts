@@ -290,8 +290,8 @@ export function protectionGap(
       ? parentsWithAge.reduce((s, p) => s + Math.max(0, params.parentLifeExpectancy - p.age) * params.parentSupportAnnual, 0)
       : parents.length * params.parentSupportTotal;
 
-  // 子女教育金（取教育缺口的總需求）
-  const eduNeed = educationTotalNeed(data, params);
+  // 子女教育金（保障用：未折現名目加總，與扶養支出同基礎、保守）
+  const eduNeed = educationTotalNeed(data, params, false);
 
   const lifeCoverage = deep!.insurance_detail!.life.coverage;
   const liquid = liquidAssets(core.assets);
@@ -315,10 +315,12 @@ export function protectionGap(
 
 // ── ③ 教育金缺口（需深化資料:edu_goal) ─────────────
 
-/** 子女高階教育總花費現值（不扣已準備），供保障缺口引用。
+/** 子女高階教育總花費。
  *  每位子女:（每年教育預算 + 每年生活預算）× 就讀年數；就學時程由年齡推算（18 歲起）。
- *  未填預算時，以參數 eduCostOverseas/Domestic 作後備總額估計。 */
-function educationTotalNeed(data: QuestionnaireData, params: CalcParams): number {
+ *  未填預算時，以參數 eduCostOverseas/Domestic 作後備總額估計。
+ *  discount=true（教育金缺口）：折現為現值（儲蓄目標，會提早投資準備）。
+ *  discount=false（保障缺口）：未折現名目加總（身故當下之保障需求，與扶養支出同基礎、保守）。 */
+function educationTotalNeed(data: QuestionnaireData, params: CalcParams, discount = true): number {
   const goals = data.deep?.edu_goals ?? [];
   const children = data.core.dependents.children;
   const HIGHER_ED_START_AGE = 18;
@@ -326,6 +328,7 @@ function educationTotalNeed(data: QuestionnaireData, params: CalcParams): number
     const years = g.study_years ?? 4;
     const annual = (g.annual_edu_budget || 0) + (g.annual_living_budget || 0);
     const total = annual > 0 ? annual * years : g.overseas ? params.eduCostOverseas : params.eduCostDomestic;
+    if (!discount) return sum + total;
     const childAge = children[i]?.age ?? 0;
     const yearsUntil = Math.max(0, HIGHER_ED_START_AGE - childAge);
     const pv = total / Math.pow(1 + params.returnRate, yearsUntil);
