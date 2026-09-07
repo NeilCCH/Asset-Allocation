@@ -170,8 +170,9 @@ export function personalStatements(data: QuestionnaireData, params?: CalcParams)
     const { returnRate: r, inflationRate: inf } = params;
     const fv = (pv: number, rate: number) => pv * Math.pow(1 + rate, n);
     // 未來投入採「平投」（每年固定投入、以報酬複利），與退休缺口/回推同一保守基礎，不隨薪資成長放大。
+    // 年結餘可為負：赤字逐年侵蝕資產（與退休缺口同基礎，不壓成 0）。
     const flatAnnuityFV = (pmt: number, rate: number, yrs: number) => (rate < 1e-9 ? pmt * yrs : (pmt * (Math.pow(1 + rate, yrs) - 1)) / rate);
-    const futureAssets = fv(totalAssets, r) + flatAnnuityFV(Math.max(0, annualSurplus), r, n);
+    const futureAssets = fv(totalAssets, r) + flatAnnuityFV(annualSurplus, r, n);
     // 負債未來值：現有貸款依「平均利率 + 月還款」正確攤還；加計新增貸款計劃在退休時的剩餘本金
     const liabRate = deep?.liabilities?.interest_rate ?? 0;
     const existingFutureLiab = remainingLoanBalance(totalLiabilities, debtPayment, liabRate, n);

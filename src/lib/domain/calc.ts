@@ -236,11 +236,12 @@ export function retirementGap(
   const annualPension = (data.deep?.retire_pension_monthly ?? 0) * 12;
   const pensionPV = annualPension * (r < 1e-9 ? retireYears : (1 - Math.pow(1 + r, -retireYears)) / r);
 
-  // 退休時可累積資產 = 現有可投資資產成長 + 未來「平投」終值（每年固定投入、r 複利；不假設隨薪資成長放大）
+  // 退休時可累積資產 = 現有可投資資產成長 + 未來年結餘累積終值（每年固定金額、r 複利；不假設隨薪資成長放大）
+  // 年結餘可為負：赤字代表逐年提領退休老本，會「侵蝕」可累積資產（與平投對稱，不再壓成 0）。
   const grownCurrent = grow(investableAssets(core.assets), r, yearsToRetire);
-  const annualContribution = Math.max(0, (SURPLUS_BAND_VALUE[core.surplus_band] ?? 0) * 12);
+  const annualContribution = (SURPLUS_BAND_VALUE[core.surplus_band] ?? 0) * 12; // 正=平投；負=赤字侵蝕
   const contribFactor = r < 1e-9 ? yearsToRetire : (Math.pow(1 + r, yearsToRetire) - 1) / r; // 期末年金 FV
-  const contributions = annualContribution * contribFactor;
+  const contributions = annualContribution * contribFactor; // 可為負（赤字累積）
   const accumulable = grownCurrent + contributions + pensionPV;
 
   const gap = round(totalNeed - accumulable);
@@ -250,7 +251,7 @@ export function retirementGap(
     breakdown: [
       { label: "退休後總支出需求", amount: round(totalNeed) },
       { label: "現有資產成長估計", amount: round(grownCurrent) },
-      { label: "未來持續投入估計", amount: round(contributions) },
+      { label: annualContribution >= 0 ? "未來持續投入估計" : "未來赤字侵蝕估計", amount: round(contributions) },
       ...(pensionPV > 0 ? [{ label: "退休金收入（勞退/月退）", amount: -round(pensionPV) }] : []),
     ],
   };

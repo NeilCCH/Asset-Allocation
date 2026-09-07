@@ -772,6 +772,7 @@ function RetirementReadinessBlock({ model }: { model: ReportModel }) {
         退休時點所需資本 = 退休首年支出（今日支出 ×(1+通膨 {pctNum(model.params.inflationRate)})<sup>{yearsToRetire}</sup>）× <strong>實質報酬年金現值因子</strong>，退休期間 {retireYears} 年支出逐年通膨、退休本金仍以年報酬成長，兩效果同時反映（實質報酬 =(1+年報酬)/(1+通膨)−1）；
         退休首年支出依 {model.params.defaultRetireLifestylePct}% 所得替代率（或填報之退休後月支出）估算。
         可累積資產 = 現有可投資資產以年報酬 {pctNum(model.params.returnRate)} 複利 + 年結餘每年<strong>固定投入（平投）</strong>以年報酬複利 + 勞退/月退以年報酬折現至退休時點之現值。
+        <strong>年結餘為負（赤字）時，逐年侵蝕退休老本、以負值計入</strong>，不會被當成零。
         累積期與退休期採<strong>同一年報酬假設</strong>，內部一致；未來投入不隨薪資成長放大（保守）。屬客觀試算，不構成投資建議。
       </p>
     </section>
