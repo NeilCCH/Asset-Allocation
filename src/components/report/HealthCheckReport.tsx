@@ -223,7 +223,7 @@ export function HealthCheckReport({ model, variant = "full" }: { model: ReportMo
           <h2>風險屬性與配置落差（顧問參考）</h2>
           <div className="hcr-stats">
             <Stat label="風險屬性" value={`RR${model.riskAllocation.rr}`} sub={model.riskAllocation.profile} />
-            <Stat label="現況風險投資" value={`${model.riskAllocation.currentRiskyPct}%`} sub="占風險資產" />
+            <Stat label="現況風險投資" value={`${model.riskAllocation.currentRiskyPct}%`} sub="占可投資組合（含現金）" />
             <Stat label="參考目標" value={`${model.riskAllocation.targetRiskyPct}%`} sub={`落差 ${model.riskAllocation.gap > 0 ? "+" : ""}${model.riskAllocation.gap}%`} />
           </div>
           <RiskAllocGauge current={model.riskAllocation.currentRiskyPct} target={model.riskAllocation.targetRiskyPct} />
@@ -236,19 +236,19 @@ export function HealthCheckReport({ model, variant = "full" }: { model: ReportMo
           </div>
           {model.riskAllocation.status !== "相符" && (() => {
             const ra = model.riskAllocation!;
-            const shiftAmt = Math.round((Math.abs(ra.gap) / 100) * ra.riskTotal);
+            const shiftAmt = Math.round((Math.abs(ra.gap) / 100) * ra.allocBase);
             const dir = ra.gap > 0 ? "由「風險報酬」移向「穩定收益」" : "由「穩定收益」移向「風險報酬」";
             return (
               <p className="hcr-alert">
                 ⚠ 現況投資配置與風險屬性 RR{ra.rr} 之參考目標落差達 {ra.gap > 0 ? "+" : ""}{ra.gap}%
                 ({ra.status}){ra.gap > 0 ? "，承擔風險高於屬性建議" : "，配置偏保守、可能不利長期報酬"};
-                若要回到參考目標，約需將 <strong>{shiftAmt.toLocaleString("zh-TW")} 萬</strong> {dir}（現況風險資產 {fmtWan(ra.riskTotal)})。
+                若要回到參考目標，約需將 <strong>{shiftAmt.toLocaleString("zh-TW")} 萬</strong> {dir}（可投資組合 {fmtWan(ra.allocBase)}）。
                 實際調整由顧問依專業判斷，或重新評估風險承受度。
               </p>
             );
           })()}
           <p className="hcr-note">
-            依風險屬性 RR{model.riskAllocation.rr} 之參考目標「風險投資占風險資產約 {model.riskAllocation.targetRiskyPct}%」對照現況 {model.riskAllocation.currentRiskyPct}%,
+            依風險屬性 RR{model.riskAllocation.rr} 之參考目標「風險投資占可投資組合約 {model.riskAllocation.targetRiskyPct}%」對照現況 {model.riskAllocation.currentRiskyPct}%,
             落差 {model.riskAllocation.gap > 0 ? "+" : ""}{model.riskAllocation.gap}%({model.riskAllocation.status})。此為客觀規則參考，實際配置由顧問依專業判斷提供。
           </p>
         </section>
@@ -494,7 +494,7 @@ function CashFlowLines({ series, retireAge, loanEndAge }: { series: NonNullable<
   const gridY = [0, 0.25, 0.5, 0.75, 1].map((f) => niceMax * f);
   const COL = { active: "#2a78d6", passive: "#1baf7a", debt: "#eb6834" };
   return (
-    <svg viewBox={`0 0 ${W} ${H}`} width="100%" style={{ maxWidth: 760, height: "auto", aspectRatio: `${W} / ${H}` }} role="img" aria-label="家庭現金流三線趨勢圖：主動收入隨薪資成長至退休停止，被動收入依通膨成長並於退休後併入勞退，貸款還款隨餘額遞減至還清">
+    <svg viewBox={`0 0 ${W} ${H}`} width="100%" style={{ maxWidth: 760, height: "auto", aspectRatio: `${W} / ${H}` }} role="img" aria-label="家庭現金流三線趨勢圖：主動收入推估至退休停止，被動收入依通膨成長並於退休後併入勞退，貸款還款隨餘額遞減至還清">
       {/* Y 網格與刻度（萬/月） */}
       {gridY.map((v, i) => (
         <g key={i}>

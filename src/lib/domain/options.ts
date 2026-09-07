@@ -64,6 +64,6 @@ export const ASSET_FIELDS: { key: keyof Assets; label: string; hint?: string }[]
   { key: "insurance_savings", label: "儲蓄保單", hint: "填帳戶價值(現金價值),非保額" },
   { key: "real_estate_own", label: "不動產(自住)" },
   { key: "real_estate_invest", label: "不動產(投資)" },
-  { key: "retire_account", label: "退休專戶累積金", hint: "勞退自提、企業退休金等受限帳戶" },
+  { key: "retire_account", label: "退休專戶累積金", hint: "企業退休金、自提儲蓄等受限帳戶餘額。※ 若勞退已在下方填「勞退月領」，此處請勿重複填勞退，以免重複計算" },
   { key: "other", label: "其他", hint: "藝術品 / 收藏等" },
 ];

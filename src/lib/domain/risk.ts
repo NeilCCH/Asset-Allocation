@@ -73,9 +73,9 @@ const TARGET_RISKY_BY_RR: Record<1 | 2 | 3 | 4 | 5, number> = { 1: 20, 2: 35, 3:
 export interface RiskAllocationAnalysis {
   rr: 1 | 2 | 3 | 4 | 5;
   profile: string;
-  riskTotal: number;
-  stablePct: number;
-  currentRiskyPct: number; // 現況：風險投資占風險資產
+  allocBase: number; // 可投資組合總額（含現金/外幣等防禦部位）
+  stablePct: number; // 穩定（含現金）占可投資組合
+  currentRiskyPct: number; // 現況：風險投資占可投資組合
   targetRiskyPct: number; // 依 RR 之參考目標
   gap: number; // 現況 − 目標（正=偏積極，負=偏保守）
   status: "偏積極" | "偏保守" | "相符";
@@ -84,12 +84,17 @@ export interface RiskAllocationAnalysis {
 export function riskAllocationAnalysis(data: QuestionnaireData): RiskAllocationAnalysis | null {
   const risk = assessRisk(data);
   if (!risk) return null;
-  const ra = riskAssetBreakdown(data.core.assets);
-  if (ra.total <= 0) return null;
+  const assets = data.core.assets;
+  // 分母採「可投資組合總額」（investable，含現金/外幣）；避免現金重的保守配置被誤判為偏積極。
+  const allocBase = investableAssets(assets);
+  if (allocBase <= 0) return null;
+  const riskyAmt = riskAssetBreakdown(assets).risky.total; // 風險型且可投資之部位（股票/基金/投資型保單/加密）
+  const currentRiskyPct = Math.round((riskyAmt / allocBase) * 100);
+  const stablePct = 100 - currentRiskyPct;
   const targetRiskyPct = TARGET_RISKY_BY_RR[risk.rr];
-  const gap = ra.riskyPct - targetRiskyPct;
+  const gap = currentRiskyPct - targetRiskyPct;
   const status = Math.abs(gap) <= 10 ? "相符" : gap > 0 ? "偏積極" : "偏保守";
-  return { rr: risk.rr, profile: risk.profile, riskTotal: ra.total, stablePct: ra.stablePct, currentRiskyPct: ra.riskyPct, targetRiskyPct, gap, status };
+  return { rr: risk.rr, profile: risk.profile, allocBase, stablePct, currentRiskyPct, targetRiskyPct, gap, status };
 }
 
 function classify(score: number): { profile: string; rr: 1 | 2 | 3 | 4 | 5 } {

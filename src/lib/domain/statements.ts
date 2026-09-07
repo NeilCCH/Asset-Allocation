@@ -1,7 +1,7 @@
 // 家庭財務報表 — 參考公司三表（資產負債表 / 損益表 / 現金流量表）之結構與會計邏輯。
 // 單位：資產負債表為萬元；損益/現金流為年或月（萬元）。
 import type { QuestionnaireData } from "./types";
-import { assetBreakdown, fvGrowingAnnuity, loanMonthlyPayment, remainingLoanBalance } from "./calc";
+import { assetBreakdown, loanMonthlyPayment, remainingLoanBalance } from "./calc";
 import { INCOME_BAND_VALUE, SURPLUS_BAND_VALUE, type CalcParams } from "./params";
 import { estimateIncomeTax } from "./incomeTax";
 
@@ -73,7 +73,6 @@ export interface PersonalStatements {
     retireAge: number;
     returnRate: number;
     inflationRate: number;
-    salaryGrowthRate: number;
   };
 }
 
@@ -168,9 +167,11 @@ export function personalStatements(data: QuestionnaireData, params?: CalcParams)
   };
   let future: FutureVals | null = null;
   if (params && n > 0) {
-    const { returnRate: r, inflationRate: inf, salaryGrowthRate: g } = params;
+    const { returnRate: r, inflationRate: inf } = params;
     const fv = (pv: number, rate: number) => pv * Math.pow(1 + rate, n);
-    const futureAssets = fv(totalAssets, r) + fvGrowingAnnuity(Math.max(0, annualSurplus), r, g, n);
+    // 未來投入採「平投」（每年固定投入、以報酬複利），與退休缺口/回推同一保守基礎，不隨薪資成長放大。
+    const flatAnnuityFV = (pmt: number, rate: number, yrs: number) => (rate < 1e-9 ? pmt * yrs : (pmt * (Math.pow(1 + rate, yrs) - 1)) / rate);
+    const futureAssets = fv(totalAssets, r) + flatAnnuityFV(Math.max(0, annualSurplus), r, n);
     // 負債未來值：現有貸款依「平均利率 + 月還款」正確攤還；加計新增貸款計劃在退休時的剩餘本金
     const liabRate = deep?.liabilities?.interest_rate ?? 0;
     const existingFutureLiab = remainingLoanBalance(totalLiabilities, debtPayment, liabRate, n);
@@ -283,7 +284,7 @@ export function personalStatements(data: QuestionnaireData, params?: CalcParams)
     },
     projection:
       params && n > 0
-        ? { years: n, retireAge: core.retire_age, returnRate: params.returnRate, inflationRate: params.inflationRate, salaryGrowthRate: params.salaryGrowthRate }
+        ? { years: n, retireAge: core.retire_age, returnRate: params.returnRate, inflationRate: params.inflationRate }
         : undefined,
   };
 }
