@@ -1005,10 +1005,16 @@ function FinancialProjectionBlock({ s }: { s: PersonalStatements }) {
         <>
           <div className="hcr-sub-label" style={{ marginTop: 14 }}>退休時淨值投影</div>
           <div className="hcr-stats">
-            <Stat label="退休時資產" value={fmtWan(bs.futureAssets ?? 0)} sub="可投資資產複利＋平投;自住不動產以現值計、不計增值" />
+            <Stat label="退休時可運用資產" value={fmtWan(bs.futureAssets ?? 0)} sub="可投資複利＋平投(不含自住不動產)" />
+            {bs.futureRealEstateOwn != null && (
+              <Stat label="退休時自住不動產" value={fmtWan(bs.futureRealEstateOwn)} sub={`依通膨 ${pctNum(proj.inflationRate)} 估值(自用、非可動用)`} />
+            )}
             <Stat label="退休時負債" value={fmtWan(bs.futureLiabilities ?? 0)} sub="本息攤還後餘額" />
-            <Stat label="退休時淨值" value={fmtWan(bs.futureNetWorth)} sub="資產 − 負債" />
+            <Stat label="退休時淨值" value={fmtWan(bs.futureNetWorth)} sub="可運用＋自住−負債" />
           </div>
+          {bs.futureRealEstateOwn != null && (
+            <p className="hcr-note">自住不動產以通膨率估其退休時名目價值,<strong>獨立列示、不計入可動用退休資產</strong>(仍需自住,不宜變現支應生活)。</p>
+          )}
           {bs.futurePlannedLoan != null && bs.futurePlannedLoan > 0 && (
             <p className="hcr-note" style={{ color: "#b91c1c", background: "#fef2f2" }}>其中含新增貸款計劃於退休時剩餘本金 {fmtWan(bs.futurePlannedLoan)}；若用於購置資產，該資產價值未納入本試算。</p>
           )}

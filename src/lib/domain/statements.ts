@@ -20,7 +20,8 @@ export interface PersonalStatements {
     totalLiabilities: number;
     netWorth: number;
     // 退休時預估未來值（TVM)
-    futureAssets?: number;
+    futureAssets?: number; // 退休時「可運用」資產(不含自住不動產)
+    futureRealEstateOwn?: number; // 退休時自住不動產估值(依通膨,獨立列示、非可動用)
     futureLiabilities?: number;
     futureNetWorth?: number;
     futurePlannedLoan?: number; // 新增貸款計劃在退休時的剩餘本金（已含於 futureLiabilities)
@@ -160,6 +161,7 @@ export function personalStatements(data: QuestionnaireData, params?: CalcParams)
   const n = Math.max(0, core.retire_age - core.age);
   type FutureVals = {
     futureAssets: number; futureLiabilities: number; futureNetWorth: number; futurePlannedLoan: number;
+    futureRealEstateOwn: number; // 自住不動產退休時估值(依通膨,獨立列示,非可動用)
     futureIncome: number; futureExpense: number; futureSurplus: number;
     futureInflow: number; futureOutflow: number; futureNet: number;
   };
@@ -167,12 +169,14 @@ export function personalStatements(data: QuestionnaireData, params?: CalcParams)
   if (params && n > 0) {
     const { returnRate: r, inflationRate: inf } = params;
     const fv = (pv: number, rate: number) => pv * Math.pow(1 + rate, n);
-    // 只有「可投資資產」以報酬率複利成長；自住不動產等非投資性資產不計資本利得、以現值計入（避免未來值失真）。
-    // 年結餘累積與退休缺口共用同一函式:赤字侵蝕、且貸款繳清後結餘回升(兩階段),與退休缺口一致。
+    // 「可運用資產」= 可投資資產以報酬率複利 + 年結餘累積(兩階段,與退休缺口一致) + 其他非投資資產持平。
+    // 自住不動產「另外」以通膨估值、獨立列示(不計投資報酬、也不混入可動用資產,避免失真)。
     const investable = investableAssets(core.assets);
-    const nonInvestable = Math.max(0, totalAssets - investable);
+    const homeOwn = core.assets.real_estate_own?.has ? Math.max(0, core.assets.real_estate_own.amount) : 0;
+    const nonInvestableExHome = Math.max(0, totalAssets - investable - homeOwn); // 儲蓄險/投資不動產/退休專戶等,持平
     const contributionsFV = surplusAccumulationFV(annualSurplus, debtPayment * 12, r, n, loanPayoffYears(data, n));
-    const futureAssets = fv(investable, r) + nonInvestable + contributionsFV;
+    const futureAssets = fv(investable, r) + nonInvestableExHome + contributionsFV; // 可運用(不含自住)
+    const futureRealEstateOwn = homeOwn * Math.pow(1 + inf, n); // 自住不動產:依通膨估值
     // 負債未來值：現有貸款依「平均利率 + 月還款」正確攤還；加計新增貸款計劃在退休時的剩餘本金
     const liabRate = deep?.liabilities?.interest_rate ?? 0;
     const existingFutureLiab = remainingLoanBalance(totalLiabilities, debtPayment, liabRate, n);
@@ -192,7 +196,8 @@ export function personalStatements(data: QuestionnaireData, params?: CalcParams)
     const futureInflow = futureIncome / 12;
     const futureOutflow = fv(outflow, inf);
     future = {
-      futureAssets, futureLiabilities, futureNetWorth: futureAssets - futureLiabilities, futurePlannedLoan: plannedFutureLiab,
+      futureAssets, futureLiabilities, futureNetWorth: futureAssets + futureRealEstateOwn - futureLiabilities, futurePlannedLoan: plannedFutureLiab,
+      futureRealEstateOwn,
       futureIncome, futureExpense, futureSurplus: futureIncome - futureExpense,
       futureInflow, futureOutflow, futureNet: futureInflow - futureOutflow,
     };
@@ -244,6 +249,7 @@ export function personalStatements(data: QuestionnaireData, params?: CalcParams)
       totalLiabilities: r1(totalLiabilities),
       netWorth: r1(netWorth),
       futureAssets: future ? r1(future.futureAssets) : undefined,
+      futureRealEstateOwn: future && future.futureRealEstateOwn > 0 ? r1(future.futureRealEstateOwn) : undefined,
       futureLiabilities: future ? r1(future.futureLiabilities) : undefined,
       futureNetWorth: future ? r1(future.futureNetWorth) : undefined,
       futurePlannedLoan: future && future.futurePlannedLoan > 0 ? r1(future.futurePlannedLoan) : undefined,
