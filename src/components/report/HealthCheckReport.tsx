@@ -964,7 +964,7 @@ function FinancialProjectionBlock({ s }: { s: PersonalStatements }) {
         <>
           <div className="hcr-sub-label" style={{ marginTop: 14 }}>退休時淨值投影</div>
           <div className="hcr-stats">
-            <Stat label="退休時資產" value={fmtWan(bs.futureAssets ?? 0)} sub="現值複利 + 年結餘投入" />
+            <Stat label="退休時資產" value={fmtWan(bs.futureAssets ?? 0)} sub="可投資資產複利＋平投;自住不動產以現值計、不計增值" />
             <Stat label="退休時負債" value={fmtWan(bs.futureLiabilities ?? 0)} sub="本息攤還後餘額" />
             <Stat label="退休時淨值" value={fmtWan(bs.futureNetWorth)} sub="資產 − 負債" />
           </div>
