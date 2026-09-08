@@ -43,7 +43,8 @@ const emptyAssets: AssetForm = ASSET_FIELDS.reduce((acc, f) => {
 }, {} as AssetForm);
 
 // 現有保障明細 — 各險種用對應單位(醫療:日額+實支實付;失能/長照:月給付)
-type InsKey = "life" | "critical_illness" | "cancer_lump" | "accident" | "medical" | "cancer_hospital" | "disability" | "long_term_care";
+// 失能與長照理賠本質相同(喪失工作/自理能力之月給付),合併為單一「失能／長照」欄位。
+type InsKey = "life" | "critical_illness" | "cancer_lump" | "accident" | "medical" | "cancer_hospital" | "disability";
 const INS_CONFIG: { key: InsKey; label: string; fields: { name: string; label: string; unit: string }[] }[] = [
   { key: "life", label: "壽險", fields: [{ name: "coverage", label: "保額", unit: "萬" }] },
   { key: "critical_illness", label: "重大疾病", fields: [{ name: "coverage", label: "一次給付", unit: "萬" }] },
@@ -51,8 +52,7 @@ const INS_CONFIG: { key: InsKey; label: string; fields: { name: string; label: s
   { key: "accident", label: "意外", fields: [{ name: "coverage", label: "保額", unit: "萬" }] },
   { key: "medical", label: "醫療", fields: [{ name: "daily", label: "住院日額", unit: "元" }, { name: "reimburse_limit", label: "實支實付限額", unit: "萬" }] },
   { key: "cancer_hospital", label: "癌症住院", fields: [{ name: "daily", label: "住院日額", unit: "元" }] },
-  { key: "disability", label: "失能", fields: [{ name: "monthly", label: "每月失能金", unit: "萬" }] },
-  { key: "long_term_care", label: "長照", fields: [{ name: "monthly", label: "每月給付", unit: "萬" }] },
+  { key: "disability", label: "失能／長照", fields: [{ name: "monthly", label: "每月給付", unit: "萬" }] },
 ];
 type InsForm = Record<InsKey, { has: boolean; values: Record<string, string> }>;
 const emptyInsurance: InsForm = INS_CONFIG.reduce((acc, c) => {
@@ -81,7 +81,6 @@ function insFormToDetail(ins: InsForm): InsuranceDetail {
     medical: { has: ins.medical.has, daily: num(ins.medical.values.daily ?? ""), reimburse_limit: num(ins.medical.values.reimburse_limit ?? "") },
     cancer_hospital: { has: ins.cancer_hospital.has, daily: num(ins.cancer_hospital.values.daily ?? "") },
     disability: { has: ins.disability.has, monthly: num(ins.disability.values.monthly ?? "") },
-    long_term_care: { has: ins.long_term_care.has, monthly: num(ins.long_term_care.values.monthly ?? "") },
   };
 }
 

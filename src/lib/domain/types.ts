@@ -136,8 +136,7 @@ export interface InsuranceDetail {
   accident: { has: boolean; coverage: number }; // 意外:保額(萬)
   medical: { has: boolean; daily: number; reimburse_limit: number }; // 醫療:日額(元)+ 實支實付限額(萬)
   cancer_hospital: { has: boolean; daily: number }; // 癌症住院:日額(元,與一般住院日額分開)
-  disability: { has: boolean; monthly: number }; // 失能:每月失能金(萬)
-  long_term_care: { has: boolean; monthly: number }; // 長照:每月給付(萬)
+  disability: { has: boolean; monthly: number }; // 失能／長照:每月給付(萬)。長照與失能理賠本質相同,合併為一。
 }
 
 /** 收入來源明細(年,萬元)。含被動收入(租金/股利/事業)。 */

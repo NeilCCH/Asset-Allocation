@@ -173,8 +173,7 @@ function insRowsOf(ins: InsuranceDetail | undefined): { label: string; has: bool
     { label: "意外", has: ins.accident.has, text: `保額 ${ins.accident.coverage} 萬` },
     { label: "醫療", has: ins.medical.has, text: `日額 ${ins.medical.daily} 元 · 實支 ${ins.medical.reimburse_limit} 萬` },
     { label: "癌症住院", has: ins.cancer_hospital.has, text: `日額 ${ins.cancer_hospital.daily} 元` },
-    { label: "失能", has: ins.disability.has, text: `每月 ${ins.disability.monthly} 萬` },
-    { label: "長照", has: ins.long_term_care.has, text: `每月 ${ins.long_term_care.monthly} 萬` },
+    { label: "失能／長照", has: ins.disability.has, text: `每月 ${ins.disability.monthly} 萬` },
   ];
 }
 
