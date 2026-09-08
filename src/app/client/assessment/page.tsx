@@ -119,6 +119,8 @@ interface Form {
   // 深化:退休後需求 / 緊急金 / 大額支出
   retireMonthlyExpense: string;
   retirePensionMonthly: string;
+  retireExpectedTotal: string; // 客戶以為要準備多少(萬)
+  retireAspirations: string[]; // 退休生活想望(多選)
   emergencyMonths: string;
   majorExpenseAmount: string;
   majorExpenseYears: string;
@@ -174,6 +176,8 @@ const initialForm: Form = {
   plannedLoanTerm: "",
   retireMonthlyExpense: "",
   retirePensionMonthly: "",
+  retireExpectedTotal: "",
+  retireAspirations: [],
   emergencyMonths: "",
   majorExpenseAmount: "",
   majorExpenseYears: "",
@@ -194,6 +198,7 @@ const initialForm: Form = {
 
 // 每月固定收支的建議項目(選填,萬/月)。使用者只需填有的項目。
 const FIXED_INCOME_ITEMS = ["薪資", "租金收入", "股利 / 利息", "年金 / 退休金", "其他固定收入"];
+const RETIRE_ASPIRATION_OPTIONS = ["環遊世界", "學習新知", "培養興趣嗜好", "公益活動", "事業第二春", "含飴弄孫", "協助子女成家", "陪伴家人", "回饋鄉里"];
 const FIXED_EXPENSE_ITEMS = ["租金支出", "生活費", "子女教育 / 托育", "孝親費", "消費性貸款(非房貸)", "訂閱 / 會費", "其他固定支出"];
 // 年度特別預算(選填,萬/年):以「年」計,勿與每月固定支出混用。保險費多為年繳,列於此。
 const ANNUAL_EXPENSE_ITEMS = ["保險費", "旅遊金", "所得稅 / 房屋稅 / 地價稅", "年節紅包 / 禮金", "其他年度預算"];
@@ -422,6 +427,8 @@ export default function Assessment() {
         // 所得替代率不再由客戶填寫,改由顧問於報告參數調整(deep 不帶,計算時用參數預設)
         retire_monthly_expense: f.retireMonthlyExpense ? Number(f.retireMonthlyExpense) : undefined,
         retire_pension_monthly: f.retirePensionMonthly ? Number(f.retirePensionMonthly) : undefined,
+        retire_expected_total: f.retireExpectedTotal ? Number(f.retireExpectedTotal) : undefined,
+        retire_aspirations: f.retireAspirations.length ? f.retireAspirations : undefined,
         liabilities: {
           mortgage_balance: Number(f.mortgageBalance) || 0,
           loan_balance: Number(f.loanBalance) || 0,
@@ -863,6 +870,30 @@ export default function Assessment() {
               <div className="mt-1.5 flex flex-wrap gap-x-4 gap-y-1 text-xs">
                 <a href="https://calcr2.mol.gov.tw/trial" target="_blank" rel="noopener noreferrer" className="font-medium text-emerald-700 hover:underline dark:text-emerald-400">勞工退休金試算 ↗</a>
                 <a href="https://edesk.bli.gov.tw/me/#/na/login" target="_blank" rel="noopener noreferrer" className="font-medium text-emerald-700 hover:underline dark:text-emerald-400">勞工退休金查詢 ↗</a>
+              </div>
+              <div className="mt-3 border-t border-neutral-200 pt-3 dark:border-neutral-800">
+                <Field label="你認為退休金總共要準備多少?(萬)">
+                  <Input value={f.retireExpectedTotal} onChange={(v) => set("retireExpectedTotal", v)} type="number" placeholder="選填,你心中的數字" />
+                </Field>
+                <p className="mt-1 text-xs text-neutral-400">憑直覺填你「以為」需要的金額即可,報告會對照系統客觀試算,呈現你我認知的落差。</p>
+              </div>
+            </div>
+            <div>
+              <span className="text-sm font-medium">退休後想做的事(可複選)</span>
+              <p className="text-xs text-neutral-400">選出你嚮往的退休生活,讓規劃扣住你真正在意的目標。</p>
+              <div className="mt-1.5 flex flex-wrap gap-1.5">
+                {RETIRE_ASPIRATION_OPTIONS.map((a) => {
+                  const on = f.retireAspirations.includes(a);
+                  return (
+                    <button
+                      key={a}
+                      onClick={() => set("retireAspirations", on ? f.retireAspirations.filter((x) => x !== a) : [...f.retireAspirations, a])}
+                      className={`rounded-full px-3 py-1 text-sm ${on ? "bg-emerald-600 text-white" : "bg-neutral-100 text-neutral-600 dark:bg-neutral-800 dark:text-neutral-300"}`}
+                    >
+                      {a}
+                    </button>
+                  );
+                })}
               </div>
             </div>
             <Field label="緊急預備金(幾個月生活費)">

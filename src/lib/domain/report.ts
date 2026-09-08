@@ -75,6 +75,8 @@ export interface ReportModel {
   advisorSignature?: { name: string; company?: string; title?: string; licenses: { type: string; number?: string }[] };
   /** 顧問版：風險資產配置分析（RR 對照目標配置缺口） */
   riskAllocation?: RiskAllocationAnalysis;
+  /** 退休生活想望與「認知落差」（客戶可見）：客戶以為需準備 vs 系統客觀試算 */
+  retirement?: { aspirations?: string[]; expectedTotal?: number; computedNeed?: number };
 }
 
 export function buildReport(
@@ -124,6 +126,16 @@ export function buildReport(
       { name: "保障缺口", result: gaps.protection },
       { name: "教育金缺口", result: gaps.education },
     ],
+    retirement: (() => {
+      const asp = data.deep?.retire_aspirations;
+      const exp = data.deep?.retire_expected_total;
+      if (!asp?.length && (exp == null || exp <= 0)) return undefined;
+      const computedNeed =
+        gaps.retirement.status === "computed"
+          ? gaps.retirement.breakdown.find((b) => b.label.includes("總支出需求"))?.amount
+          : undefined;
+      return { aspirations: asp, expectedTotal: exp && exp > 0 ? exp : undefined, computedNeed };
+    })(),
     insurance: insRowsOf(data.deep?.insurance_detail),
     householdInsurance: [
       { member: "本人", rows: insRowsOf(data.deep?.insurance_detail) },

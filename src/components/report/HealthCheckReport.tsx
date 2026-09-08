@@ -254,6 +254,44 @@ export function HealthCheckReport({ model, variant = "full" }: { model: ReportMo
         </section>
       )}
 
+      {/* 退休生活想望與認知落差（客戶可見） */}
+      {model.retirement && (
+        <section className="hcr-card">
+          <h2>退休生活想望與認知落差</h2>
+          {model.retirement.aspirations?.length ? (
+            <div style={{ marginBottom: model.retirement.expectedTotal != null && model.retirement.computedNeed != null ? 14 : 0 }}>
+              <div className="hcr-sub-label">嚮往的退休生活</div>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                {model.retirement.aspirations.map((a) => (
+                  <span key={a} style={{ fontSize: 18, padding: "4px 13px", borderRadius: 999, background: "#e0f2fe", color: "#075985", fontWeight: 600 }}>{a}</span>
+                ))}
+              </div>
+            </div>
+          ) : null}
+          {model.retirement.expectedTotal != null && model.retirement.computedNeed != null && (() => {
+            const exp = model.retirement.expectedTotal!;
+            const need = model.retirement.computedNeed!;
+            const diff = Math.round(need - exp);
+            const under = diff > 0; // 實際比以為的多 → 客戶低估了需求
+            return (
+              <>
+                <div className="hcr-sub-label" style={{ marginTop: 4 }}>認知落差：你以為 vs 客觀試算</div>
+                <div className="hcr-stats">
+                  <Stat label="你以為需準備" value={fmtWan(exp)} />
+                  <Stat label="客觀試算需要" value={fmtWan(need)} />
+                  <Stat label="落差" value={fmtWan(Math.abs(diff))} sub={under ? "低估" : "已足夠涵蓋"} />
+                </div>
+                <p className="hcr-alert" style={under ? undefined : { color: "#065f46", background: "#ecfdf5", border: "1px solid #a7f3d0" }}>
+                  {under
+                    ? `⚠ 實際需要比你原本以為的多約 ${fmtWan(diff)}。退休準備的缺口比想像中大——越早開始準備，每月負擔越輕。`
+                    : `你對退休金的預期（${fmtWan(exp)}）已涵蓋客觀試算需求（${fmtWan(need)}），準備意識充足，可再優化配置效率。`}
+                </p>
+              </>
+            );
+          })()}
+        </section>
+      )}
+
       {/* 缺口概況 */}
       <section className="hcr-card">
         <h2>缺口概況（客觀試算）</h2>

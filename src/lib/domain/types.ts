@@ -158,6 +158,8 @@ export interface DeepProfile {
   retire_lifestyle_pct?: number; // 退休後想維持目前開銷的幾成 (0-100+)
   retire_monthly_expense?: number; // 退休後每月預計支出(萬);有填則優先於生活水準%
   retire_pension_monthly?: number; // 退休後每月退休金收入(勞退/月退,萬)
+  retire_aspirations?: string[]; // 退休生活想望(多選;環遊世界/含飴弄孫等)— 情感連結與目標對焦用
+  retire_expected_total?: number; // 客戶「以為」退休金總共要準備多少(萬)— 與系統試算對比呈現認知落差
   edu_goals?: EduGoal[]; // 每位子女
   major_expense?: { amount: number; years_until: number }; // 近期大額支出
   liabilities?: Liabilities;
