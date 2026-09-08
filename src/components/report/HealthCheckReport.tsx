@@ -1025,7 +1025,8 @@ const css = `
 .hcr { max-width: 100%; margin: 0 auto; padding: 30px 30px; color: #171717;
   font-family: -apple-system, "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", sans-serif; background:#fff;
   -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-.hcr h2 { font-size: 23px; font-weight: 700; margin: 0 0 13px; padding-left: 11px; border-left: 4px solid #10b981; line-height: 1.15; }
+.hcr h2 { font-size: 23px; font-weight: 700; margin: 0 0 13px; padding-left: 12px; border-left: 5px solid #0284c7; line-height: 1.15; }
+.hcr-advisor h2 { border-left-color: #10b981; }
 .hcr-head { display:flex; justify-content:space-between; align-items:flex-start; gap:16px;
   padding-bottom:16px; border-bottom:2px solid #10b981; margin-bottom:20px; }
 .hcr-kicker { font-size:18px; letter-spacing:2px; color:#059669; font-weight:600; }
@@ -1042,7 +1043,7 @@ const css = `
 .hcr-highlights ul { list-style:none; margin:0; padding:0; }
 .hcr-highlights li { font-size:19px; color:#334155; line-height:1.55; padding:3px 0 3px 20px; position:relative; }
 .hcr-highlights li::before { content:""; position:absolute; left:3px; top:12px; width:7px; height:7px; border-radius:50%; background:#10b981; }
-.hcr-card { background:#fcfdfe; border:1px solid #e9edf2; border-radius:14px; padding:18px; margin-bottom:16px; break-inside:avoid; }
+.hcr-card { background:#fcfdfe; border:1px solid #e6ebf1; border-radius:14px; padding:18px 20px; margin-bottom:18px; break-inside:avoid; box-shadow:0 1px 2px rgba(15,23,42,0.04); }
 .hcr-dist { display:flex; align-items:center; gap:24px; flex-wrap:wrap; }
 .hcr-legend { list-style:none; margin:0; padding:0; flex:1; min-width:220px; }
 .hcr-legend li { display:flex; align-items:center; gap:8px; font-size:20px; padding:3px 0; }
