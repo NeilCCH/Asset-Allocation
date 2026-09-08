@@ -183,12 +183,47 @@ export function fvGrowingAnnuity(pmt: number, rate: number, growth: number, year
   return (pmt * (Math.pow(1 + rate, years) - Math.pow(1 + growth, years))) / (rate - growth);
 }
 
-/** 目前年支出估計 = 年收入 − 年結餘（透明推導，無另問開銷） */
-function estimateAnnualExpense(data: QuestionnaireData): number {
-  const annualIncome = INCOME_BAND_VALUE[data.core.income_band] ?? 0;
-  const monthlySurplus = SURPLUS_BAND_VALUE[data.core.surplus_band] ?? 0;
-  const annualSurplus = monthlySurplus * 12;
-  return Math.max(0, annualIncome - annualSurplus);
+// ── 現況收支(統一來源)──：三表與退休試算共用,確保一致。
+// 收入:有「年固定收入明細」用明細;否則舊 income_sources;否則收入級距。
+export function annualIncomeEstimate(data: QuestionnaireData): number {
+  const { core, deep } = data;
+  const fixedInc = deep?.annual_fixed_income ?? [];
+  if (fixedInc.length > 0) return fixedInc.reduce((s, i) => s + i.amount, 0);
+  const src = deep?.income_sources;
+  if (src && [src.salary, src.bonus, src.rental, src.dividend, src.business, src.other].some((v) => v > 0))
+    return src.salary + src.bonus + src.rental + src.dividend + src.business + src.other;
+  return INCOME_BAND_VALUE[core.income_band] ?? 0;
+}
+
+export interface AnnualCashflow {
+  income: number; // 年收入
+  expense: number; // 年支出(含負債月還款×12)
+  surplus: number; // 年結餘 = 收入 − 支出(可為負=赤字)
+  debtAnnual: number; // 年負債還款
+  livingExpense: number; // 年生活支出(排除負債還款)
+  fromItemized: boolean; // 是否以支出明細推導(否則以結餘級距)
+}
+
+/** 依收入推導年支出/結餘。有填支出明細(固定/年度)時以明細計(含還款);否則以結餘級距推估。 */
+export function expenseAndSurplus(data: QuestionnaireData, annualIncome: number): Omit<AnnualCashflow, "income"> {
+  const { core, deep } = data;
+  const debtAnnual = (deep?.liabilities?.monthly_payment ?? 0) * 12;
+  const fixed = (deep?.monthly_fixed_expense ?? []).reduce((s, i) => s + i.amount, 0) * 12;
+  const special = (deep?.annual_special_expense ?? []).reduce((s, i) => s + i.amount, 0);
+  const hasItemized = (deep?.monthly_fixed_expense?.length ?? 0) > 0 || (deep?.annual_special_expense?.length ?? 0) > 0;
+  if (hasItemized) {
+    const expense = fixed + special + debtAnnual;
+    return { expense, surplus: annualIncome - expense, debtAnnual, livingExpense: fixed + special, fromItemized: true };
+  }
+  const raw = (SURPLUS_BAND_VALUE[core.surplus_band] ?? 0) * 12;
+  const surplus = Math.max(-annualIncome, Math.min(raw, annualIncome));
+  const expense = annualIncome - surplus;
+  return { expense, surplus, debtAnnual, livingExpense: Math.max(0, expense - debtAnnual), fromItemized: false };
+}
+
+export function annualCashflow(data: QuestionnaireData): AnnualCashflow {
+  const income = annualIncomeEstimate(data);
+  return { income, ...expenseAndSurplus(data, income) };
 }
 
 // ── 缺口結果型別 ─────────────────────────────────────
@@ -217,13 +252,15 @@ export function retirementGap(
   // 退休當年的年支出需求：優先用「退休後每月支出」；否則以目前開銷 × 生活水準%
   const lifestylePct =
     (data.deep?.retire_lifestyle_pct ?? params.defaultRetireLifestylePct) / 100;
+  // 現況收支(與三表同一來源:有支出明細用明細,否則結餘級距)。退休生活需求以「生活支出(排除負債還款)」推估。
+  const cf = annualCashflow(data);
   const annualNeedNow =
     data.deep?.retire_monthly_expense != null
       ? data.deep.retire_monthly_expense * 12
-      : estimateAnnualExpense(data) * lifestylePct;
-  // 無退休生活需求依據（未填退休後每月支出，且無收入/結餘級距可推估）→ 尚未規劃，不可顯示「已足夠」
+      : cf.livingExpense * lifestylePct;
+  // 無退休生活需求依據（未填退休後每月支出，且無收入/支出可推估）→ 尚未規劃，不可顯示「已足夠」
   if (annualNeedNow <= 0) {
-    return { status: "not_planned", gap: 0, breakdown: [], missing: ["退休後每月支出（或收支級距）"] };
+    return { status: "not_planned", gap: 0, breakdown: [], missing: ["退休後每月支出（或收支明細/級距）"] };
   }
   const r = params.returnRate, inf = params.inflationRate;
   // 統一框架：單一報酬 r + 單一通膨 inf。退休期以「實質報酬」年金折現（支出逐年通膨、本金持續以 r 成長，兩段同基礎）。
@@ -236,12 +273,18 @@ export function retirementGap(
   const annualPension = (data.deep?.retire_pension_monthly ?? 0) * 12;
   const pensionPV = annualPension * (r < 1e-9 ? retireYears : (1 - Math.pow(1 + r, -retireYears)) / r);
 
-  // 退休時可累積資產 = 現有可投資資產成長 + 未來年結餘累積終值（每年固定金額、r 複利；不假設隨薪資成長放大）
-  // 年結餘可為負：赤字代表逐年提領退休老本，會「侵蝕」可累積資產（與平投對稱，不再壓成 0）。
+  // 退休時可累積資產 = 現有可投資資產成長 + 未來年結餘累積終值。
+  // 年結餘用現況收支(明細/級距);為負(赤字)代表逐年侵蝕退休老本。
+  // 兩階段:貸款繳清後,月還款停止 → 結餘回升(surplusAfterDebt),更貼近現實。
   const grownCurrent = grow(investableAssets(core.assets), r, yearsToRetire);
-  const annualContribution = (SURPLUS_BAND_VALUE[core.surplus_band] ?? 0) * 12; // 正=平投；負=赤字侵蝕
-  const contribFactor = r < 1e-9 ? yearsToRetire : (Math.pow(1 + r, yearsToRetire) - 1) / r; // 期末年金 FV
-  const contributions = annualContribution * contribFactor; // 可為負（赤字累積）
+  const surplusNow = cf.surplus; // 含負債還款(赤字為負)
+  const surplusAfterDebt = surplusNow + cf.debtAnnual; // 繳清後還款停止,結餘回升
+  const payoffYears = cf.debtAnnual > 0 ? Math.min(yearsToRetire, data.deep?.liabilities?.remaining_years ?? yearsToRetire) : 0;
+  const aFV = (rate: number, yrs: number) => (yrs <= 0 ? 0 : rate < 1e-9 ? yrs : (Math.pow(1 + rate, yrs) - 1) / rate);
+  // 繳款期間(payoffYears)以 surplusNow 累積,其終值再複利至退休;繳清後至退休以 surplusAfterDebt 累積。
+  const contributions =
+    surplusNow * aFV(r, payoffYears) * Math.pow(1 + r, yearsToRetire - payoffYears) +
+    surplusAfterDebt * aFV(r, yearsToRetire - payoffYears);
   const accumulable = grownCurrent + contributions + pensionPV;
 
   const gap = round(totalNeed - accumulable);
@@ -251,7 +294,7 @@ export function retirementGap(
     breakdown: [
       { label: "退休後總支出需求", amount: round(totalNeed) },
       { label: "現有資產成長估計", amount: round(grownCurrent) },
-      { label: annualContribution >= 0 ? "未來持續投入估計" : "未來赤字侵蝕估計", amount: round(contributions) },
+      { label: contributions >= 0 ? "未來持續投入估計" : "未來赤字侵蝕估計", amount: round(contributions) },
       ...(pensionPV > 0 ? [{ label: "退休金收入（勞退/月退）", amount: -round(pensionPV) }] : []),
     ],
   };

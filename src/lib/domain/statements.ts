@@ -1,8 +1,8 @@
 // 家庭財務報表 — 參考公司三表（資產負債表 / 損益表 / 現金流量表）之結構與會計邏輯。
 // 單位：資產負債表為萬元；損益/現金流為年或月（萬元）。
 import type { QuestionnaireData } from "./types";
-import { assetBreakdown, investableAssets, loanMonthlyPayment, remainingLoanBalance } from "./calc";
-import { INCOME_BAND_VALUE, SURPLUS_BAND_VALUE, type CalcParams } from "./params";
+import { assetBreakdown, expenseAndSurplus, investableAssets, loanMonthlyPayment, remainingLoanBalance } from "./calc";
+import { INCOME_BAND_VALUE, type CalcParams } from "./params";
 import { estimateIncomeTax } from "./incomeTax";
 
 export interface Line {
@@ -131,20 +131,9 @@ export function personalStatements(data: QuestionnaireData, params?: CalcParams)
   const fixedExpenseTotal = fixedExpenseItems.reduce((s, i) => s + i.amount, 0); // 萬/月
   const annualSpecialItems = deep?.annual_special_expense ?? [];
   const annualSpecialTotal = annualSpecialItems.reduce((s, i) => s + i.amount, 0); // 萬/年
-  const hasItemizedExpense = fixedExpenseItems.length > 0 || annualSpecialItems.length > 0;
 
-  // 支出與結餘：有填支出明細時「以明細為準」（固定×12 + 年度 + 負債還款×12），三表據此對帳一致；
-  // 未填明細時，退回以「每月結餘級距」推估（夾在 [−收入, 收入]）。結餘可為負（赤字）。
-  let annualSurplus: number;
-  let totalExpense: number;
-  if (hasItemizedExpense) {
-    totalExpense = fixedExpenseTotal * 12 + annualSpecialTotal + debtPayment * 12;
-    annualSurplus = totalIncome - totalExpense;
-  } else {
-    const rawAnnualSurplus = (SURPLUS_BAND_VALUE[core.surplus_band] ?? 0) * 12;
-    annualSurplus = Math.max(-totalIncome, Math.min(rawAnnualSurplus, totalIncome));
-    totalExpense = totalIncome - annualSurplus;
-  }
+  // 支出與結餘:與退休試算共用同一邏輯(有支出明細用明細含還款,否則結餘級距)。結餘可為負(赤字)。
+  const { expense: totalExpense, surplus: annualSurplus } = expenseAndSurplus(data, totalIncome);
   const passiveIncome = income.filter((l) => l.tag === "被動").reduce((s, l) => s + l.amount, 0);
   // 主動收入（年）：總收入 − 被動收入。退休前薪資：優先採互動參數「預估退休前薪資」，未填則沿用現況主動收入。
   const activeIncomeAnnual = Math.max(0, totalIncome - passiveIncome);
