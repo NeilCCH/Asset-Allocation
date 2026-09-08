@@ -30,13 +30,13 @@ export function InteractiveReport({
   const [params, setParams] = useState<CalcParams>(initialParams);
   const [fs, setFs] = useState<FontScale>("base");
   const [showAdvanced, setShowAdvanced] = useState(false);
-  const [targetMonthly, setTargetMonthly] = useState("");
+  const [targetMonthly, setTargetMonthly] = useState("5");
   const setParam = (k: keyof CalcParams, v: number) => setParams((p) => ({ ...p, [k]: v }));
   const isDefault = JSON.stringify(params) === JSON.stringify(initialParams);
 
   // 退休金回推試算(與客戶即時互動;採上方可調參數)
   const reserve = useMemo(
-    () => (targetMonthly ? retirementReserve(data, params, Number(targetMonthly)) : null),
+    () => (Number(targetMonthly) > 0 ? retirementReserve(data, params, Number(targetMonthly)) : null),
     [data, params, targetMonthly],
   );
 
@@ -113,16 +113,8 @@ export function InteractiveReport({
         <div className="rounded-2xl border border-emerald-200 bg-white p-5 shadow-sm dark:border-emerald-900 dark:bg-neutral-950">
           <h3 className="text-sm font-semibold text-emerald-900 dark:text-emerald-100">退休金回推試算</h3>
           <p className="mt-0.5 text-xs text-emerald-700/80 dark:text-emerald-300/80">輸入退休後每月想維持的生活費(退休時幣值,之後隨物價調整維持購買力),即時回推需準備多少(採上方試算參數;與退休金缺口同框架:實質報酬年金、平準投入)。</p>
-          <div className="mt-3 flex items-center gap-2">
-            <span className="text-sm">退休後每月想領</span>
-            <input
-              type="number"
-              value={targetMonthly}
-              onChange={(e) => setTargetMonthly(e.target.value)}
-              placeholder="例如 5"
-              className="w-24 rounded-lg border border-emerald-300 bg-white px-2 py-1.5 text-right text-sm outline-none focus:border-emerald-500 dark:border-emerald-800 dark:bg-neutral-900"
-            />
-            <span className="text-sm">萬 / 月</span>
+          <div className="mt-3 max-w-xs">
+            <PSlider label="退休後每月想領" suffix="萬/月" min={0} max={30} step={0.5} value={Number(targetMonthly) || 0} onChange={(v) => setTargetMonthly(String(v))} accent="emerald" />
           </div>
           {reserve && (
             <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -187,8 +179,14 @@ function P({ label, suffix, value, step, onChange }: { label: string; suffix: st
   );
 }
 
-// 比率型參數:拉桿(粗調)+ 可輸入數字(微調),拖曳即時重算。
-function PSlider({ label, suffix, value, min, max, step, onChange }: { label: string; suffix: string; value: number; min: number; max: number; step: number; onChange: (v: number) => void }) {
+// 拉桿(粗調)+ 可輸入數字(微調),拖曳即時重算。accent 決定主題色(sky=試算假設 / emerald=退休回推)。
+const SLIDER_ACCENT = {
+  sky: { label: "text-sky-800 dark:text-sky-200", box: "bg-sky-50 dark:bg-sky-950/50", num: "text-sky-700 dark:text-sky-300", suffix: "text-sky-500 dark:text-sky-400", track: "bg-sky-100 accent-sky-600 dark:bg-sky-900/60" },
+  emerald: { label: "text-emerald-800 dark:text-emerald-200", box: "bg-emerald-50 dark:bg-emerald-950/50", num: "text-emerald-700 dark:text-emerald-300", suffix: "text-emerald-500 dark:text-emerald-400", track: "bg-emerald-100 accent-emerald-600 dark:bg-emerald-900/60" },
+} as const;
+
+function PSlider({ label, suffix, value, min, max, step, onChange, accent = "sky" }: { label: string; suffix: string; value: number; min: number; max: number; step: number; onChange: (v: number) => void; accent?: keyof typeof SLIDER_ACCENT }) {
+  const c = SLIDER_ACCENT[accent];
   const rounded = Math.round(value * 100) / 100;
   const [text, setText] = useState(String(rounded));
   const [prevRounded, setPrevRounded] = useState(rounded);
@@ -200,8 +198,8 @@ function PSlider({ label, suffix, value, min, max, step, onChange }: { label: st
   return (
     <div className="block">
       <div className="flex items-baseline justify-between gap-2">
-        <span className="text-xs font-medium text-sky-800 dark:text-sky-200">{label}</span>
-        <span className="inline-flex items-baseline rounded-md bg-sky-50 px-1.5 py-0.5 dark:bg-sky-950/50">
+        <span className={`text-xs font-medium ${c.label}`}>{label}</span>
+        <span className={`inline-flex items-baseline rounded-md px-1.5 py-0.5 ${c.box}`}>
           <input
             type="number"
             value={text}
@@ -214,9 +212,9 @@ function PSlider({ label, suffix, value, min, max, step, onChange }: { label: st
               if (v !== "" && !Number.isNaN(Number(v))) onChange(clamp(Number(v)));
             }}
             onBlur={() => { if (text === "" || Number.isNaN(Number(text))) setText(String(rounded)); }}
-            className="w-10 bg-transparent text-right text-sm font-bold tabular-nums text-sky-700 outline-none dark:text-sky-300"
+            className={`w-10 bg-transparent text-right text-sm font-bold tabular-nums outline-none ${c.num}`}
           />
-          <span className="text-[11px] text-sky-500 dark:text-sky-400">{suffix}</span>
+          <span className={`text-[11px] ${c.suffix}`}>{suffix}</span>
         </span>
       </div>
       <input
@@ -226,7 +224,7 @@ function PSlider({ label, suffix, value, min, max, step, onChange }: { label: st
         step={step}
         value={rounded}
         onChange={(e) => onChange(clamp(Number(e.target.value)))}
-        className="mt-1.5 h-1.5 w-full cursor-pointer appearance-none rounded-full bg-sky-100 accent-sky-600 dark:bg-sky-900/60"
+        className={`mt-1.5 h-1.5 w-full cursor-pointer appearance-none rounded-full ${c.track}`}
         aria-label={label}
       />
       <div className="mt-1 flex justify-between text-[10px] text-neutral-400 tabular-nums">
