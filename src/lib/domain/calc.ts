@@ -226,6 +226,24 @@ export function annualCashflow(data: QuestionnaireData): AnnualCashflow {
   return { income, ...expenseAndSurplus(data, income) };
 }
 
+/** 未來年結餘累積終值(至 years 年後):現況結餘逐年投入、以 r 複利;赤字則反向侵蝕。
+ *  兩階段:貸款於 payoffYears 後繳清 → 之後月還款停止、結餘回升(加回年還款)。更貼近現實。
+ *  供退休缺口與財務投影共用,確保一致。 */
+export function surplusAccumulationFV(surplusNow: number, debtAnnual: number, r: number, years: number, payoffYears: number): number {
+  if (years <= 0) return 0;
+  const p = Math.max(0, Math.min(payoffYears, years));
+  const aFV = (rate: number, yrs: number) => (yrs <= 0 ? 0 : rate < 1e-9 ? yrs : (Math.pow(1 + rate, yrs) - 1) / rate);
+  const surplusAfterDebt = surplusNow + debtAnnual; // 繳清後結餘回升
+  return surplusNow * aFV(r, p) * Math.pow(1 + r, years - p) + surplusAfterDebt * aFV(r, years - p);
+}
+
+/** 貸款預估繳清年數(用於兩階段結餘回升);無負債月還款則 0。 */
+export function loanPayoffYears(data: QuestionnaireData, horizon: number): number {
+  const debtAnnual = (data.deep?.liabilities?.monthly_payment ?? 0) * 12;
+  if (debtAnnual <= 0) return 0;
+  return Math.min(horizon, data.deep?.liabilities?.remaining_years ?? horizon);
+}
+
 // ── 缺口結果型別 ─────────────────────────────────────
 
 export type GapStatus = "computed" | "needs_deep_data" | "not_planned";
@@ -277,14 +295,7 @@ export function retirementGap(
   // 年結餘用現況收支(明細/級距);為負(赤字)代表逐年侵蝕退休老本。
   // 兩階段:貸款繳清後,月還款停止 → 結餘回升(surplusAfterDebt),更貼近現實。
   const grownCurrent = grow(investableAssets(core.assets), r, yearsToRetire);
-  const surplusNow = cf.surplus; // 含負債還款(赤字為負)
-  const surplusAfterDebt = surplusNow + cf.debtAnnual; // 繳清後還款停止,結餘回升
-  const payoffYears = cf.debtAnnual > 0 ? Math.min(yearsToRetire, data.deep?.liabilities?.remaining_years ?? yearsToRetire) : 0;
-  const aFV = (rate: number, yrs: number) => (yrs <= 0 ? 0 : rate < 1e-9 ? yrs : (Math.pow(1 + rate, yrs) - 1) / rate);
-  // 繳款期間(payoffYears)以 surplusNow 累積,其終值再複利至退休;繳清後至退休以 surplusAfterDebt 累積。
-  const contributions =
-    surplusNow * aFV(r, payoffYears) * Math.pow(1 + r, yearsToRetire - payoffYears) +
-    surplusAfterDebt * aFV(r, yearsToRetire - payoffYears);
+  const contributions = surplusAccumulationFV(cf.surplus, cf.debtAnnual, r, yearsToRetire, loanPayoffYears(data, yearsToRetire));
   const accumulable = grownCurrent + contributions + pensionPV;
 
   const gap = round(totalNeed - accumulable);

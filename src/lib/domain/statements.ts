@@ -1,7 +1,7 @@
 // 家庭財務報表 — 參考公司三表（資產負債表 / 損益表 / 現金流量表）之結構與會計邏輯。
 // 單位：資產負債表為萬元；損益/現金流為年或月（萬元）。
 import type { QuestionnaireData } from "./types";
-import { assetBreakdown, expenseAndSurplus, investableAssets, loanMonthlyPayment, remainingLoanBalance } from "./calc";
+import { assetBreakdown, expenseAndSurplus, investableAssets, loanMonthlyPayment, loanPayoffYears, remainingLoanBalance, surplusAccumulationFV } from "./calc";
 import { INCOME_BAND_VALUE, type CalcParams } from "./params";
 import { estimateIncomeTax } from "./incomeTax";
 
@@ -167,13 +167,12 @@ export function personalStatements(data: QuestionnaireData, params?: CalcParams)
   if (params && n > 0) {
     const { returnRate: r, inflationRate: inf } = params;
     const fv = (pv: number, rate: number) => pv * Math.pow(1 + rate, n);
-    // 未來投入採「平投」（每年固定投入、以報酬複利），與退休缺口/回推同一保守基礎，不隨薪資成長放大。
-    // 年結餘可為負：赤字逐年侵蝕資產（與退休缺口同基礎，不壓成 0）。
-    const flatAnnuityFV = (pmt: number, rate: number, yrs: number) => (rate < 1e-9 ? pmt * yrs : (pmt * (Math.pow(1 + rate, yrs) - 1)) / rate);
     // 只有「可投資資產」以報酬率複利成長；自住不動產等非投資性資產不計資本利得、以現值計入（避免未來值失真）。
+    // 年結餘累積與退休缺口共用同一函式:赤字侵蝕、且貸款繳清後結餘回升(兩階段),與退休缺口一致。
     const investable = investableAssets(core.assets);
     const nonInvestable = Math.max(0, totalAssets - investable);
-    const futureAssets = fv(investable, r) + nonInvestable + flatAnnuityFV(annualSurplus, r, n);
+    const contributionsFV = surplusAccumulationFV(annualSurplus, debtPayment * 12, r, n, loanPayoffYears(data, n));
+    const futureAssets = fv(investable, r) + nonInvestable + contributionsFV;
     // 負債未來值：現有貸款依「平均利率 + 月還款」正確攤還；加計新增貸款計劃在退休時的剩餘本金
     const liabRate = deep?.liabilities?.interest_rate ?? 0;
     const existingFutureLiab = remainingLoanBalance(totalLiabilities, debtPayment, liabRate, n);
