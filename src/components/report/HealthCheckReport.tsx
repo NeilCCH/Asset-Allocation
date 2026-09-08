@@ -891,7 +891,7 @@ function PersonalStatementsBlock({ s }: { s: PersonalStatements }) {
           <div key={l.label} className="hcr-stmt-row"><span>{l.label}{l.tag ? `（${l.tag}）` : ""}</span><span style={{ color: AMT_IN }}>{fmtWan(l.amount)}</span></div>
         ))}
         <div className="hcr-stmt-row total"><span>年收入合計</span><span style={{ color: AMT_IN }}>{fmtWan(is.totalIncome)}</span></div>
-        <div className="hcr-stmt-row"><span>年支出（推估）</span><span style={{ color: AMT_OUT }}>−{fmtWan(is.totalExpense)}</span></div>
+        <div className="hcr-stmt-row"><span>年支出（{cf.fixedExpense || cf.annualSpecial ? "明細" : "推估"}）</span><span style={{ color: AMT_OUT }}>−{fmtWan(is.totalExpense)}</span></div>
         <div className="hcr-stmt-row total"><span>年結餘</span><span style={{ color: netColor(is.surplus) }}>{fmtWan(is.surplus)}</span></div>
         {is.incomeTax != null && (
           <>
@@ -912,7 +912,10 @@ function PersonalStatementsBlock({ s }: { s: PersonalStatements }) {
       <div className="hcr-stmt">
         <div className="hcr-stmt-title">③ 現金流量表 · 月（流入 − 流出 = 淨現金流）</div>
         <div className="hcr-stmt-row"><span>每月現金流入（收入）</span><span style={{ color: AMT_IN }}>{fmtWan(cf.inflow)}</span></div>
-        <div className="hcr-stmt-row"><span>每月現金流出（支出，含還款 {fmtWan(cf.debtPayment)}）</span><span style={{ color: AMT_OUT }}>−{fmtWan(cf.outflow)}</span></div>
+        <div className="hcr-stmt-row"><span>每月現金流出（支出）</span><span style={{ color: AMT_OUT }}>−{fmtWan(cf.outflow)}</span></div>
+        {(cf.fixedExpense || cf.annualSpecial) && (
+          <div className="hcr-stmt-note">＝ 固定支出 {fmtWan(cf.fixedExpenseTotal ?? 0)} ＋ 年度預算折月 {fmtWan(cf.annualSpecialMonthly ?? 0)} ＋ 負債還款 {fmtWan(cf.debtPayment)}（萬/月）</div>
+        )}
         <div className="hcr-stmt-row total"><span>每月淨現金流</span><span style={{ color: netColor(cf.net) }}>{fmtWan(cf.net)}</span></div>
         {cf.fixedExpense && (
           <div style={{ marginTop: 10, borderTop: "1px solid #eaeef3", paddingTop: 8 }}>
@@ -925,12 +928,12 @@ function PersonalStatementsBlock({ s }: { s: PersonalStatements }) {
         )}
         {cf.annualSpecial && (
           <div style={{ marginTop: 10, borderTop: "1px solid #eaeef3", paddingTop: 8 }}>
-            <div className="hcr-stmt-note">年度特別預算明細（萬/年 · 與每月支出分開計算）</div>
+            <div className="hcr-stmt-note">年度特別預算明細（萬/年 · 已折月計入上方每月流出）</div>
             {cf.annualSpecial.map((l) => (
               <div key={l.label} className="hcr-stmt-row"><span>{l.label}</span><span style={{ color: AMT_OUT }}>−{fmtWan(l.amount)}</span></div>
             ))}
             <div className="hcr-stmt-row total"><span>年度特別預算合計</span><span style={{ color: AMT_OUT }}>−{fmtWan(cf.annualSpecialTotal ?? 0)} / 年</span></div>
-            <div className="hcr-stmt-note" style={{ marginTop: 4 }}>折合每月約 {fmtWan(cf.annualSpecialMonthly ?? 0)}（僅供比較；此為年度支出，已與每月固定支出分列，未重複計入）。</div>
+            <div className="hcr-stmt-note" style={{ marginTop: 4 }}>折合每月約 {fmtWan(cf.annualSpecialMonthly ?? 0)}，已計入上方「每月現金流出／淨現金流」。</div>
           </div>
         )}
       </div>

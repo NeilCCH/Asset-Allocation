@@ -124,10 +124,27 @@ export function personalStatements(data: QuestionnaireData, params?: CalcParams)
     income = [{ label: "年收入（級距估計）", amount: bandIncome }];
   }
   const totalIncome = income.reduce((s, l) => s + l.amount, 0);
-  // 結餘 = 每月結餘級距 × 12；夾在 [−收入， 收入] 內，避免與收入矛盾（結餘不可超過收入）。
-  const rawAnnualSurplus = (SURPLUS_BAND_VALUE[core.surplus_band] ?? 0) * 12;
-  const annualSurplus = Math.max(-totalIncome, Math.min(rawAnnualSurplus, totalIncome));
-  const totalExpense = totalIncome - annualSurplus; // = 收入 − 結餘，恆 ≥ 0
+
+  // ── 支出明細（選填）──：每月固定支出（月）、年度特別預算（年）、負債月還款。
+  const debtPayment = deep?.liabilities?.monthly_payment ?? 0; // 萬/月
+  const fixedExpenseItems = deep?.monthly_fixed_expense ?? [];
+  const fixedExpenseTotal = fixedExpenseItems.reduce((s, i) => s + i.amount, 0); // 萬/月
+  const annualSpecialItems = deep?.annual_special_expense ?? [];
+  const annualSpecialTotal = annualSpecialItems.reduce((s, i) => s + i.amount, 0); // 萬/年
+  const hasItemizedExpense = fixedExpenseItems.length > 0 || annualSpecialItems.length > 0;
+
+  // 支出與結餘：有填支出明細時「以明細為準」（固定×12 + 年度 + 負債還款×12），三表據此對帳一致；
+  // 未填明細時，退回以「每月結餘級距」推估（夾在 [−收入, 收入]）。結餘可為負（赤字）。
+  let annualSurplus: number;
+  let totalExpense: number;
+  if (hasItemizedExpense) {
+    totalExpense = fixedExpenseTotal * 12 + annualSpecialTotal + debtPayment * 12;
+    annualSurplus = totalIncome - totalExpense;
+  } else {
+    const rawAnnualSurplus = (SURPLUS_BAND_VALUE[core.surplus_band] ?? 0) * 12;
+    annualSurplus = Math.max(-totalIncome, Math.min(rawAnnualSurplus, totalIncome));
+    totalExpense = totalIncome - annualSurplus;
+  }
   const passiveIncome = income.filter((l) => l.tag === "被動").reduce((s, l) => s + l.amount, 0);
   // 主動收入（年）：總收入 − 被動收入。退休前薪資：優先採互動參數「預估退休前薪資」，未填則沿用現況主動收入。
   const activeIncomeAnnual = Math.max(0, totalIncome - passiveIncome);
@@ -140,18 +157,10 @@ export function personalStatements(data: QuestionnaireData, params?: CalcParams)
   if (pensionAnnual > 0) retireIncome.push({ label: "勞退月領", amount: r1(pensionAnnual), tag: "被動" });
   const retireIncomeTotal = retireIncome.reduce((s, l) => s + l.amount, 0);
 
-  // ── 現金流量表（月） ── 與損益表採同一份（已夾住）結餘，兩表一致
+  // ── 現金流量表（月） ── 與損益表採同一份支出/結餘，兩表一致。流出已含固定支出+年度折月+負債還款。
   const inflow = totalIncome / 12;
-  const net = annualSurplus / 12; // 月結餘
-  const outflow = inflow - net;
-  const debtPayment = deep?.liabilities?.monthly_payment ?? 0;
-
-  // ── 每月固定支出明細（選填，月）──（固定收入為年，已計入上方損益表）
-  const fixedExpenseItems = deep?.monthly_fixed_expense ?? [];
-  const fixedExpenseTotal = fixedExpenseItems.reduce((s, i) => s + i.amount, 0);
-  // ── 年度特別預算明細（選填，年）── 保險費 / 旅遊 / 年度稅金 / 紅包等，以「年」計
-  const annualSpecialItems = deep?.annual_special_expense ?? [];
-  const annualSpecialTotal = annualSpecialItems.reduce((s, i) => s + i.amount, 0);
+  const net = annualSurplus / 12; // 月結餘（= 流入 − 流出）
+  const outflow = inflow - net; // = 總支出 / 12
 
   // ── 所得稅（有填綜合所得淨額時） ──
   const tax = deep?.taxable_income != null ? estimateIncomeTax(deep.taxable_income) : null;
