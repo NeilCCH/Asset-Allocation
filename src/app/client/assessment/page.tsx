@@ -29,7 +29,7 @@ import {
 } from "@/lib/domain/options";
 import { saveDraft, loadDraft } from "@/lib/draft";
 import { loadReferral } from "@/lib/referral";
-import { saveClientId } from "@/lib/clientSession";
+import { saveClientId, getOrCreateSubmissionToken } from "@/lib/clientSession";
 import { submitClientQuestionnaire } from "@/lib/actions/client";
 import { PDPA_CONSENT_STATEMENT, PDPA_SECTIONS } from "@/lib/domain/pdpa";
 import { TaxOcr } from "@/components/TaxOcr";
@@ -478,7 +478,7 @@ export default function Assessment() {
     const ref = loadReferral();
     if (ref) {
       try {
-        const res = await submitClientQuestionnaire({ referralCode: ref, data });
+        const res = await submitClientQuestionnaire({ referralCode: ref, data, submissionToken: getOrCreateSubmissionToken() });
         if (res.ok) saveClientId(res.clientId);
       } catch {
         /* 靜默失敗:客戶仍可由 localStorage 檢視事實層 */
