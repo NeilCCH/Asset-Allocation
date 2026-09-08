@@ -718,6 +718,9 @@ export default function Assessment() {
             <div>
               <span className="text-sm font-medium">固定收支明細(選填)</span>
               <p className="text-xs text-neutral-400">列出固定的收入與支出(例如租金支出),讓損益與現金流更貼近實際。只填有的項目即可,非必填。</p>
+              <p className="mt-2 rounded-lg bg-red-600 px-3 py-2 text-xs font-semibold text-white">
+                ⚠ 若以「家庭」為評估單位,所得與支出請一律以<span className="font-bold underline">家庭合計</span>填寫(含配偶),避免收支基準不一致。
+              </p>
               <div className="mt-2">
                 <p className="text-xs font-semibold text-emerald-700 dark:text-emerald-400">
                   固定收入 <span className="font-bold text-red-500">(萬 / 年)</span>
