@@ -76,12 +76,22 @@ export function InteractiveReport({
               </button>
             )}
           </div>
-          <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
-            <P label="年報酬率" suffix="%" value={params.returnRate * 100} step={0.5} onChange={(v) => setParam("returnRate", v / 100)} />
-            <P label="通膨率" suffix="%" value={params.inflationRate * 100} step={0.5} onChange={(v) => setParam("inflationRate", v / 100)} />
-            <P label="預估退休前薪資" suffix="萬/年" value={retireSalary} step={10} onChange={(v) => setParam("estRetireSalaryAnnual", v)} />
-            <P label="預估餘命" suffix="歲" value={params.lifeExpectancy} step={1} onChange={(v) => setParam("lifeExpectancy", v)} />
-            <P label="所得替代率" suffix="%" value={params.defaultRetireLifestylePct} step={5} onChange={(v) => setParam("defaultRetireLifestylePct", v)} />
+          {/* 試算假設:比率型 → 拉桿 + 可微調數字(拖曳即時重算) */}
+          <div className="mt-4">
+            <div className="text-[11px] font-semibold uppercase tracking-wider text-sky-500/90 dark:text-sky-400/80">試算假設 · 拖曳即時重算</div>
+            <div className="mt-2.5 grid gap-x-6 gap-y-4 sm:grid-cols-3">
+              <PSlider label="年報酬率" suffix="%" min={0} max={10} step={0.5} value={params.returnRate * 100} onChange={(v) => setParam("returnRate", v / 100)} />
+              <PSlider label="通膨率" suffix="%" min={0} max={5} step={0.25} value={params.inflationRate * 100} onChange={(v) => setParam("inflationRate", v / 100)} />
+              <PSlider label="所得替代率" suffix="%" min={40} max={100} step={5} value={params.defaultRetireLifestylePct} onChange={(v) => setParam("defaultRetireLifestylePct", v)} />
+            </div>
+          </div>
+          {/* 個人設定:開放數值 → 輸入框 */}
+          <div className="mt-4 border-t border-sky-100 pt-4 dark:border-sky-900/60">
+            <div className="text-[11px] font-semibold uppercase tracking-wider text-sky-500/90 dark:text-sky-400/80">個人設定</div>
+            <div className="mt-2.5 grid grid-cols-2 gap-3 sm:max-w-md">
+              <P label="預估退休前薪資" suffix="萬/年" value={retireSalary} step={10} onChange={(v) => setParam("estRetireSalaryAnnual", v)} />
+              <P label="預估餘命" suffix="歲" value={params.lifeExpectancy} step={1} onChange={(v) => setParam("lifeExpectancy", v)} />
+            </div>
           </div>
           <button onClick={() => setShowAdvanced((s) => !s)} className="mt-2 text-xs text-sky-600 hover:underline dark:text-sky-400">
             {showAdvanced ? "收合進階參數 ▴" : "進階參數(教育金 / 扶養)▾"}
@@ -174,5 +184,55 @@ function P({ label, suffix, value, step, onChange }: { label: string; suffix: st
         <span className="text-xs text-neutral-400">{suffix}</span>
       </div>
     </label>
+  );
+}
+
+// 比率型參數:拉桿(粗調)+ 可輸入數字(微調),拖曳即時重算。
+function PSlider({ label, suffix, value, min, max, step, onChange }: { label: string; suffix: string; value: number; min: number; max: number; step: number; onChange: (v: number) => void }) {
+  const rounded = Math.round(value * 100) / 100;
+  const [text, setText] = useState(String(rounded));
+  const [prevRounded, setPrevRounded] = useState(rounded);
+  if (rounded !== prevRounded) {
+    setPrevRounded(rounded);
+    if (Number(text) !== rounded) setText(String(rounded));
+  }
+  const clamp = (v: number) => Math.min(max, Math.max(min, v));
+  return (
+    <div className="block">
+      <div className="flex items-baseline justify-between gap-2">
+        <span className="text-xs font-medium text-sky-800 dark:text-sky-200">{label}</span>
+        <span className="inline-flex items-baseline rounded-md bg-sky-50 px-1.5 py-0.5 dark:bg-sky-950/50">
+          <input
+            type="number"
+            value={text}
+            min={min}
+            max={max}
+            step={step}
+            onChange={(e) => {
+              const v = e.target.value;
+              setText(v);
+              if (v !== "" && !Number.isNaN(Number(v))) onChange(clamp(Number(v)));
+            }}
+            onBlur={() => { if (text === "" || Number.isNaN(Number(text))) setText(String(rounded)); }}
+            className="w-10 bg-transparent text-right text-sm font-bold tabular-nums text-sky-700 outline-none dark:text-sky-300"
+          />
+          <span className="text-[11px] text-sky-500 dark:text-sky-400">{suffix}</span>
+        </span>
+      </div>
+      <input
+        type="range"
+        min={min}
+        max={max}
+        step={step}
+        value={rounded}
+        onChange={(e) => onChange(clamp(Number(e.target.value)))}
+        className="mt-1.5 h-1.5 w-full cursor-pointer appearance-none rounded-full bg-sky-100 accent-sky-600 dark:bg-sky-900/60"
+        aria-label={label}
+      />
+      <div className="mt-1 flex justify-between text-[10px] text-neutral-400 tabular-nums">
+        <span>{min}{suffix}</span>
+        <span>{max}{suffix}</span>
+      </div>
+    </div>
   );
 }
