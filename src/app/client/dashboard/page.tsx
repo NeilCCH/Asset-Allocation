@@ -7,6 +7,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { BackLink } from "@/components/ui/BackLink";
+import { ArrowIcon } from "@/components/ui/ArrowIcon";
 import { SignOutButton } from "@/components/ui/SignOutButton";
 import { ContactAdvisorCard } from "@/components/client/ContactAdvisorCard";
 import { ProBadges } from "@/components/advisor/Badges";
@@ -212,10 +213,10 @@ export default function Dashboard() {
       {!loggedIn && (
         <Link
           href="/client/account"
-          className="mt-4 flex items-center justify-between rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-200"
+          className="group mt-4 flex items-center justify-between rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-200"
         >
           <span>建立帳號,日後可隨時登入回看此健檢</span>
-          <span className="font-medium">建立帳號 →</span>
+          <span className="inline-flex items-center gap-1 font-medium">建立帳號<ArrowIcon /></span>
         </Link>
       )}
 
@@ -384,9 +385,9 @@ export default function Dashboard() {
 
       <Link
         href="/client/report"
-        className="mt-4 block rounded-lg border border-neutral-300 py-3 text-center text-sm font-medium text-neutral-700 hover:bg-neutral-50 dark:border-neutral-700 dark:text-neutral-200 dark:hover:bg-neutral-900"
+        className="group mt-4 block rounded-lg border border-neutral-300 py-3 text-center text-sm font-medium text-neutral-700 hover:bg-neutral-50 dark:border-neutral-700 dark:text-neutral-200 dark:hover:bg-neutral-900"
       >
-        產出健檢報告 →
+        <span className="inline-flex items-center gap-1">產出健檢報告<ArrowIcon /></span>
       </Link>
         </>
       )}
@@ -459,9 +460,9 @@ function UnlockCard({
                     target="_blank"
                     rel="noopener noreferrer nofollow"
                     onClick={(e) => e.stopPropagation()}
-                    className="mt-2 inline-flex items-center gap-1 rounded-full border border-sky-300 bg-sky-50 px-3 py-1 text-xs font-semibold text-sky-700 hover:bg-sky-100 dark:border-sky-800 dark:bg-sky-950/40 dark:text-sky-300 dark:hover:bg-sky-900/50"
+                    className="group mt-2 inline-flex items-center gap-1 rounded-full border border-sky-300 bg-sky-50 px-3 py-1 text-xs font-semibold text-sky-700 hover:bg-sky-100 dark:border-sky-800 dark:bg-sky-950/40 dark:text-sky-300 dark:hover:bg-sky-900/50"
                   >
-                    認識我 →
+                    認識我<ArrowIcon className="h-3.5 w-3.5" />
                   </a>
                 )}
               </div>

@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { BackLink } from "@/components/ui/BackLink";
+import { ArrowIcon } from "@/components/ui/ArrowIcon";
 import type {
   Assets,
   EduStage,
@@ -1038,9 +1039,9 @@ export default function Assessment() {
           <button
             onClick={submit}
             disabled={submitting}
-            className="rounded-lg bg-emerald-600 px-6 py-2.5 text-sm font-medium text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
+            className="group inline-flex items-center justify-center gap-1 rounded-lg bg-emerald-600 px-6 py-2.5 text-sm font-medium text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {submitting ? "處理中…" : "看我的資產健檢 →"}
+            {submitting ? "處理中…" : <>看我的資產健檢<ArrowIcon /></>}
           </button>
         )}
       </div>

@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { BackLink } from "@/components/ui/BackLink";
+import { ArrowIcon } from "@/components/ui/ArrowIcon";
 
 const inputCls =
   "mt-1.5 w-full rounded-lg border border-neutral-300 bg-white px-3 py-2.5 text-sm outline-none focus:border-sky-500 dark:border-neutral-700 dark:bg-neutral-900";
@@ -80,8 +81,8 @@ export default function ResetPassword() {
             ✓ 密碼已更新,請用新密碼重新登入。
           </p>
           <div className="flex gap-3 text-sm">
-            <Link href="/advisor" className="font-medium text-sky-700 hover:underline dark:text-sky-400">前往顧問登入 →</Link>
-            <Link href="/client/account" className="font-medium text-emerald-700 hover:underline dark:text-emerald-400">客戶登入 →</Link>
+            <Link href="/advisor" className="group inline-flex items-center gap-1 font-medium text-sky-700 hover:underline dark:text-sky-400">前往顧問登入<ArrowIcon /></Link>
+            <Link href="/client/account" className="group inline-flex items-center gap-1 font-medium text-emerald-700 hover:underline dark:text-emerald-400">客戶登入<ArrowIcon /></Link>
           </div>
         </div>
       )}
