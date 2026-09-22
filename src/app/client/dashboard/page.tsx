@@ -28,10 +28,10 @@ import {
 } from "@/lib/domain/calc";
 import { clientDefaultParams } from "@/lib/domain/params";
 import { estimateEstateTax } from "@/lib/domain/estateTax";
-import { loadDraft } from "@/lib/draft";
+import { clearDraft, loadDraft } from "@/lib/draft";
 import { normalizeData } from "@/lib/domain/normalize";
 import { loadReferral, saveReferral, savePendingAdvisor, loadPendingAdvisor, clearPendingAdvisor } from "@/lib/referral";
-import { saveClientId } from "@/lib/clientSession";
+import { saveClientId, getOrCreateSubmissionToken } from "@/lib/clientSession";
 import { submitClientQuestionnaire } from "@/lib/actions/client";
 import { linkClientAccount } from "@/lib/actions/clientAccount";
 import { listRecommendedAdvisors, type RecommendedAdvisor } from "@/lib/actions/advisorDirectory";
@@ -78,6 +78,7 @@ export default function Dashboard() {
         const q = (rows as { questionnaire_responses?: QRRow | QRRow[] }[] | null)?.[0]?.questionnaire_responses;
         const qr = Array.isArray(q) ? q[0] : q;
         if (qr?.core) {
+          clearDraft();
           // 已登入且在資料庫有記錄 → 必已綁定顧問
           setBound(true);
           setData(normalizeData({ basic: qr.basic, core: qr.core, deep: qr.deep ?? undefined, kyc: qr.kyc ?? undefined } as QuestionnaireData));
@@ -104,10 +105,12 @@ export default function Dashboard() {
     setBinding(busyKey);
     try {
       saveReferral(code);
-      const res = await submitClientQuestionnaire({ referralCode: code, data });
+      const token = getOrCreateSubmissionToken();
+      const res = await submitClientQuestionnaire({ referralCode: code, data, submissionToken: token, pdpaConsent: true });
       if (res.ok) {
         saveClientId(res.clientId);
-        await linkClientAccount(res.clientId);
+        const linked = await linkClientAccount(res.clientId, token);
+        if (!linked.ok) return;
         clearPendingAdvisor();
         setBound(true);
       }

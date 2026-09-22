@@ -485,7 +485,7 @@ export default function Assessment() {
     const ref = loadReferral();
     if (ref) {
       try {
-        const res = await submitClientQuestionnaire({ referralCode: ref, data, submissionToken: getOrCreateSubmissionToken() });
+        const res = await submitClientQuestionnaire({ referralCode: ref, data, submissionToken: getOrCreateSubmissionToken(), pdpaConsent: f.pdpa });
         if (res.ok) saveClientId(res.clientId);
       } catch {
         /* 靜默失敗:客戶仍可由 localStorage 檢視事實層 */

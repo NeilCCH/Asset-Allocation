@@ -8,19 +8,34 @@ import { buildReport, type ReportModel } from "@/lib/domain/report";
 import { clientDefaultParams } from "@/lib/domain/params";
 import { HealthCheckReport } from "@/components/report/HealthCheckReport";
 import { FontSizeControl, type FontScale } from "@/components/report/FontSizeControl";
-import { loadDraft } from "@/lib/draft";
+import { clearDraft, loadDraft } from "@/lib/draft";
 import { normalizeData } from "@/lib/domain/normalize";
+import { createClient } from "@/lib/supabase/client";
 
 export default function ClientReport() {
   const [model, setModel] = useState<ReportModel | null | undefined>(undefined);
   const [fs, setFs] = useState<FontScale>("base");
 
   useEffect(() => {
-    const raw = loadDraft() as QuestionnaireData | null;
-    const data = raw ? normalizeData(raw) : null;
-    // loadDraft 讀 localStorage,僅能於 client effect 執行
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setModel(data ? buildReport(data, { params: clientDefaultParams(data.basic.honorific) }) : null);
+    (async () => {
+      const supabase = createClient();
+      const { data: auth } = await supabase.auth.getUser();
+      let raw: QuestionnaireData | null = null;
+      if (auth.user) {
+        const { data: rows } = await supabase.from("clients")
+          .select("questionnaire_responses(basic, core, deep, kyc)")
+          .eq("auth_user_id", auth.user.id).order("created_at", { ascending: false }).limit(1);
+        const q = (rows as { questionnaire_responses?: QuestionnaireData | QuestionnaireData[] }[] | null)?.[0]?.questionnaire_responses;
+        const response = Array.isArray(q) ? q[0] : q;
+        if (response?.core) {
+          raw = response;
+          clearDraft();
+        }
+      }
+      raw ??= loadDraft();
+      const data = raw ? normalizeData(raw) : null;
+      setModel(data ? buildReport(data, { params: clientDefaultParams(data.basic.honorific) }) : null);
+    })();
   }, []);
 
   if (model === undefined) return <div className="p-10 text-center text-neutral-400">載入中…</div>;
