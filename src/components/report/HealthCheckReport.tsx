@@ -469,10 +469,24 @@ export function HealthCheckReport({ model, variant = "full" }: { model: ReportMo
       <section className="hcr-card">
         <h2>計算公式與法源依據（供驗算）</h2>
         <p className="hcr-note" style={{ marginTop: 0 }}>以下揭露報告各項試算所採用之公式與法令/理論依據，供顧問覆核。稅率、免稅額與扣除額等金額，均以主管機關/財政部最新公告為準。</p>
+
+        <div className="hcr-sub-label">退休金與準備金試算 ↔ 財務計算機（TVM）對照</div>
+        <p className="hcr-note" style={{ marginTop: 0 }}>退休試算採財務計算機之貨幣時間價值（Time Value of Money）邏輯，對應 N（期數）/ I/Y（利率）/ PV（現值）/ PMT（年金）/ FV（終值）五大功能：</p>
+        <ul className="hcr-src">
+          <li><b>現有資產成長至退休</b> → <b>FV</b>（單筆複利終值）：FV = PV × (1+r)<sup>n</sup></li>
+          <li><b>退休時所需資本</b> → <b>PV of annuity</b>（年金現值，以<b>實質報酬</b>折現）：PMT × [ 1 − (1+rr)<sup>−n</sup> ] / rr，rr =(1+r)/(1+通膨)−1（Fisher 方程式；同時反映退休期支出通膨與本金續成長）</li>
+          <li><b>未來年結餘累積（平投）</b> → <b>FV of annuity</b>（年金終值）：PMT × [ (1+r)<sup>n</sup> − 1 ] / r</li>
+          <li><b>勞退 / 月退抵減</b> → <b>PV of annuity</b>（將退休後月退金流折現回退休時點）</li>
+          <li><b>今日一次準備（現值）</b> → <b>PV</b>（單筆折現）：PV = FV / (1+r)<sup>n</sup></li>
+          <li><b>從現在起每月需存</b> → <b>PMT</b>（回推年金）：目標缺口 ÷ 年金終值因子</li>
+        </ul>
+        <p className="hcr-note" style={{ marginTop: 0 }}>說明：退休試算以「年」為複利週期、貸款攤還以「月」為週期；屬<b>確定性</b> TVM（單一假設報酬與通膨），非機率模擬，不提供成功機率。</p>
+
+        <div className="hcr-sub-label" style={{ marginTop: 14 }}>各項公式與法源</div>
         <ul className="hcr-src">
           <li><b>資產負債表</b>：資產總額 − 負債總額 = 淨值（會計恆等式）。保障型保單不計入資產總額。</li>
           <li><b>未來值（複利終值）</b>：FV = PV × (1 + r)<sup>n</sup>,r 為年報酬率、n 為年數（財務管理 Time Value of Money）。</li>
-          <li><b>年結餘持續投入（成長型年金終值）</b>：FV = PMT × [ (1+r)<sup>n</sup> − (1+g)<sup>n</sup> ] / (r − g),g 為年成長率（r = g 時以 n×PMT×(1+r)<sup>n−1</sup> 計）。</li>
+          <li><b>年結餘持續投入（平準年金終值）</b>：FV = PMT × [ (1+r)<sup>n</sup> − 1 ] / r（每年固定投入「現況年結餘」、以年報酬複利；赤字則以負值反向侵蝕）。採<b>兩階段</b>：貸款繳清後月還款停止、結餘回升，分段計算更貼近現實。</li>
           <li><b>貸款攤還</b>：月付金 = P × i / [ 1 − (1+i)<sup>−N</sup> ]；剩餘本金 = P × (1+i)<sup>m</sup> − PMT × [ (1+i)<sup>m</sup> − 1 ] / i(i 為月利率、N 為總期數、m 為已繳期數）。</li>
           <li><b>退休前薪資（互動參數）</b>：由顧問/客戶輸入「預估退休前薪資」，主動收入曲線自現況<b>線性推估</b>至該值：當年主動收入 = 現況 +（預估退休前薪資 − 現況）× t / n,t 為經過年數、n 為距退休年數。</li>
           <li><b>現金流趨勢三線</b>：主動收入（薪資）自現況線性推估至預估退休前薪資、退休即停止；被動收入依通膨率逐年複利；退休後併入勞退月領（《勞工退休金條例》新制個人專戶）；貸款還款隨本金餘額遞減至還清。</li>
