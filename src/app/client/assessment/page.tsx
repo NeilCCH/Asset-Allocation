@@ -275,6 +275,23 @@ export default function Assessment() {
 
   // 保險家戶成員(本人 / 配偶 / 各子女)
   const [insMember, setInsMember] = useState("self");
+
+  // 清除重填:清掉作答進度快取並把表單歸零,回到第一步。
+  // 保留 submission token(非個資,重填後送出沿用同一筆而非新增)與 draft(重新送出時才覆蓋),不動已產生的儀表板。
+  const resetForm = () => {
+    if (typeof window !== "undefined" && !window.confirm("確定要清除已填入的所有資料並重新開始嗎?此動作無法復原。")) return;
+    try {
+      window.localStorage.removeItem(PROGRESS_KEY);
+    } catch {
+      // 無痕模式 / 讀寫受限:忽略,仍會重置畫面上的作答。
+    }
+    setF(initialForm);
+    setStep(0);
+    setMaxStep(0);
+    setInsMember("self");
+    if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: "auto" });
+  };
+
   const setMonthly = (kind: "monthlyIncome" | "monthlyExpense" | "annualExpense", label: string, v: string) =>
     setF((p) => ({ ...p, [kind]: { ...p[kind], [label]: v } }));
   const insMembers = [
@@ -522,6 +539,16 @@ export default function Assessment() {
             </button>
           );
         })}
+      </div>
+
+      <div className="mt-2 flex justify-end">
+        <button
+          type="button"
+          onClick={resetForm}
+          className="text-xs text-neutral-400 underline-offset-2 hover:text-red-500 hover:underline"
+        >
+          清除重填
+        </button>
       </div>
 
       <div className="mt-7">
