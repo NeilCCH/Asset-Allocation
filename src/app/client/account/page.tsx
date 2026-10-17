@@ -7,7 +7,7 @@ import { SignOutButton } from "@/components/ui/SignOutButton";
 import { ChangePassword } from "@/components/ui/ChangePassword";
 import { createClient } from "@/lib/supabase/client";
 import { linkClientAccount } from "@/lib/actions/clientAccount";
-import { loadClientId } from "@/lib/clientSession";
+import { loadClientId, loadSubmissionToken } from "@/lib/clientSession";
 
 export default function ClientAccount() {
   // 先確認登入狀態:已登入 → 個人資料頁(改聯絡資料 + 改密碼);未登入 → 註冊/登入。
@@ -194,14 +194,22 @@ function AuthPanel() {
           return;
         }
         const clientId = loadClientId();
-        if (clientId) await linkClientAccount(clientId);
+        const token = loadSubmissionToken();
+        if (clientId && token) {
+          const linked = await linkClientAccount(clientId, token);
+          if (!linked.ok) throw new Error(linked.error);
+        }
         router.push(next);
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email: em, password: pw });
         if (error) throw error;
         // 登入時也補做綁定(涵蓋開啟 Email 驗證、註冊當下未取得 session 的情況)
         const clientId = loadClientId();
-        if (clientId) await linkClientAccount(clientId);
+        const token = loadSubmissionToken();
+        if (clientId && token) {
+          const linked = await linkClientAccount(clientId, token);
+          if (!linked.ok) throw new Error(linked.error);
+        }
         router.push(next);
       }
     } catch (e) {
